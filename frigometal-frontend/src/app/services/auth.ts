@@ -22,6 +22,6 @@ export class AuthService {
   // 👇 NUEVA FUNCIÓN PARA EL LOGIN
   iniciarSesion(credenciales: any): Observable<any> {
     // Apuntamos a la nueva ruta /login/ que acabamos de crear en FastAPI
-    return this.http.post('http://127.0.0.1:8000/login/', credenciales);
+    return this.http.post('https://frigometal-administracion.vercel.app/login/', credenciales);
   }
 }
