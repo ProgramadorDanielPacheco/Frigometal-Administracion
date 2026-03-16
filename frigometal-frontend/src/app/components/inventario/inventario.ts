@@ -49,8 +49,15 @@ export class Inventario implements OnInit {
   cargarInventario(): void {
     this.materialService.getMateriales().subscribe({
       next: (datos) => {
-        // Asignamos los datos de forma segura
-        this.dataSource.data = datos;
+        // CORRECCIÓN: Forzamos a que el stock se lea como número matemático
+        const datosCorregidos = datos.map(mat => ({
+          ...mat,
+          stock_actual: Number(mat.stock_actual),
+          stock_minimo_alerta: Number(mat.stock_minimo_alerta)
+        }));
+        
+        // Asignamos los datos ya corregidos a la tabla
+        this.dataSource.data = datosCorregidos;
       },
       error: (err) => console.error('Error cargando inventario', err)
     });
