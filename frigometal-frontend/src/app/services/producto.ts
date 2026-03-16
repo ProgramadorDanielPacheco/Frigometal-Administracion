@@ -11,7 +11,7 @@ export interface Producto {
 
 @Injectable({ providedIn: 'root' })
 export class ProductoService {
-  private apiUrl = 'http://127.0.0.1:8000/productos/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/productos/';
 
   constructor(private http: HttpClient) { }
 

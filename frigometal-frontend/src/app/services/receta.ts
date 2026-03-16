@@ -12,7 +12,7 @@ export interface RecetaDetalle {
 @Injectable({ providedIn: 'root' })
 export class RecetaService {
   // 👇 Revisa en tu Swagger de Python si la ruta es /estructuras/ o /recetas/ 👇
-  private apiUrl = 'http://127.0.0.1:8000/estructura-producto/'; 
+  private apiUrl = 'https://frigometal-administracion.vercel.app/estructura-producto/'; 
 
   constructor(private http: HttpClient) { }
 

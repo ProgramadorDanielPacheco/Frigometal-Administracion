@@ -11,7 +11,7 @@ export interface ResumenDashboard {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
-  private apiUrl = 'http://127.0.0.1:8000/dashboard/resumen/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/dashboard/resumen/';
 
   constructor(private http: HttpClient) { }
 

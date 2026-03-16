@@ -13,7 +13,7 @@ export interface OrdenCompra {
   providedIn: 'root'
 })
 export class CompraService {
-  private apiUrl = 'http://127.0.0.1:8000/ordenes-compra/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/ordenes-compra/';
 
   constructor(private http: HttpClient) { }
 

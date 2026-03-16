@@ -13,7 +13,7 @@ export interface Cliente {
 
 @Injectable({ providedIn: 'root' })
 export class ClienteService {
-  private apiUrl = 'http://127.0.0.1:8000/clientes/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/clientes/';
 
   constructor(private http: HttpClient) { }
 

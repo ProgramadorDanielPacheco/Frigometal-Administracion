@@ -13,7 +13,7 @@ export interface OrdenTrabajo {
 
 @Injectable({ providedIn: 'root' })
 export class ProgramacionService {
-  private apiUrl = 'http://127.0.0.1:8000/ordenes-trabajo/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/ordenes-trabajo/';
   constructor(private http: HttpClient) { }
 
   getOrdenes(): Observable<OrdenTrabajo[]> {
