@@ -10,7 +10,7 @@ from sqlalchemy import Column, Integer, String, Boolean
 class Usuario(Base):
     __tablename__ = "usuarios"
 
-    id_usuario = Column(String(10), primary_key=True, index=True)
+    id_usuario = Column(String(20), primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
     correo = Column(String(100), unique=True, index=True, nullable=False) # 👈 NUEVO
     hashed_password = Column(String(200), nullable=False) # 👈 NUEVO (Nunca guardes la contraseña en texto plano)
@@ -21,7 +21,7 @@ class Usuario(Base):
 class Cliente(Base):
     __tablename__ = "clientes"
 
-    id_cliente = Column(String(10), primary_key=True, index=True)
+    id_cliente = Column(String(20), primary_key=True, index=True)
     nombre = Column(String(150), nullable=False)
     telefono = Column(String(20))
     correo = Column(String(100))
@@ -56,7 +56,7 @@ class Pedido(Base):
     __tablename__ = "pedidos"
 
     id_pedido = Column(Integer, primary_key=True, index=True)
-    id_cliente = Column(String(10), ForeignKey("clientes.id_cliente", ondelete="RESTRICT"))
+    id_cliente = Column(String(20), ForeignKey("clientes.id_cliente", ondelete="RESTRICT"))
     fecha_solicitud = Column(Date, default=date.today)
     
     # 👇 NUEVA COLUMNA PARA GUARDAR LA FECHA QUE VIENE DE ANGULAR 👇
@@ -112,7 +112,7 @@ class OrdenTrabajo(Base):
 
     id_orden_trabajo = Column(Integer, primary_key=True, index=True)
     id_detalle_pedido = Column(Integer, ForeignKey("detalles_pedido.id_detalle", ondelete="CASCADE"))
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="RESTRICT"))
+    id_usuario = Column(String(20), ForeignKey("usuarios.id_usuario", ondelete="RESTRICT"))
     fecha_inicio = Column(Date, nullable=False)
     fecha_entrega_programada = Column(Date, nullable=False)
     fecha_entrega_real = Column(Date, nullable=True)
