@@ -17,6 +17,7 @@ import { ReportesService } from '../../services/reportes';
 import { MatIcon } from "@angular/material/icon";
 import { ProductoService } from '../../services/producto';
 import { ClienteService } from '../../services/cliente';
+
 @Component({
   selector: 'app-programacion',
   standalone: true,
@@ -24,7 +25,7 @@ import { ClienteService } from '../../services/cliente';
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule,
     MatSelectModule, MatInputModule, MatButtonModule, MatTableModule, MatSnackBarModule, MatMenu,
     MatIcon, MatMenuTrigger
-],
+  ],
   templateUrl: './programacion.html',
   styleUrls: ['./programacion.scss']
 })
@@ -38,7 +39,7 @@ export class ProgramacionComponent implements OnInit {
 
   // Variables del formulario
   idDetallePedido: number | null = null;
-  idTrabajador: number | null = null;
+  idTrabajador: string = '';
   fechaInicio: string = '';
   fechaEntrega: string = '';
 
@@ -58,17 +59,38 @@ export class ProgramacionComponent implements OnInit {
     this.cargarCronograma();
     this.cargarPedidosPendientes();
     
-    
-    // 👇 Cargamos los productos al iniciar la pantalla
+    // Cargamos los productos al iniciar la pantalla
     this.productoService.getProductos().subscribe(datos => {
       this.productos = datos;
       this.cdr.detectChanges();
     });
 
     this.clienteService.getClientes().subscribe(datos => {
-    this.clientes = datos;
-    this.cdr.detectChanges();
-  });
+      this.clientes = datos;
+      this.cdr.detectChanges();
+    });
+  }
+
+  // ==========================================
+  // 👇 NUEVA FUNCIÓN: AUTOCOMPLETAR FECHAS 👇
+  // ==========================================
+  onPedidoSeleccionado(): void {
+    if (!this.idDetallePedido) return;
+
+    const detalleSelec = this.detallesPendientes.find(d => d.id_detalle === this.idDetallePedido);
+
+    if (detalleSelec && detalleSelec.fecha_entrega) {
+      // 👇 Envolvemos en setTimeout para eliminar el error NG0100 👇
+      setTimeout(() => {
+        this.fechaEntrega = detalleSelec.fecha_entrega;
+
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0'); 
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        this.fechaInicio = `${yyyy}-${mm}-${dd}`;
+      }, 0);
+    }
   }
 
   // 👇 LA FUNCIÓN TRADUCTORA
@@ -78,19 +100,17 @@ export class ProgramacionComponent implements OnInit {
     // Buscamos el producto que coincida con el ID
     const prod = this.productos.find(p => p.id_producto === idProducto);
     return prod ? prod.nombre : `Producto Desconocido (#${idProducto})`;
-  
-    
   }
 
   obtenerNombreCliente(idCliente: any): string {
-  if (!idCliente) return 'Desconocido';
-  if (this.clientes.length === 0) return 'Cargando...';
+    if (!idCliente) return 'Desconocido';
+    if (this.clientes.length === 0) return 'Cargando...';
 
-  const idLimpio = String(idCliente).trim();
-  const cliente = this.clientes.find(c => String(c.id_cliente).trim() === idLimpio);
+    const idLimpio = String(idCliente).trim();
+    const cliente = this.clientes.find(c => String(c.id_cliente).trim() === idLimpio);
 
-  return cliente ? cliente.nombre : `Desconocido`;
-}
+    return cliente ? cliente.nombre : `Desconocido`;
+  }
 
   cargarCronograma(): void {
     this.programacionService.getOrdenes().subscribe(datos => this.dataSource.data = datos);
@@ -102,11 +122,9 @@ export class ProgramacionComponent implements OnInit {
       return;
     }
 
-    
-
     const nuevaOrden: OrdenTrabajo = {
       id_detalle_pedido: this.idDetallePedido,
-      id_usuario: this.idTrabajador,
+      id_usuario: this.idTrabajador as any, 
       fecha_inicio: this.fechaInicio,
       fecha_entrega_programada: this.fechaEntrega
     };
@@ -115,9 +133,16 @@ export class ProgramacionComponent implements OnInit {
       next: () => {
         this.snackBar.open('✅ Trabajo asignado correctamente', 'Excelente', { duration: 4000 });
         this.cargarCronograma(); // Refrescamos la tabla
+        
+        // 👇 EL TRUCO PARA CALLAR LOS ERRORES NG0100 👇
+        setTimeout(() => {
+          this.idDetallePedido = null;
+          this.idTrabajador = '';
+          this.fechaInicio = '';
+          this.fechaEntrega = '';
+        }, 0);
       },
       error: (err) => {
-        // AQUÍ CAPTURAMOS EL ERROR SI SE PASA DE HORAS
         const mensajeError = err.error?.detail || 'Error al asignar trabajador';
         this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 8000, panelClass: ['error-snackbar'] });
       }
@@ -127,30 +152,24 @@ export class ProgramacionComponent implements OnInit {
   cargarPedidosPendientes(): void {
     this.pedidoService.getPedidos().subscribe({
       next: (pedidos) => {
-        this.detallesPendientes = []; // Vaciamos la lista por si acaso
+        this.detallesPendientes = []; 
 
-        // Recorremos todos los pedidos que vienen de Python
         pedidos.forEach((pedido: any) => {
           const estado = pedido.estado?.toUpperCase() || 'PENDIENTE';
           
-          // Si el pedido NO está entregado...
           if (estado !== 'ENTREGADO' && estado !== 'ENTREGADO CON ATRASO') {
-            
-            // ...entonces sacamos sus detalles (productos) uno por uno
             if (pedido.detalles && pedido.detalles.length > 0) {
               pedido.detalles.forEach((detalle: any) => {
-                // Metemos cada detalle a nuestra nueva lista, juntándolo con la fecha del pedido padre
                 this.detallesPendientes.push({
                   id_detalle: detalle.id_detalle,
                   id_pedido: pedido.id_pedido,
                   id_cliente: pedido.id_cliente,
                   id_producto: detalle.id_producto,
                   cantidad: detalle.cantidad,
-                  fecha_entrega: pedido.fecha_entrega // Heredamos la fecha del pedido
+                  fecha_entrega: pedido.fecha_entrega 
                 });
               });
             }
-
           }
         });
 
@@ -161,24 +180,21 @@ export class ProgramacionComponent implements OnInit {
   }
 
   descargarExcel(): void {
-  const datos = this.dataSource.data;
-  this.reportesService.exportarExcel(datos, 'Cronograma_Produccion_Frigometal');
-}
+    const datos = this.dataSource.data;
+    this.reportesService.exportarExcel(datos, 'Cronograma_Produccion_Frigometal');
+  }
 
-// Función para los colores de las fases
   obtenerColorEstado(estado: string): { color: string, fondo: string } {
     const est = estado?.toUpperCase() || 'ASIGNADO';
     switch (est) {
-      case 'COMPLETADO': return { color: '#1b5e20', fondo: '#c8e6c9' }; // Verde
-      case 'EN_PROGRESO': return { color: '#0d47a1', fondo: '#bbdefb' }; // Azul
+      case 'COMPLETADO': return { color: '#1b5e20', fondo: '#c8e6c9' }; 
+      case 'EN_PROGRESO': return { color: '#0d47a1', fondo: '#bbdefb' }; 
       case 'ASIGNADO': 
-      default: return { color: '#e65100', fondo: '#ffe0b2' }; // Naranja
+      default: return { color: '#e65100', fondo: '#ffe0b2' }; 
     }
   }
 
-  // Función que se dispara al elegir el nuevo estado en el menú
   cambiarEstado(orden: any, nuevoEstado: string): void {
-    // Reemplaza 'this.ordenService' por el nombre de tu variable inyectada
     this.programacionService.actualizarEstadoOrden(orden.id_orden_trabajo, nuevoEstado).subscribe({
       next: () => {
         this.snackBar.open(`✅ Orden marcada como: ${nuevoEstado}`, 'Cerrar', { duration: 3000 });
@@ -192,10 +208,9 @@ export class ProgramacionComponent implements OnInit {
     });
   }
 
-descargarPDF(): void {
-  const datos = this.dataSource.data;
-  // Estas son las claves exactas que vienen de tu base de datos
-  const columnas = ['id_orden_trabajo', 'id_detalle_pedido', 'id_usuario', 'fecha_inicio', 'fecha_entrega_programada', 'estado'];
-  this.reportesService.exportarPDF(datos, columnas, 'Cronograma de Producción - Frigometal', 'Cronograma_Frigometal');
-}
+  descargarPDF(): void {
+    const datos = this.dataSource.data;
+    const columnas = ['id_orden_trabajo', 'id_detalle_pedido', 'id_usuario', 'fecha_inicio', 'fecha_entrega_programada', 'estado'];
+    this.reportesService.exportarPDF(datos, columnas, 'Cronograma de Producción - Frigometal', 'Cronograma_Frigometal');
+  }
 }

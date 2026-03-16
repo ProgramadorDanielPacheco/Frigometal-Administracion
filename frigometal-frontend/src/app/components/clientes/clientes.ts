@@ -26,13 +26,14 @@ import { Cliente, ClienteService } from '../../services/cliente';
 })
 export class ClientesComponent implements OnInit {
   
-  // Variables de la tabla (Ajustadas a tu modelo)
+  // Variables de la tabla (Añadimos 'acciones' al final)
   dataSource = new MatTableDataSource<Cliente>([]);
-  columnasMostradas: string[] = ['id_cliente', 'nombre', 'telefono', 'correo', 'direccion'];
+  columnasMostradas: string[] = ['id_cliente', 'nombre', 'telefono', 'correo', 'direccion', 'acciones'];
   
   // Variables del formulario
   mostrarFormulario: boolean = false;
-  nuevoCliente: Cliente = { id_cliente: '',nombre: '', telefono: '', correo: '', direccion: '' };
+  modoEdicion: boolean = false; // 👈 NUEVO: Controla si estamos creando o editando
+  nuevoCliente: Cliente = { id_cliente: '', nombre: '', telefono: '', correo: '', direccion: '' };
 
   constructor(
     private clienteService: ClienteService,
@@ -46,6 +47,9 @@ export class ClientesComponent implements OnInit {
 
   toggleFormulario(): void {
     this.mostrarFormulario = !this.mostrarFormulario;
+    if (!this.mostrarFormulario) {
+      this.cancelarEdicion(); // Si cierra el form, limpiamos todo
+    }
     this.cdr.detectChanges();
   }
 
@@ -59,61 +63,86 @@ export class ClientesComponent implements OnInit {
     });
   }
 
+  // 👇 LÓGICA PARA MODO EDICIÓN
+  editarCliente(cliente: Cliente): void {
+    this.modoEdicion = true;
+    this.mostrarFormulario = true;
+    
+    // Clonamos los datos para no afectar la tabla hasta que se guarde
+    this.nuevoCliente = { ...cliente }; 
+    
+    // Hacemos scroll suave hacia el formulario
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelarEdicion(): void {
+    this.modoEdicion = false;
+    this.nuevoCliente = { id_cliente: '', nombre: '', telefono: '', correo: '', direccion: '' };
+  }
+
   guardarCliente(): void {
     if (!this.nuevoCliente.id_cliente || !this.nuevoCliente.nombre) {
       this.snackBar.open('⚠️ La identificación y el nombre son obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    this.clienteService.crearCliente(this.nuevoCliente).subscribe({
-      next: () => {
-        this.snackBar.open('✅ Cliente registrado con éxito', 'Genial', { duration: 4000 });
-        this.mostrarFormulario = false;
-        this.cdr.detectChanges();
-        this.cargarClientes();
-        
-        // Limpiamos con el id_cliente vacío
-        this.nuevoCliente = { id_cliente: '', nombre: '', telefono: '', correo: '', direccion: '' };
-      },
-      error: (err) => {
-        console.error(err);
-        // Extraemos el mensaje personalizado de Python, si no hay, mostramos uno genérico
-        const mensajeError = err.error?.detail || 'Error al registrar el cliente';
-        this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 4000 });
-      }
-    });
+    if (this.modoEdicion) {
+      // 🔵 MODO ACTUALIZAR
+      const datosActualizar = {
+        nombre: this.nuevoCliente.nombre,
+        telefono: this.nuevoCliente.telefono,
+        correo: this.nuevoCliente.correo,
+        direccion: this.nuevoCliente.direccion
+      };
+
+      this.clienteService.actualizarCliente(this.nuevoCliente.id_cliente, datosActualizar).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Cliente actualizado con éxito', 'Genial', { duration: 4000 });
+          this.mostrarFormulario = false;
+          this.cancelarEdicion();
+          this.cargarClientes();
+        },
+        error: (err) => {
+          const mensajeError = err.error?.detail || 'Error al actualizar el cliente';
+          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 4000 });
+        }
+      });
+
+    } else {
+      // 🟢 MODO CREAR (Lo que ya tenías)
+      this.clienteService.crearCliente(this.nuevoCliente).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Cliente registrado con éxito', 'Genial', { duration: 4000 });
+          this.mostrarFormulario = false;
+          this.cancelarEdicion();
+          this.cargarClientes();
+        },
+        error: (err) => {
+          const mensajeError = err.error?.detail || 'Error al registrar el cliente';
+          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 4000 });
+        }
+      });
+    }
   }
 
-  // ==========================================
-  // LÓGICA DE IMPORTACIÓN MASIVA (EXCEL)
-  // ==========================================
   onArchivoSeleccionado(event: any): void {
     const archivo: File = event.target.files[0];
-    
     if (archivo) {
-      // Pequeña validación de seguridad en Angular
       if (!archivo.name.endsWith('.xlsx') && !archivo.name.endsWith('.xls')) {
         this.snackBar.open('⚠️ Por favor, selecciona un archivo de Excel válido', 'Cerrar', { duration: 3000 });
         return;
       }
-
       this.snackBar.open('⏳ Leyendo y subiendo archivo...', '', { duration: 2000 });
-
       this.clienteService.importarClientesExcel(archivo).subscribe({
         next: (respuesta) => {
           this.snackBar.open(`✅ ${respuesta.mensaje}`, 'Excelente', { duration: 5000 });
-          
-          // Si hubo filas con errores (ej. cédulas falsas o duplicados), le avisamos al usuario
           if (respuesta.errores && respuesta.errores.length > 0) {
-            console.warn('Detalle de errores:', respuesta.errores);
             alert(`Se importaron los clientes correctamente, pero ignoramos algunas filas con errores:\n\n${respuesta.errores.join('\n')}`);
           }
-
-          this.cargarClientes(); // Refrescamos la tabla para ver la magia
-          event.target.value = ''; // Limpiamos el botón por si quieren subir otro Excel
+          this.cargarClientes();
+          event.target.value = ''; 
         },
         error: (err) => {
-          console.error(err);
           const mensaje = err.error?.detail || 'Error al procesar el archivo Excel';
           this.snackBar.open(`❌ ${mensaje}`, 'Cerrar', { duration: 4000 });
           event.target.value = ''; 

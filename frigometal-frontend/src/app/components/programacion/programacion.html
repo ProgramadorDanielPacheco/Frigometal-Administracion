@@ -12,7 +12,7 @@
         <mat-label>Detalle a Fabricar (Producto)</mat-label>
         <mat-icon matPrefix style="margin-right: 10px;">precision_manufacturing</mat-icon>
         
-        <mat-select [(ngModel)]="idDetallePedido">
+        <mat-select [(ngModel)]="idDetallePedido" (selectionChange)="onPedidoSeleccionado()">
           
           @for (det of detallesPendientes; track det.id_detalle) {
             <mat-option [value]="det.id_detalle">

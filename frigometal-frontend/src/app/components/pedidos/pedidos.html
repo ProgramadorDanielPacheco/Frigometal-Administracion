@@ -11,12 +11,9 @@
         <mat-icon>{{ mostrarFormulario ? 'close' : 'add_shopping_cart' }}</mat-icon> 
         {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Pedido' }}
       </button>
-
-      
     </div>
 
     <div style="display: flex; gap: 10px;">
-      
       <input type="file" #fileInput (change)="onArchivoSeleccionado($event)" accept=".xlsx, .xls" style="display: none;">
 
       <button mat-raised-button style="background-color: #217346; color: white;" (click)="fileInput.click()">
@@ -35,9 +32,11 @@
   </div>
 
   @if (mostrarFormulario) {
-    <mat-card class="mat-elevation-z4" style="margin-bottom: 30px; border-left: 5px solid #ff4081;">
+    <mat-card class="mat-elevation-z4" [style.border-left]="modoEdicion ? '5px solid #ff9800' : '5px solid #ff4081'" style="margin-bottom: 30px;">
       <mat-card-header style="margin-bottom: 20px;">
-        <mat-card-title>Detalles de la Orden</mat-card-title>
+        <mat-card-title>
+          {{ modoEdicion ? '✏️ Editando Orden #' + idPedidoEditando : 'Detalles de la Nueva Orden' }}
+        </mat-card-title>
         <mat-card-subtitle>Selecciona el cliente y el producto a fabricar</mat-card-subtitle>
       </mat-card-header>
 
@@ -84,7 +83,8 @@
 
       <mat-card-actions align="end" style="padding: 16px;">
         <button mat-raised-button color="primary" style="padding: 5px 30px; font-size: 1.1rem;" (click)="generarPedido()">
-          <mat-icon>point_of_sale</mat-icon> Confirmar y Descontar Inventario
+          <mat-icon>{{ modoEdicion ? 'update' : 'save_as' }}</mat-icon> 
+          {{ modoEdicion ? 'Actualizar Pedido' : 'Registrar Pedido (Sin confirmar)' }}
         </button>
       </mat-card-actions>
     </mat-card>
@@ -130,31 +130,37 @@
     </ng-container>
 
     <ng-container matColumnDef="acciones">
-  <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Acciones </th>
-  <td mat-cell *matCellDef="let pedido" style="text-align: center;">
-    
-    <div style="display: flex; gap: 5px; justify-content: center;">
-      @if (pedido.estado === 'PENDIENTE') {
-        <button mat-icon-button color="accent" (click)="iniciarProduccion(pedido)" title="Iniciar Producción">
-          <mat-icon>play_circle_outline</mat-icon>
-        </button>
-      }
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Acciones </th>
+      <td mat-cell *matCellDef="let pedido" style="text-align: center;">
+        
+        <div style="display: flex; gap: 5px; justify-content: center;">
+          @if (pedido.estado === 'PENDIENTE') {
+            <button mat-icon-button color="primary" (click)="editarPedido(pedido)" title="Editar Pedido">
+              <mat-icon>edit</mat-icon>
+            </button>
+          }
 
-      @if (pedido.estado === 'EN PRODUCCIÓN') {
-        <button mat-icon-button color="primary" (click)="marcarComoEntregado(pedido)" title="Finalizar y Entregar">
-          <mat-icon>check_circle</mat-icon>
-        </button>
-      }
+          @if (pedido.estado === 'PENDIENTE') {
+            <button mat-icon-button color="accent" (click)="iniciarProduccion(pedido)" title="Iniciar Producción">
+              <mat-icon>play_circle_outline</mat-icon>
+            </button>
+          }
 
-      @if (pedido.estado.includes('ENTREGADO')) {
-        <mat-icon style="color: gray; margin-top: 8px;">lock</mat-icon>
-      }
-    </div>
-    
-  </td>
-  
-</ng-container>
-<ng-container matColumnDef="Terminar">
+          @if (pedido.estado === 'EN PRODUCCIÓN') {
+            <button mat-icon-button color="primary" (click)="marcarComoEntregado(pedido)" title="Finalizar y Entregar">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+          }
+
+          @if (pedido.estado.includes('ENTREGADO')) {
+            <mat-icon style="color: gray; margin-top: 8px;">lock</mat-icon>
+          }
+        </div>
+        
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="Terminar">
       <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Completar </th>
       <td mat-cell *matCellDef="let pedido" style="text-align: center;">
         
@@ -173,7 +179,7 @@
     <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
     <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="7" style="text-align: center; padding: 20px; color: gray;">
+      <td class="mat-cell" colspan="8" style="text-align: center; padding: 20px; color: gray;">
         No hay pedidos registrados. Haz clic en "Nuevo Pedido" para comenzar.
       </td>
     </tr>

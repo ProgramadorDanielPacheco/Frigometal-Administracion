@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Producto {
-  id_producto?: number; // Opcional al crear
+  id_producto?: number; 
   nombre: string;
   tiempo_fabricacion_horas: number;
   es_estandar: boolean;
@@ -19,18 +19,19 @@ export class ProductoService {
     return this.http.get<Producto[]>(this.apiUrl);
   }
 
-  // 👇 NUEVA FUNCIÓN PARA CREAR EL PRODUCTO 👇
   crearProducto(producto: Producto): Observable<Producto> {
     return this.http.post<Producto>(this.apiUrl, producto);
   }
 
-  // 👇 NUEVA FUNCIÓN PARA IMPORTAR PRODUCTOS Y SU ESTRUCTURA (BOM)
+  // 👇 NUEVA FUNCIÓN PARA ACTUALIZAR (CON PROTECCIÓN DE DOBLE BARRA) 👇
+  actualizarProducto(id: number, producto: Partial<Producto>): Observable<Producto> {
+    const urlFinal = this.apiUrl.endsWith('/') ? `${this.apiUrl}${id}` : `${this.apiUrl}/${id}`;
+    return this.http.put<Producto>(urlFinal, producto);
+  }
+
   importarCatalogoExcel(archivo: File): Observable<any> {
     const formData = new FormData();
-    // 'file' debe coincidir con el nombre del parámetro en FastAPI
     formData.append('file', archivo); 
-    
-    // Asegúrate de que this.apiUrl apunte a tu endpoint base de productos
     return this.http.post(`${this.apiUrl}importar-catalogo/`, formData);
   }
 }

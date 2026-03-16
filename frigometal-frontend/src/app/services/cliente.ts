@@ -25,6 +25,12 @@ export class ClienteService {
     return this.http.post<Cliente>(this.apiUrl, cliente);
   }
 
+  // 👇 NUEVA FUNCIÓN PARA ACTUALIZAR CLIENTE
+  actualizarCliente(id_cliente: string, cliente: any): Observable<Cliente> {
+    const urlFinal = this.apiUrl.endsWith('/') ? `${this.apiUrl}${id_cliente}` : `${this.apiUrl}/${id_cliente}`;
+    return this.http.put<Cliente>(urlFinal, cliente);
+  }
+
   // 👇 NUEVA FUNCIÓN PARA ENVIAR EL EXCEL
   importarClientesExcel(archivo: File): Observable<any> {
     const formData = new FormData();

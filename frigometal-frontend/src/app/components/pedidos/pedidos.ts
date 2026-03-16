@@ -40,6 +40,9 @@ export class PedidosComponent implements OnInit {
   cantidadPedido: number = 1;
   fechaEntrega: string = '';
 
+
+  modoEdicion: boolean = false;
+  idPedidoEditando: number | null = null;
   // =========================================
   // VARIABLES PARA LA TABLA Y DISEÑO
   // =========================================
@@ -77,6 +80,24 @@ export class PedidosComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  editarPedido(pedido: any): void {
+    this.modoEdicion = true;
+    this.idPedidoEditando = pedido.id_pedido;
+    this.mostrarFormulario = true;
+
+    // Llenamos el formulario con los datos actuales
+    // Nota: Trim() por si los IDs en tu BD tienen espacios extra
+    this.clienteSeleccionado = String(pedido.id_cliente).trim() as any; 
+    this.fechaEntrega = pedido.fecha_entrega;
+
+    if (pedido.detalles && pedido.detalles.length > 0) {
+      this.productoSeleccionado = pedido.detalles[0].id_producto;
+      this.cantidadPedido = pedido.detalles[0].cantidad;
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // Traer el historial de ventas
  cargarPedidos(): void {
     this.pedidoService.getPedidos().subscribe({
@@ -98,43 +119,48 @@ export class PedidosComponent implements OnInit {
   // LÓGICA DEL SEMÁFORO DE ENTREGAS
   // =========================================
   calcularEstadoTiempo(pedido: any): { texto: string, color: string, fondo: string } {
-  if (!pedido) {
+    if (!pedido) {
       return { texto: 'SIN FECHA', color: '#616161', fondo: '#f5f5f5' };
     }
 
     const estadoActual = pedido.estado?.toUpperCase() || 'PENDIENTE';
 
-  // 1. Si ya está entregado, ignoramos el tiempo y pintamos el resultado final
-  if (estadoActual === 'ENTREGADO') {
-    return { texto: 'ENTREGADO', color: '#1b5e20', fondo: '#c8e6c9' }; // Verde sólido
+    // 1. Si está entregado
+    if (estadoActual === 'ENTREGADO') {
+      return { texto: 'ENTREGADO', color: '#1b5e20', fondo: '#c8e6c9' }; 
+    }
+    if (estadoActual === 'ENTREGADO CON ATRASO') {
+      return { texto: 'ENTREGADO CON ATRASO', color: '#b71c1c', fondo: '#ffcdd2' }; 
+    }
+
+    // 👇 2. LA REGLA DE ORO: Si está pendiente, se queda pendiente (sin calcular tiempo)
+    if (estadoActual === 'PENDIENTE') {
+      return { texto: 'PENDIENTE', color: '#424242', fondo: '#eeeeee' }; // Gris neutro
+    }
+
+    // 3. Solo si está "EN PRODUCCIÓN" calculamos si vamos a tiempo o atrasados
+    if (!pedido.fecha_entrega) {
+      return { texto: 'SIN FECHA', color: '#616161', fondo: '#f5f5f5' }; 
+    }
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); 
+
+    const [anio, mes, dia] = pedido.fecha_entrega.split('-');
+    const fechaLim = new Date(Number(anio), Number(mes) - 1, Number(dia));
+    fechaLim.setHours(0, 0, 0, 0);
+
+    const diferenciaMilisegundos = fechaLim.getTime() - hoy.getTime();
+    const diasRestantes = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+
+    if (diasRestantes > 7) {
+      return { texto: 'EN PRODUCCIÓN (A TIEMPO)', color: '#1b5e20', fondo: '#e8f5e9' }; 
+    } else if (diasRestantes >= 0 && diasRestantes <= 7) {
+      return { texto: 'EN PRODUCCIÓN (POSIBLE ATRASO)', color: '#e65100', fondo: '#fff3e0' }; 
+    } else {
+      return { texto: 'EN PRODUCCIÓN (ATRASADO)', color: '#c62828', fondo: '#ffebee' }; 
+    }
   }
-  if (estadoActual === 'ENTREGADO CON ATRASO') {
-    return { texto: 'ENTREGADO CON ATRASO', color: '#b71c1c', fondo: '#ffcdd2' }; // Rojo intenso
-  }
-
-  // 2. Si sigue pendiente, calculamos el semáforo como siempre
-  if (!pedido.fecha_entrega) {
-    return { texto: 'SIN FECHA', color: '#616161', fondo: '#f5f5f5' }; 
-  }
-
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0); 
-
-  const [anio, mes, dia] = pedido.fecha_entrega.split('-');
-  const fechaLim = new Date(Number(anio), Number(mes) - 1, Number(dia));
-  fechaLim.setHours(0, 0, 0, 0);
-
-  const diferenciaMilisegundos = fechaLim.getTime() - hoy.getTime();
-  const diasRestantes = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
-
-  if (diasRestantes > 7) {
-    return { texto: 'A TIEMPO', color: '#1b5e20', fondo: '#e8f5e9' }; 
-  } else if (diasRestantes >= 0 && diasRestantes <= 7) {
-    return { texto: 'POSIBLE ATRASO', color: '#e65100', fondo: '#fff3e0' }; 
-  } else {
-    return { texto: 'ATRASO', color: '#c62828', fondo: '#ffebee' }; 
-  }
-}
 
 marcarComoEntregado(pedido: any): void {
   let estadoFinal = 'ENTREGADO'; // Asumimos que es a tiempo por defecto
@@ -166,48 +192,55 @@ marcarComoEntregado(pedido: any): void {
   });
 }
   // Guardar la nueva venta
-  generarPedido(): void {
+ generarPedido(): void {
+    // CORRECCIÓN: Si faltan datos, mostramos mensaje de advertencia real
     if (!this.clienteSeleccionado || !this.productoSeleccionado || this.cantidadPedido <= 0 || !this.fechaEntrega) {
-   this.snackBar.open('✅ ¡Pedido registrado como PENDIENTE!', 'Excelente', { duration: 4000 });
-    return;
+      this.snackBar.open('⚠️ Por favor completa todos los campos correctamente.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
+    const datosPedido: any = {
+      id_cliente: this.clienteSeleccionado,
+      fecha_entrega: this.fechaEntrega,
+      detalles: [{ id_producto: this.productoSeleccionado, cantidad: this.cantidadPedido }]
+    };
+
+    if (this.modoEdicion && this.idPedidoEditando) {
+      // 🟢 MODO ACTUALIZAR
+      this.pedidoService.actualizarPedido(this.idPedidoEditando, datosPedido).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Pedido actualizado correctamente.', 'Excelente', { duration: 4000 });
+          this.finalizarGuardado();
+        },
+        error: (err) => this.snackBar.open('❌ Error al actualizar', 'Cerrar', { duration: 3000 })
+      });
+    } else {
+      // 🔵 MODO CREAR
+      // 🔵 MODO CREAR
+      this.pedidoService.crearPedido(datosPedido).subscribe({
+        next: () => {
+          // 👇 Mensaje corregido
+          this.snackBar.open('✅ Pedido registrado como PENDIENTE (Inventario intacto)', 'Excelente', { duration: 4000 });
+          this.finalizarGuardado();
+        },
+        error: (err) => this.snackBar.open('❌ Error al crear', 'Cerrar', { duration: 3000 })
+      });
+    }
   }
 
-    // Armamos el "paquete" tal como lo pide nuestro backend de FastAPI
-    const nuevoPedido: any = { // Usamos 'any' por si tu interfaz Pedido no tiene la fecha definida aún
-    id_cliente: this.clienteSeleccionado,
-    fecha_entrega: this.fechaEntrega, // <-- ENVIAMOS LA FECHA
-    detalles: [
-      {
-        id_producto: this.productoSeleccionado,
-        cantidad: this.cantidadPedido
-      }
-    ]
-  };
-
-    // Enviamos el pedido a la base de datos
-    this.pedidoService.crearPedido(nuevoPedido).subscribe({
-      next: (respuesta) => {
-        this.snackBar.open('✅ ¡Pedido creado! El inventario ha sido descontado.', 'Excelente', { duration: 4000 });
-        
-        // 1. Ocultamos el formulario
-        this.mostrarFormulario = false;
-
-        this.cdr.detectChanges();
-        
-        // 2. Refrescamos la tabla para que aparezca el nuevo pedido
-        this.cargarPedidos();
-
-        
-        // 3. Limpiamos el formulario para la próxima venta
-        this.clienteSeleccionado = null;
-        this.productoSeleccionado = null;
-        this.cantidadPedido = 1;
-      },
-      error: (err) => {
-        console.error(err);
-        this.snackBar.open('❌ Hubo un error al crear el pedido', 'Cerrar', { duration: 3000 });
-      }
-    });
+  // 👇 Utilidad para limpiar y cerrar sin error de Angular
+  finalizarGuardado(): void {
+    this.cargarPedidos();
+    setTimeout(() => {
+      this.mostrarFormulario = false;
+      this.modoEdicion = false;
+      this.idPedidoEditando = null;
+      this.clienteSeleccionado = null;
+      this.productoSeleccionado = null;
+      this.cantidadPedido = 1;
+      this.fechaEntrega = '';
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   iniciarProduccion(pedido: any): void {

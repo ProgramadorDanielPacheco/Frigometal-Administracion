@@ -25,6 +25,12 @@ export class MaterialService {
     return this.http.post<Material>(this.apiUrl, material);
   }
 
+  // 👇 NUEVO MÉTODO PARA ACTUALIZAR
+  actualizarMaterial(id: number, material: Partial<Material>): Observable<Material> {
+    // Se envía el ID en la URL y los datos en el cuerpo (body)
+    return this.http.put<Material>(`${this.apiUrl}${id}`, material);
+  }
+
    importarMaterilesExcel(archivo: File): Observable<any> {
     const formData = new FormData();
     // 'file' debe llamarse exactamente igual que el parámetro en tu función de Python

@@ -19,7 +19,6 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL", 
     "postgresql://neondb_owner:npg_XRqUD83KNJHk@ep-small-thunder-adi2s720-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 )
-
 # ⚠️ NOTA: Si la URL de Neon empieza con 'postgres://', 
 # cámbiala manualmente a 'postgresql://' para que SQLAlchemy no se queje.
 

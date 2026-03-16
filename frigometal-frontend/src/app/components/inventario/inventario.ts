@@ -26,7 +26,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 export class Inventario implements OnInit {
   // Usamos el DataSource oficial de Material
   dataSource = new MatTableDataSource<Material>([]);
-  columnasMostradas: string[] = ['id_material', 'nombre', 'stock_actual', 'stock_minimo_alerta', 'estado'];
+  columnasMostradas: string[] = ['id_material', 'nombre', 'stock_actual', 'stock_minimo_alerta', 'estado', 'acciones'];
 
   mostrarFormulario: boolean = false;
   guardando: boolean = false;
@@ -36,6 +36,9 @@ export class Inventario implements OnInit {
     stock_minimo_alerta: 5,
     unidad_medida: 'Unidades'
   };
+
+  modoEdicion: boolean = false;
+  idMaterialEditando: number | null = null;
   constructor(
     private materialService: MaterialService,
     private reportesService: ReportesService,
@@ -66,6 +69,18 @@ export class Inventario implements OnInit {
     this.mostrarFormulario = !this.mostrarFormulario;
   }
 
+  editarMaterial(material: Material): void {
+    this.modoEdicion = true;
+    this.idMaterialEditando = material.id_material!;
+    this.mostrarFormulario = true;
+    
+    // Copiamos los datos del material al formulario para no modificar la tabla directamente
+    this.nuevoMaterial = { ...material };
+    
+    // Subimos la pantalla hacia el formulario suavemente
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   guardarMaterial(): void {
     if (!this.nuevoMaterial.nombre || this.nuevoMaterial.stock_actual < 0 || this.nuevoMaterial.stock_minimo_alerta < 0) {
       this.snackBar.open('⚠️ Completa los datos correctamente', 'Cerrar', { duration: 3000 });
@@ -73,20 +88,45 @@ export class Inventario implements OnInit {
     }
 
     this.guardando = true;
-    this.materialService.crearMaterial(this.nuevoMaterial).subscribe({
-      next: () => {
-        this.snackBar.open('✅ Material registrado en bodega', 'Excelente', { duration: 4000 });
-        this.cargarInventario(); // Recargamos la tabla para ver el nuevo material
-        this.mostrarFormulario = false; // Ocultamos el formulario
-        this.guardando = false;
-        // Limpiamos el formulario para el siguiente
-        this.nuevoMaterial = { nombre: '', stock_actual: 0, stock_minimo_alerta: 5, unidad_medida: 'Unidades' };
-      },
-      error: (err) => {
-        this.guardando = false;
-        this.snackBar.open('❌ Error al guardar en base de datos', 'Cerrar', { duration: 3000 });
-      }
-    });
+
+    if (this.modoEdicion && this.idMaterialEditando) {
+      // 🟢 MODO ACTUALIZAR
+      this.materialService.actualizarMaterial(this.idMaterialEditando, this.nuevoMaterial).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Material actualizado correctamente', 'Excelente', { duration: 4000 });
+          this.finalizarGuardado();
+        },
+        error: (err) => {
+          this.guardando = false;
+          this.snackBar.open('❌ Error al actualizar en base de datos', 'Cerrar', { duration: 3000 });
+        }
+      });
+    } else {
+      // 🔵 MODO CREAR
+      this.materialService.crearMaterial(this.nuevoMaterial).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Material registrado en bodega', 'Excelente', { duration: 4000 });
+          this.finalizarGuardado();
+        },
+        error: (err) => {
+          this.guardando = false;
+          this.snackBar.open('❌ Error al guardar en base de datos', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  finalizarGuardado(): void {
+    this.cargarInventario(); 
+    this.mostrarFormulario = false; 
+    this.guardando = false;
+    this.limpiarFormulario();
+  }
+
+  limpiarFormulario(): void {
+    this.modoEdicion = false;
+    this.idMaterialEditando = null;
+    this.nuevoMaterial = { nombre: '', stock_actual: 0, stock_minimo_alerta: 5, unidad_medida: 'Unidades' };
   }
 
   descargarExcel(): void {

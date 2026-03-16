@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface OrdenTrabajo {
   id_orden_trabajo?: number;
   id_detalle_pedido: number;
-  id_usuario: number;
+  id_usuario: string;
   fecha_inicio: string;
   fecha_entrega_programada: string;
   estado?: string;
@@ -25,6 +25,6 @@ export class ProgramacionService {
   }
 
   actualizarEstadoOrden(id_orden: number, estado: string): Observable<any> {
-    return this.http.patch(`http://127.0.0.1:8000/ordenes-trabajo/${id_orden}/estado`, { estado: estado });
+    return this.http.patch(`https://frigometal-administracion.vercel.app/ordenes-trabajo/${id_orden}/estado`, { estado: estado });
   }
 }

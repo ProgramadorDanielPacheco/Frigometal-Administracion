@@ -25,6 +25,12 @@ export class UsuarioService {
     return this.http.post<Usuario>(this.apiUrl, usuario);
   }
 
+  // En tu UsuarioService
+  actualizarUsuario(id_usuario: string, datosUsuario: any): Observable<any> {
+    const urlFinal = this.apiUrl.endsWith('/') ? `${this.apiUrl}${id_usuario}` : `${this.apiUrl}/${id_usuario}`;
+    return this.http.put(urlFinal, datosUsuario);
+  }
+
   importarUsuariosExcel(archivo: File): Observable<any> {
     const formData = new FormData();
     formData.append('file', archivo); 

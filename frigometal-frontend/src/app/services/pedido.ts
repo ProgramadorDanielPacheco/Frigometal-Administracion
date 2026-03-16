@@ -27,6 +27,12 @@ export class PedidoService {
     return this.http.post(this.apiUrl, pedido);
   }
 
+  // 👇 NUEVA FUNCIÓN PARA ACTUALIZAR PEDIDO (El que edita todo)
+  actualizarPedido(id_pedido: number, pedido: any): Observable<any> {
+    const urlFinal = this.apiUrl.endsWith('/') ? `${this.apiUrl}${id_pedido}` : `${this.apiUrl}/${id_pedido}`;
+    return this.http.put(urlFinal, pedido);
+  }
+
   // 👇 NUEVA FUNCIÓN PARA ACTUALIZAR EL ESTADO
   actualizarEstado(id_pedido: number, estado: string): Observable<any> {
     // Usamos PATCH porque solo vamos a modificar una columna de la tabla

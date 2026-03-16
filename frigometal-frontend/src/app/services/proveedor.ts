@@ -2,35 +2,50 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface Proveedor {
-  id_proveedor?: number;
-  nombre: string;
-}
-
 export interface PrecioProveedor {
+  id_precio?: number; // Asegúrate de tener el ID para poder editar después
   id_material: number;
   id_proveedor: number;
   precio_unitario: number;
   descuento_porcentaje: number;
 }
 
+export interface Proveedor {
+  id_proveedor?: number;
+  nombre: string;
+  precios?: PrecioProveedor[]; // 👈 Añadimos el arreglo opcional
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProveedorService {
-  private apiUrl = 'https://frigometal-administracion.vercel.app';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/';
 
   constructor(private http: HttpClient) { }
 
   getProveedores(): Observable<Proveedor[]> {
-    return this.http.get<Proveedor[]>(`${this.apiUrl}/proveedores/`);
+    return this.http.get<Proveedor[]>(`${this.apiUrl}proveedores/`);
   }
 
   crearProveedor(proveedor: Proveedor): Observable<Proveedor> {
-    return this.http.post<Proveedor>(`${this.apiUrl}/proveedores/`, proveedor);
+    return this.http.post<Proveedor>(`${this.apiUrl}proveedores/`, proveedor);
   }
 
   // 👇 Para alimentar las compras inteligentes
   asignarPrecio(precio: PrecioProveedor): Observable<any> {
-    return this.http.post(`${this.apiUrl}/precios-proveedor/`, precio);
+    return this.http.post(`${this.apiUrl}precios-proveedor/`, precio);
+  }
+
+  // 👇 NUEVAS FUNCIONES PARA EDICIÓN 👇
+  actualizarProveedor(id: number, datos: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}proveedores/${id}`, datos);
+  }
+
+  getPreciosProveedor(id: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}proveedores/${id}/precios`);
+  }
+
+  actualizarPrecio(id: number, datos: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}precios-proveedor/${id}`, datos);
   }
 
   importarProveedoresExcel(archivo: File): Observable<any> {

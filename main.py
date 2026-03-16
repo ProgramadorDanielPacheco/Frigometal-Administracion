@@ -112,21 +112,50 @@ def obtener_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     usuarios = db.query(models.Usuario).offset(skip).limit(limit).all()
     return usuarios
 
-
-
-@app.put("/usuarios/{id_usuario}")
-def actualizar_cliente(id_usuario: str, datos: schemas.UsuarioCreate, db: Session = Depends(get_db)):
-    usuario = db.query(models.Cliente).filter(models.Cliente.id_cliente == id_usuario).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+@app.put("/usuarios/{id_usuario}", response_model=schemas.UsuarioResponse)
+def actualizar_usuario(id_usuario: str, usuario_update: schemas.UsuarioUpdate, db: Session = Depends(get_db)):
+    # 1. Buscamos al trabajador en la base de datos por su cédula
+    usuario_db = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     
-    # Este ciclo actualiza automáticamente todos los campos del modelo
-    for key, value in datos.model_dump().items():
-        setattr(usuario, key, value)
-    
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # 2. Actualizamos solo los datos que Angular nos envió (ignoramos los nulos)
+    if usuario_update.nombre is not None:
+        usuario_db.nombre = usuario_update.nombre
+        
+    if usuario_update.correo is not None:
+        usuario_db.correo = usuario_update.correo
+        
+    if usuario_update.rol is not None:
+        usuario_db.rol = usuario_update.rol
+        
+    if usuario_update.horas_maximas_semanales is not None:
+        usuario_db.horas_maximas_semanales = usuario_update.horas_maximas_semanales
+        
+    if usuario_update.activo is not None:
+        usuario_db.activo = usuario_update.activo
+        
+    # 3. 👇 LA REGLA DE ORO DE LA CONTRASEÑA 👇
+    # Si Angular nos mandó una contraseña nueva y no está vacía, la actualizamos
+    if usuario_update.password and usuario_update.password.strip() != "":
+        
+        # ⚠️ IMPORTANTE: Aquí debes usar la función que usas para encriptar.
+        # Por ejemplo, si usas passlib sería algo así:
+        # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        # usuario_db.hashed_password = pwd_context.hash(usuario_update.password)
+        
+        # Si tienes una función como get_password_hash, úsala así:
+        usuario_db.hashed_password = get_password_hash(usuario_update.password)
+
+    # 4. Guardamos los cambios
     db.commit()
-    return {"mensaje": "Datos actualizados correctamente"}
-# ==========================================
+    db.refresh(usuario_db)
+    
+    return usuario_db
+
+
+
 # IMPORTACIÓN MASIVA DE USUARIOS (EXCEL)
 # ==========================================
 @app.post("/usuarios/importar/")
@@ -296,19 +325,25 @@ def obtener_clientes(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     clientes = db.query(models.Cliente).offset(skip).limit(limit).all()
     return clientes
 
-@app.put("/clientes/{id_cliente}")
-def actualizar_cliente(id_cliente: str, datos: schemas.ClienteCreate, db: Session = Depends(get_db)):
-    cliente = db.query(models.Cliente).filter(models.Cliente.id_cliente == id_cliente).first()
-    if not cliente:
+@app.put("/clientes/{id_cliente}", response_model=schemas.ClienteResponse)
+def actualizar_cliente(id_cliente: str, cliente_update: schemas.ClienteUpdate, db: Session = Depends(get_db)):
+    cliente_db = db.query(models.Cliente).filter(models.Cliente.id_cliente == id_cliente).first()
+    
+    if not cliente_db:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    
-    # Este ciclo actualiza automáticamente todos los campos del modelo
-    for key, value in datos.model_dump().items():
-        setattr(cliente, key, value)
-    
-    db.commit()
-    return {"mensaje": "Datos actualizados correctamente"}
 
+    if cliente_update.nombre is not None:
+        cliente_db.nombre = cliente_update.nombre
+    if cliente_update.telefono is not None:
+        cliente_db.telefono = cliente_update.telefono
+    if cliente_update.correo is not None:
+        cliente_db.correo = cliente_update.correo
+    if cliente_update.direccion is not None:
+        cliente_db.direccion = cliente_update.direccion
+
+    db.commit()
+    db.refresh(cliente_db)
+    return cliente_db
 
 # ==========================================
 # IMPORTACIÓN MASIVA DE CLIENTES (EXCEL)
@@ -402,17 +437,7 @@ def obtener_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get
     productos = db.query(models.Producto).offset(skip).limit(limit).all()
     return productos
 # Ejemplo para Materiales
-@app.put("/productos/{id_producto}")
-def actualizar_material(id_producto: int, datos: schemas.MaterialBase, db: Session = Depends(get_db)):
-    producto = db.query(models.Producto).filter(models.Producto.id_producto == id_producto).first()
-    if not producto:
-        raise HTTPException(status_code=404, detail="Material no encontrado")
 
-    for key, value in datos.model_dump().items():
-        setattr(producto, key, value)
-    
-    db.commit()
-    return {"mensaje": "Producto Actualizado"}
 # ==========================================
 # IMPORTACIÓN MASIVA: PRODUCTOS + ESTRUCTURA (EXCEL)
 # ==========================================
@@ -514,6 +539,29 @@ async def importar_productos_estructura(file: UploadFile = File(...), db: Sessio
         db.rollback() # Cancelamos si el archivo explota
         raise HTTPException(status_code=500, detail=f"Error procesando el Excel: {str(e)}")
 
+@app.put("/productos/{id_producto}", response_model=schemas.ProductoResponse)
+def actualizar_producto(id_producto: int, producto_actualizado: schemas.ProductoUpdate, db: Session = Depends(get_db)):
+    # 1. Buscamos el producto
+    producto_db = db.query(models.Producto).filter(models.Producto.id_producto == id_producto).first()
+    
+    if not producto_db:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # 👇 2. EL CAMBIO MÁGICO ESTÁ AQUÍ (exclude_none=True)
+    datos_nuevos = producto_actualizado.model_dump(exclude_none=True)
+    
+    # Opcional: Esto imprimirá en tu consola negra de Python lo que está a punto de guardar
+    print("ESTO VOY A GUARDAR:", datos_nuevos) 
+    
+    # 3. Guardamos
+    for clave, valor in datos_nuevos.items():
+        setattr(producto_db, clave, valor)
+        
+    db.commit()
+    db.refresh(producto_db)
+    
+    return producto_db
+
 @app.post("/materiales/", response_model=schemas.MaterialResponse)
 def crear_material(material: schemas.MaterialCreate, db: Session = Depends(get_db)):
     nuevo_material = models.Material(**material.model_dump())
@@ -593,25 +641,49 @@ async def importar_materiales_excel(file: UploadFile = File(...), db: Session = 
         raise HTTPException(status_code=500, detail=f"Error leyendo el Excel: {str(e)}")
     
 # Ejemplo para Materiales
-@app.put("/materiales/{id_material}")
-def actualizar_material(id_material: int, datos: schemas.MaterialBase, db: Session = Depends(get_db)):
-    material = db.query(models.Material).filter(models.Material.id_material == id_material).first()
-    if not material:
-        raise HTTPException(status_code=404, detail="Material no encontrado")
 
-    for key, value in datos.model_dump().items():
-        setattr(material, key, value)
+@app.put("/materiales/{id_material}", response_model=schemas.MaterialResponse)
+def actualizar_material(id_material: int, material_actualizado: schemas.MaterialUpdate, db: Session = Depends(get_db)):
+    # 1. Buscamos si el material existe
+    material_db = db.query(models.Material).filter(models.Material.id_material == id_material).first()
     
+    if not material_db:
+        raise HTTPException(status_code=404, detail="Material no encontrado")
+    
+    # 2. Actualizamos solo los campos que el usuario envió
+    datos_nuevos = material_actualizado.model_dump(exclude_unset=True)
+    
+    for clave, valor in datos_nuevos.items():
+        setattr(material_db, clave, valor)
+        
+    # 3. Guardamos los cambios
     db.commit()
-    return {"mensaje": "Inventario actualizado"}
+    db.refresh(material_db) # Recarga los datos actualizados
+    
+    return material_db
 
-@app.post("/estructura-producto/")
+@app.post("/estructura-producto/", response_model=schemas.EstructuraProductoResponse)
 def agregar_material_a_producto(estructura: schemas.EstructuraProductoCreate, db: Session = Depends(get_db)):
-    nueva_estructura = models.EstructuraProducto(**estructura.model_dump())
+    
+    # 1. TRADUCCIÓN DE IDA: De Angular (necesaria) a la Base de Datos (requerida)
+    nueva_estructura = models.EstructuraProducto(
+        id_producto=estructura.id_producto,
+        id_material=estructura.id_material,
+        cantidad_requerida=estructura.cantidad_necesaria # 👈 ¡AQUÍ CONECTAMOS LOS CABLES!
+    )
+    
     db.add(nueva_estructura)
     db.commit()
-    return {"mensaje": "Material agregado a la receta del producto con éxito."}
-
+    db.refresh(nueva_estructura)
+    
+    # 2. TRADUCCIÓN DE VUELTA: De la Base de Datos a Angular
+    # Devolvemos un diccionario "disfrazado" para que Angular reciba el nombre que le gusta
+    return {
+        "id_estructura": nueva_estructura.id_estructura,
+        "id_producto": nueva_estructura.id_producto,
+        "id_material": nueva_estructura.id_material,
+        "cantidad_necesaria": nueva_estructura.cantidad_requerida
+    }
 @app.get("/estructura-producto/{id_producto}")
 def obtener_receta_producto(id_producto: int, db: Session = Depends(get_db)):
     # Buscamos todos los materiales asignados a este producto en específico
@@ -689,7 +761,34 @@ def obtener_pedidos(db: Session = Depends(get_db)):
 class EstadoUpdate(BaseModel):
     estado: str
 
-# Ejemplo para Clientes (Repite la misma lógica para Usuarios)
+@app.put("/pedidos/{id_pedido}")
+def actualizar_pedido(id_pedido: int, pedido_actualizado: schemas.PedidoUpdate, db: Session = Depends(get_db)):
+    pedido_db = db.query(models.Pedido).filter(models.Pedido.id_pedido == id_pedido).first()
+    
+    if not pedido_db:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    # 1. Actualizar datos principales (Cliente y Fecha)
+    if pedido_actualizado.id_cliente is not None:
+        pedido_db.id_cliente = pedido_actualizado.id_cliente
+    if pedido_actualizado.fecha_entrega is not None:
+        pedido_db.fecha_entrega = pedido_actualizado.fecha_entrega
+
+    # 2. Actualizar el producto y la cantidad (Detalles)
+    if pedido_actualizado.detalles is not None:
+        # Borramos el detalle viejo de la base de datos
+        db.query(models.DetallePedido).filter(models.DetallePedido.id_pedido == id_pedido).delete()
+        # Insertamos el nuevo
+        for det in pedido_actualizado.detalles:
+            nuevo_detalle = models.DetallePedido(
+                id_pedido=id_pedido,
+                id_producto=det.id_producto,
+                cantidad=det.cantidad
+            )
+            db.add(nuevo_detalle)
+
+    db.commit()
+    return {"mensaje": "Pedido actualizado correctamente"}
 
 
 
@@ -698,78 +797,72 @@ class EstadoUpdate(BaseModel):
 # ACTUALIZAR ESTADO DEL PEDIDO (PATCH)
 # ==========================================
 @app.patch("/pedidos/{id_pedido}/estado")
-def actualizar_estado_pedido(id_pedido: int, datos: schemas.EstadoUpdate, db: Session = Depends(get_db)):
-    # 1. Buscar el pedido
+def actualizar_estado_pedido(id_pedido: int, estado_update: schemas.EstadoUpdate, db: Session = Depends(get_db)):
     pedido = db.query(models.Pedido).filter(models.Pedido.id_pedido == id_pedido).first()
+    
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
-
-    nuevo_estado = datos.estado.upper()
-    estado_anterior = pedido.estado.upper()
-
-    # ==============================================================
-    # LÓGICA DE PRODUCCIÓN: Descuento de Stock y Compras Inteligentes
-    # ==============================================================
-    if nuevo_estado == "EN PRODUCCIÓN" and estado_anterior == "PENDIENTE":
-        for detalle in pedido.detalles:
-            # Buscamos la receta del producto
-            receta = db.query(models.EstructuraProducto).filter(
-                models.EstructuraProducto.id_producto == detalle.id_producto
-            ).all()
-
-            for componente in receta:
-                material = db.query(models.Material).filter(
-                    models.Material.id_material == componente.id_material
-                ).first()
+        
+    if estado_update.estado == 'EN PRODUCCIÓN' and pedido.estado != 'EN PRODUCCIÓN':
+        
+        detalles_del_pedido = db.query(models.DetallePedido).filter(models.DetallePedido.id_pedido == id_pedido).all()
+        
+        for detalle in detalles_del_pedido:
+            receta = db.query(models.EstructuraProducto).filter(models.EstructuraProducto.id_producto == detalle.id_producto).all()
+            
+            for ingrediente in receta:
+                material_bodega = db.query(models.Material).filter(models.Material.id_material == ingrediente.id_material).first()
                 
-                if material:
-                    cantidad_a_restar = detalle.cantidad * componente.cantidad_requerida
-                    
-                    # Verificación de seguridad: ¿Hay suficiente material?
-                    if material.stock_actual < cantidad_a_restar:
-                        raise HTTPException(
-                            status_code=400, 
-                            detail=f"No hay suficiente {material.nombre}. Stock: {material.stock_actual}, Necesario: {cantidad_a_restar}"
-                        )
+                if material_bodega:
+                    descuento_total = detalle.cantidad * ingrediente.cantidad_requerida
+                    material_bodega.stock_actual -= descuento_total
+                    print(f"Descontando {descuento_total} de {material_bodega.nombre}. Nuevo stock: {material_bodega.stock_actual}")
 
-                    # Descontamos de la bodega
-                    material.stock_actual -= cantidad_a_restar
-
-                    # ----------------------------------------------------------
-                    # PASO 4.5: ALERTA DE COMPRAS INTELIGENTE (Migrada)
-                    # ----------------------------------------------------------
-                    if material.stock_actual < material.stock_minimo_alerta:
-                        # Buscar el proveedor más barato
-                        mejor_precio = db.query(models.PrecioProveedor).filter(
-                            models.PrecioProveedor.id_material == material.id_material
-                        ).order_by(models.PrecioProveedor.precio_unitario.asc()).first()
-
-                        if mejor_precio:
-                            # Creamos la Orden de Compra en BORRADOR automáticamente
+                    # ==========================================
+                    # 👇 ¡NUEVO: LÓGICA DE COMPRA INTELIGENTE! 👇
+                    # ==========================================
+                    if material_bodega.stock_actual <= material_bodega.stock_minimo_alerta:
+                        
+                        # 1. Revisamos que no exista ya un borrador de este material para no duplicar
+                        orden_pendiente = db.query(models.DetalleOrdenCompra).join(models.OrdenCompra).filter(
+                            models.DetalleOrdenCompra.id_material == material_bodega.id_material,
+                            models.OrdenCompra.estado == 'BORRADOR'
+                        ).first()
+                        
+                        if not orden_pendiente:
+                            print(f"⚠️ Alerta: {material_bodega.nombre} bajo stock. Generando Orden de Compra...")
+                            
+                            # 2. Buscamos qué proveedor vende esto
+                            proveedor_info = db.query(models.PrecioProveedor).filter(models.PrecioProveedor.id_material == material_bodega.id_material).first()
+                            
+                            id_prov_sugerido = proveedor_info.id_proveedor if proveedor_info else 1 # Proveedor #1 por defecto
+                            precio_sugerido = proveedor_info.precio_unitario if proveedor_info else 0.0
+                            
+                            # 3. Creamos la Orden en Borrador
                             nueva_orden = models.OrdenCompra(
-                                id_proveedor=mejor_precio.id_proveedor,
-                                estado="BORRADOR"
+                                id_proveedor=id_prov_sugerido,
+                                estado='BORRADOR'
                             )
                             db.add(nueva_orden)
-                            db.flush()
-
-                            cantidad_sugerida = material.stock_minimo_alerta - material.stock_actual + 20
+                            db.flush() # 👈 Magia: Guarda temporalmente para darnos el ID de la orden de inmediato
                             
-                            detalle_compra = models.DetalleOrdenCompra(
+                            # 4. Calculamos cuánto comprar (Lo que falta para salir de la alerta + un "colchón" extra de 10)
+                            cantidad_a_comprar = (material_bodega.stock_minimo_alerta - material_bodega.stock_actual) + 10
+                            
+                            # 5. Agregamos el material a la orden
+                            nuevo_detalle = models.DetalleOrdenCompra(
                                 id_orden_compra=nueva_orden.id_orden_compra,
-                                id_material=material.id_material,
-                                cantidad=cantidad_sugerida,
-                                precio_unitario_acordado=mejor_precio.precio_unitario
+                                id_material=material_bodega.id_material,
+                                cantidad=cantidad_a_comprar,
+                                precio_unitario_acordado=precio_sugerido
                             )
-                            db.add(detalle_compra)
-                    # ----------------------------------------------------------
+                            db.add(nuevo_detalle)
 
-    # 2. Actualizamos el estado del pedido (ya sea a Producción o a Entregado)
-    pedido.estado = nuevo_estado
+    # Guardamos todos los cambios (El estado del pedido, el descuento de bodega y la nueva orden)
+    pedido.estado = estado_update.estado
     db.commit()
     
-    return {"mensaje": f"Estado actualizado a {nuevo_estado} y procesos de stock ejecutados."}
-
+    return {"mensaje": f"Estado actualizado a {estado_update.estado}"}
 # ==========================================
 # IMPORTACIÓN MASIVA DE PROVEEDORES (EXCEL)
 # ==========================================
@@ -960,9 +1053,8 @@ async def importar_pedidos_excel(file: UploadFile = File(...), db: Session = Dep
 # ==========================================
 # OBTENER LISTA DE PROVEEDORES (GET)
 # ==========================================
-@app.get("/proveedores/")
+@app.get("/proveedores/", response_model=List[schemas.ProveedorResponse])
 def obtener_proveedores(db: Session = Depends(get_db)):
-    # Traemos todos los proveedores de la base de datos
     return db.query(models.Proveedor).all()
 
 @app.post("/precios-proveedor/")
@@ -972,9 +1064,76 @@ def agregar_precio_material(precio: schemas.PrecioProveedorCreate, db: Session =
     db.commit()
     return {"mensaje": "Precio del proveedor registrado con éxito."}
 
+# 1. Actualizar nombre de la empresa
+@app.put("/proveedores/{id_proveedor}")
+def actualizar_proveedor(id_proveedor: int, prov_update: schemas.ProveedorUpdate, db: Session = Depends(get_db)):
+    prov_db = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == id_proveedor).first()
+    if not prov_db: raise HTTPException(status_code=404)
+    if prov_update.nombre is not None: prov_db.nombre = prov_update.nombre
+    db.commit()
+    return {"mensaje": "Proveedor actualizado"}
+
+# 2. Traer todos los precios que tiene registrados este proveedor
+@app.get("/proveedores/{id_proveedor}/precios")
+def obtener_precios_proveedor(id_proveedor: int, db: Session = Depends(get_db)):
+    return db.query(models.PrecioProveedor).filter(models.PrecioProveedor.id_proveedor == id_proveedor).all()
+
+# 3. Actualizar un precio específico
+@app.put("/precios-proveedor/{id_precio}")
+def actualizar_precio(id_precio: int, precio_update: schemas.PrecioProveedorUpdate, db: Session = Depends(get_db)):
+    precio_db = db.query(models.PrecioProveedor).filter(models.PrecioProveedor.id_precio == id_precio).first()
+    if not precio_db: raise HTTPException(status_code=404)
+    if precio_update.precio_unitario is not None: precio_db.precio_unitario = precio_update.precio_unitario
+    if precio_update.descuento_porcentaje is not None: precio_db.descuento_porcentaje = precio_update.descuento_porcentaje
+    db.commit()
+    return {"mensaje": "Precio actualizado"}
+
 @app.get("/ordenes-compra/", response_model=List[schemas.OrdenCompraResponse])
 def ver_ordenes_de_compra(db: Session = Depends(get_db)):
     return db.query(models.OrdenCompra).all()
+
+@app.get("/ordenes-compra/{id_orden}/detalles", response_model=List[schemas.DetalleOrdenCompraResponse])
+def ver_detalles_orden(id_orden: int, db: Session = Depends(get_db)):
+    detalles = db.query(models.DetalleOrdenCompra).filter(models.DetalleOrdenCompra.id_orden_compra == id_orden).all()
+    return detalles
+
+@app.patch("/ordenes-compra/{id_orden}/estado")
+def actualizar_estado_orden(id_orden: int, estado_update: schemas.EstadoOrdenUpdate, db: Session = Depends(get_db)):
+    orden = db.query(models.OrdenCompra).filter(models.OrdenCompra.id_orden_compra == id_orden).first()
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    
+    # 👇 LA MAGIA DE SUMAR AL INVENTARIO 👇
+    if estado_update.estado == 'RECIBIDO' and orden.estado != 'RECIBIDO':
+        detalles = db.query(models.DetalleOrdenCompra).filter(models.DetalleOrdenCompra.id_orden_compra == id_orden).all()
+        for det in detalles:
+            material = db.query(models.Material).filter(models.Material.id_material == det.id_material).first()
+            if material:
+                material.stock_actual += det.cantidad # 👈 ¡Sumamos lo comprado!
+                print(f"✅ Recibido: Sumando {det.cantidad} a {material.nombre}. Nuevo stock: {material.stock_actual}")
+
+    orden.estado = estado_update.estado
+    db.commit()
+    return {"mensaje": f"Orden actualizada a {orden.estado}"}
+
+
+@app.put("/ordenes-compra/{id_orden}")
+def editar_orden_compra(id_orden: int, orden_edit: schemas.OrdenEdicion, db: Session = Depends(get_db)):
+    orden = db.query(models.OrdenCompra).filter(models.OrdenCompra.id_orden_compra == id_orden).first()
+    if not orden:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    # Actualizamos el proveedor
+    orden.id_proveedor = orden_edit.id_proveedor
+
+    # Actualizamos las cantidades de cada material
+    for det_edit in orden_edit.detalles:
+        detalle_db = db.query(models.DetalleOrdenCompra).filter(models.DetalleOrdenCompra.id_detalle_compra == det_edit.id_detalle_compra).first()
+        if detalle_db:
+            detalle_db.cantidad = det_edit.cantidad
+
+    db.commit()
+    return {"mensaje": "Borrador actualizado correctamente"}
 
 # ... (Mantén lo anterior) ...
 

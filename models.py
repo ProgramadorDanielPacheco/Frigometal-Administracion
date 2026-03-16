@@ -78,7 +78,10 @@ class Proveedor(Base):
 
     id_proveedor = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(150), nullable=False)
-
+    
+    # 👇 NUEVO: Conecta el proveedor con sus precios automáticamente
+    precios = relationship("PrecioProveedor", backref="proveedor", cascade="all, delete-orphan")
+    
 class PrecioProveedor(Base):
     __tablename__ = "precios_proveedor"
 

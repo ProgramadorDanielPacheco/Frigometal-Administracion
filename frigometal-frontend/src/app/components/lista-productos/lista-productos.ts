@@ -34,6 +34,9 @@ export class ListaProductos implements OnInit {
 
   mostrarFormulario: boolean = false;
   guardando: boolean = false;
+
+  modoEdicion: boolean = false;
+  idProductoEditando: number | null = null;
   nuevoProducto: Producto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true };
 
   // === VARIABLES PARA LA RECETA ===
@@ -65,13 +68,64 @@ export class ListaProductos implements OnInit {
 
   toggleFormulario(): void { this.mostrarFormulario = !this.mostrarFormulario; }
 
+
+  editarProducto(prod: Producto): void {
+    this.modoEdicion = true;
+    this.idProductoEditando = prod.id_producto!;
+    this.mostrarFormulario = true;
+    this.nuevoProducto = { ...prod }; // Copia los datos
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   guardarProducto(): void {
-    // ... (Tu código de guardarProducto se mantiene igual)
-    this.productoService.crearProducto(this.nuevoProducto).subscribe(() => {
-      this.cargarProductos();
+    if (!this.nuevoProducto.nombre || this.nuevoProducto.tiempo_fabricacion_horas <= 0) {
+      this.snackBar.open('⚠️ Completa los datos correctamente', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.guardando = true;
+
+    if (this.modoEdicion && this.idProductoEditando) {
+      // 🟢 MODO ACTUALIZAR
+      this.productoService.actualizarProducto(this.idProductoEditando, this.nuevoProducto).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Producto actualizado', 'Excelente', { duration: 3000 });
+          this.finalizarGuardado();
+        },
+        error: () => {
+          this.guardando = false;
+          this.snackBar.open('❌ Error al actualizar', 'Cerrar', { duration: 3000 });
+        }
+      });
+    } else {
+      // 🔵 MODO CREAR
+      this.productoService.crearProducto(this.nuevoProducto).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Producto registrado', 'Excelente', { duration: 3000 });
+          this.finalizarGuardado();
+        },
+        error: () => {
+          this.guardando = false;
+          this.snackBar.open('❌ Error al guardar', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  finalizarGuardado(): void {
+    this.cargarProductos();
+    // setTimeout evita el error NG0100 de Angular
+    setTimeout(() => {
       this.mostrarFormulario = false;
-      this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true };
-    });
+      this.guardando = false;
+      this.limpiarFormulario();
+    }, 0);
+  }
+
+  limpiarFormulario(): void {
+    this.modoEdicion = false;
+    this.idProductoEditando = null;
+    this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true };
   }
 
   // 👇 NUEVAS FUNCIONES PARA LA RECETA 👇
