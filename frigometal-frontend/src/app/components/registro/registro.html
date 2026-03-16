@@ -1,0 +1,68 @@
+<div style="padding: 40px; max-width: 800px; margin: auto;">
+  
+  <div style="margin-bottom: 30px;">
+    <h1 style="font-family: Roboto, sans-serif; font-weight: 500; color: #333; margin: 0;">Gestión de Empleados</h1>
+    <p style="color: gray; margin-top: 5px;">Añade nuevos usuarios, operadores y administradores al ERP de Frigometal.</p>
+  </div>
+
+  <mat-card class="mat-elevation-z4">
+    <mat-card-header style="margin-bottom: 20px;">
+      <mat-card-title>Ficha de Nuevo Ingreso</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content style="display: flex; flex-direction: column; gap: 15px;">
+      
+      <mat-form-field appearance="outline">
+        <mat-label>Cedula del Trabajador</mat-label>
+        <mat-icon matPrefix style="margin-right: 10px;">ID</mat-icon>
+        <input matInput [(ngModel)]="nuevoUsuario.id_usuario" placeholder="Ej: Carlos Mendoza">
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre Completo del Empleado</mat-label>
+        <mat-icon matPrefix style="margin-right: 10px;">badge</mat-icon>
+        <input matInput [(ngModel)]="nuevoUsuario.nombre" placeholder="Ej: Carlos Mendoza">
+      </mat-form-field>
+      <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-label>Correo Electrónico</mat-label>
+        <input matInput type="email" [(ngModel)]="nuevoUsuario.correo" name="correo" required>
+        <mat-icon matSuffix>email</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-label>Contraseña Provisional</mat-label>
+        <input matInput type="password" [(ngModel)]="nuevoUsuario.password" name="password" required>
+        <mat-icon matSuffix>lock</mat-icon>
+        <mat-hint>El usuario podrá cambiarla después</mat-hint>
+      </mat-form-field>
+
+      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 200px;">
+          <mat-label>Rol en la Empresa</mat-label>
+          <mat-icon matPrefix style="margin-right: 10px;">work</mat-icon>
+          <mat-select [(ngModel)]="nuevoUsuario.rol">
+            <mat-option value="ADMINISTRADOR">Administrador / Gerente</mat-option>
+            <mat-option value="OPERADOR">Operador de Planta</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 200px;">
+          <mat-label>Horas Máximas Semanales</mat-label>
+          <mat-icon matPrefix style="margin-right: 10px;">schedule</mat-icon>
+          <input matInput type="number" [(ngModel)]="nuevoUsuario.horas_maximas_semanales">
+        </mat-form-field>
+      </div>
+
+    </mat-card-content>
+
+    <mat-card-actions align="end" style="padding: 16px;">
+      <button mat-raised-button color="primary" style="padding: 5px 30px; font-size: 1.1rem;" (click)="registrar()" [disabled]="cargando">
+        <mat-icon>person_add</mat-icon> {{ cargando ? 'Guardando...' : 'Dar de Alta al Empleado' }}
+      </button>
+    </mat-card-actions>
+    <input type="file" #fileInput (change)="onArchivoSeleccionado($event)" accept=".xlsx, .xls" style="display: none;">
+    <button mat-raised-button style="background-color: #217346; color: white;" (click)="fileInput.click()">
+      <mat-icon>badge</mat-icon> Importar Personal
+    </button>
+  </mat-card>
+
+</div>

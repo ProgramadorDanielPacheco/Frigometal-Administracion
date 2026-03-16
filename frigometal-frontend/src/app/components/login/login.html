@@ -1,0 +1,33 @@
+<div style="height: 100vh; display: flex; justify-content: center; align-items: center; background-color: #f5f5f5;">
+  
+  <mat-card class="mat-elevation-z8" style="width: 100%; max-width: 400px; padding: 20px; text-align: center;">
+    <div style="background-color: #1976d2; margin: -20px -20px 20px -20px; padding: 20px; color: white;">
+      <h1 style="margin: 0; font-family: Roboto, sans-serif; font-weight: 500;">Frigometal ERP</h1>
+      <p style="margin: 5px 0 0 0; opacity: 0.8;">Acceso Restringido</p>
+    </div>
+
+    <mat-card-content style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+      
+      <mat-form-field appearance="outline">
+        <mat-label>Correo Electrónico</mat-label>
+        <mat-icon matPrefix style="margin-right: 10px;">email</mat-icon>
+        <input matInput type="email" [(ngModel)]="credenciales.correo" placeholder="Ej: juan@frigometal.com" (keyup.enter)="iniciarSesion()">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <mat-icon matPrefix style="margin-right: 10px;">lock</mat-icon>
+        <input matInput type="password" [(ngModel)]="credenciales.password" (keyup.enter)="iniciarSesion()">
+      </mat-form-field>
+
+    </mat-card-content>
+
+    <mat-card-actions style="padding: 16px; display: flex; justify-content: center;">
+      <button mat-raised-button color="primary" style="width: 100%; padding: 25px 0; font-size: 1.1rem;" (click)="iniciarSesion()" [disabled]="cargando">
+        {{ cargando ? 'Verificando...' : 'Iniciar Sesión' }}
+      </button>
+      
+    </mat-card-actions>
+  </mat-card>
+
+</div>

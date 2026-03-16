@@ -1,0 +1,54 @@
+<div style="padding: 40px; max-width: 1200px; margin: auto;">
+  
+
+    
+    <button mat-raised-button color="primary" (click)="cargarDatos()">
+      <mat-icon>refresh</mat-icon> Actualizar Resumen
+    </button>
+  </div>
+
+
+
+
+<div style="padding: 40px; max-width: 1200px; margin: auto;">
+  <div style="margin-bottom: 30px;">
+    <h1 style="font-family: Roboto, sans-serif; font-weight: 500; color: #333; margin: 0;">Panel de Control General</h1>
+    <p style="color: gray; margin-top: 5px;">Resumen operativo de Frigometal al día de hoy.</p>
+  </div>
+
+  <div class="grid-tarjetas">
+    
+    <mat-card class="tarjeta-kpi pedidos" routerLink="/pedidos">
+      <div class="icono-contenedor"><mat-icon>shopping_cart</mat-icon></div>
+      <div class="datos">
+        <h3>{{resumen.pedidos_activos}}</h3>
+        <p>Pedidos en Proceso</p>
+      </div>
+    </mat-card>
+
+    <mat-card class="tarjeta-kpi inventario" routerLink="/inventario">
+      <div class="icono-contenedor"><mat-icon>warning</mat-icon></div>
+      <div class="datos">
+        <h3>{{resumen.alertas_inventario}}</h3>
+        <p>Materiales en Alerta</p>
+      </div>
+    </mat-card>
+
+    <mat-card class="tarjeta-kpi compras" routerLink="/compras">
+      <div class="icono-contenedor"><mat-icon>request_quote</mat-icon></div>
+      <div class="datos">
+        <h3>{{resumen.compras_pendientes}}</h3>
+        <p>Presupuestos por Aprobar</p>
+      </div>
+    </mat-card>
+
+    <mat-card class="tarjeta-kpi programacion" routerLink="/programacion">
+      <div class="icono-contenedor"><mat-icon>engineering</mat-icon></div>
+      <div class="datos">
+        <h3>{{resumen.tareas_activas}}</h3>
+        <p>Tareas Agendadas</p>
+      </div>
+    </mat-card>
+
+  </div>
+</div>

@@ -1,0 +1,126 @@
+<div style="padding: 40px; max-width: 1200px; margin: auto;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h2 style="font-family: Roboto, sans-serif; font-weight: 400; color: #333; margin: 0;">Directorio de Clientes</h2>
+      <p style="color: gray; margin-top: 5px;">Gestiona la información de contacto de las empresas y compradores.</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+      <button mat-raised-button color="accent" (click)="toggleFormulario()">
+        <mat-icon>{{ mostrarFormulario ? 'close' : 'person_add' }}</mat-icon> 
+        {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Cliente' }}
+      </button>
+
+      <button mat-raised-button color="primary" (click)="cargarClientes()">
+        <mat-icon>refresh</mat-icon> Refrescar Directorio
+      </button>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      
+      <input type="file" #fileInput (change)="onArchivoSeleccionado($event)" accept=".xlsx, .xls" style="display: none;">
+
+      <button mat-raised-button style="background-color: #217346; color: white;" (click)="fileInput.click()">
+        <mat-icon>upload_file</mat-icon> Importar Excel
+      </button>
+
+      <button mat-raised-button color="accent" (click)="toggleFormulario()">
+        <mat-icon>{{ mostrarFormulario ? 'close' : 'person_add' }}</mat-icon> 
+        {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Cliente' }}
+      </button>
+
+      <button mat-raised-button color="primary" (click)="cargarClientes()">
+        <mat-icon>refresh</mat-icon> Refrescar
+      </button>
+    </div>
+  </div>
+
+  @if (mostrarFormulario) {
+    <mat-card class="mat-elevation-z4" style="margin-bottom: 30px; border-left: 5px solid #ff4081;">
+      <mat-card-header style="margin-bottom: 20px;">
+        <mat-card-title>Registrar Nuevo Cliente</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content style="display: flex; gap: 15px; flex-wrap: wrap;">
+        
+        <div style="display: flex; gap: 15px; width: 100%;">
+          <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+            <mat-label>Cedula/RUC</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">ID</mat-icon>
+            <input matInput [(ngModel)]="nuevoCliente.id_cliente" placeholder="Ej: 0108889137">
+          </mat-form-field>
+          <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+            <mat-label>Nombre / Razón Social</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">business</mat-icon>
+            <input matInput [(ngModel)]="nuevoCliente.nombre" placeholder="Ej: Frigometal S.A.">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+            <mat-label>Teléfono</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">phone</mat-icon>
+            <input matInput [(ngModel)]="nuevoCliente.telefono">
+          </mat-form-field>
+        </div>
+
+        <div style="display: flex; gap: 15px; width: 100%;">
+          <mat-form-field appearance="outline" style="flex: 1; min-width: 250px;">
+            <mat-label>Correo Electrónico</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">email</mat-icon>
+            <input matInput type="email" [(ngModel)]="nuevoCliente.correo">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+            <mat-label>Dirección</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">location_on</mat-icon>
+            <input matInput [(ngModel)]="nuevoCliente.direccion">
+          </mat-form-field>
+        </div>
+
+      </mat-card-content>
+
+      <mat-card-actions align="end" style="padding: 16px;">
+        <button mat-raised-button color="primary" style="padding: 5px 30px; font-size: 1.1rem;" (click)="guardarCliente()">
+          <mat-icon>save</mat-icon> Guardar Cliente
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+    
+    <ng-container matColumnDef="id_cliente">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let cliente"> #{{cliente.id_cliente}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef> Nombre / Razón Social </th>
+      <td mat-cell *matCellDef="let cliente" style="font-weight: 500;"> {{cliente.nombre}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="telefono">
+      <th mat-header-cell *matHeaderCellDef> Teléfono </th>
+      <td mat-cell *matCellDef="let cliente"> {{cliente.telefono || 'N/A'}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="correo">
+      <th mat-header-cell *matHeaderCellDef> Correo </th>
+      <td mat-cell *matCellDef="let cliente"> {{cliente.correo || 'N/A'}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="direccion">
+      <th mat-header-cell *matHeaderCellDef> Dirección </th>
+      <td mat-cell *matCellDef="let cliente"> {{cliente.direccion || 'N/A'}} </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="5" style="text-align: center; padding: 20px; color: gray;">
+        El directorio está vacío. Haz clic en "Nuevo Cliente" para registrar el primero.
+      </td>
+    </tr>
+  </table>
+
+</div>

@@ -1,0 +1,52 @@
+.grid-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.tarjeta-kpi {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+  }
+
+  .icono-contenedor {
+    padding: 15px;
+    border-radius: 50%;
+    margin-right: 20px;
+    
+    mat-icon {
+      font-size: 36px;
+      height: 36px;
+      width: 36px;
+      color: white;
+    }
+  }
+
+  .datos {
+    h3 {
+      font-size: 2rem;
+      margin: 0;
+      font-weight: 500;
+      color: #333;
+    }
+    p {
+      margin: 0;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+
+  /* Colores para cada tarjeta */
+  &.pedidos .icono-contenedor { background-color: #1976d2; }
+  &.inventario .icono-contenedor { background-color: #d32f2f; }
+  &.compras .icono-contenedor { background-color: #ed6c02; }
+  &.programacion .icono-contenedor { background-color: #2e7d32; }
+}

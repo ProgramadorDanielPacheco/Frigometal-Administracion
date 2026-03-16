@@ -1,0 +1,73 @@
+@if (authService.estaAutenticado()) {
+<mat-sidenav-container class="contenedor-principal">
+  
+  <mat-sidenav mode="side" opened class="sidebar">
+    <div class="logo-empresa">
+      <img src="/logo.png" alt="Logotipo Frigometal" class="logo-img">
+      
+      <span class="app-title">Frigometal ERP</span>
+    </div>
+    
+
+    <mat-nav-list>
+      <a mat-list-item routerLink="/dashboard" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <div matListItemTitle>Inicio / Dashboard</div>
+      </a>
+      <a mat-list-item routerLink="/productos" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>inventory_2</mat-icon>
+        <div matListItemTitle>Catálogo y Recetas</div>
+      </a>
+
+      <a mat-list-item routerLink="/inventario" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>warehouse</mat-icon>
+        <div matListItemTitle>Inventario de Materiales</div>
+      </a>
+
+      <a mat-list-item routerLink="/pedidos" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>shopping_cart</mat-icon>
+        <div matListItemTitle>Gestión de Pedidos</div>
+      </a>
+
+      <a mat-list-item routerLink="/compras" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>request_quote</mat-icon>
+        <div matListItemTitle>Compras Inteligentes</div>
+      </a>
+
+      <a mat-list-item routerLink="/programacion" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>engineering</mat-icon>
+        <div matListItemTitle>Programación (Horas)</div>
+      </a>
+      <mat-divider style="margin: 10px 0;"></mat-divider> <a mat-list-item routerLink="/registro" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>group_add</mat-icon>
+        <div matListItemTitle>Recursos Humanos</div>
+      </a>
+      <a mat-list-item routerLink="/clientes" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>groups</mat-icon>
+        <div matListItemTitle>Directorio de Clientes</div>
+      </a>
+      <a mat-list-item routerLink="/proveedor" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>groups</mat-icon>
+        <div matListItemTitle>Directorio de Proveedores</div>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar color="primary" class="barra-superior">
+      <span>Panel de Administración Central</span>
+      <button mat-icon-button (click)="cerrarSesion()" title="Cerrar Sesión" >
+          <mat-icon >logout</mat-icon>
+        </button>
+    </mat-toolbar>
+    
+    <main class="area-trabajo">
+      <router-outlet></router-outlet>
+    </main>
+
+  </mat-sidenav-content>
+</mat-sidenav-container>
+} @else {
+  <router-outlet></router-outlet>
+}
+

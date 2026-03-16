@@ -1,0 +1,59 @@
+.contenedor-principal {
+  height: 100vh; /* Ocupa el 100% de la altura de la ventana */
+}
+
+.sidebar {
+  width: 260px;
+  background-color: #fafafa;
+  border-right: 1px solid #e0e0e0;
+}
+
+.logo-empresa {
+  padding: 20px;
+  text-align: center;
+  background-color: #1976d2; /* Azul corporativo Material */
+  color: white;
+  
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+}
+
+.area-trabajo {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 64px); /* Altura total menos la barra superior */
+}
+
+.link-activo {
+  background-color: #e3f2fd; /* Fondo azul claro cuando estás en esa página */
+  color: #1976d2;
+  font-weight: bold;
+}
+
+.logo-empresa {
+  background-color: #1976d2;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center; /* Centra la imagen y el texto verticalmente */
+  justify-content: center; /* Los centra horizontalmente */
+  gap: 12px; /* Espacio entre el logo y el texto */
+  min-height: 64px; /* Altura estándar de la barra */
+}
+
+.logo-empresa h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  white-space: nowrap; /* Evita que el texto se rompa en dos líneas */
+}
+
+/* La magia para que la imagen se adapte perfectamente */
+.logo-img {
+  max-height: 40px; /* Ajusta este número si quieres el logo más grande o pequeño */
+  width: auto;
+  object-fit: contain; /* Asegura que la imagen no se deforme */
+}

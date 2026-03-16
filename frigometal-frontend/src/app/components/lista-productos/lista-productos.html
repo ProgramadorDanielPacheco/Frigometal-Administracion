@@ -1,0 +1,179 @@
+<div style="padding: 40px; max-width: 1200px; margin: auto;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h2 style="font-family: Roboto, sans-serif; font-weight: 400; color: #333; margin: 0;">Catálogo de Productos y Recetas</h2>
+      <p style="color: gray; margin-top: 5px;">Gestiona los productos que fabrica la empresa.</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+      <button mat-raised-button color="accent" (click)="toggleFormulario()">
+        <mat-icon>{{ mostrarFormulario ? 'close' : 'add' }}</mat-icon> 
+        {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Producto' }}
+      </button>
+
+      <button mat-raised-button color="primary" (click)="cargarProductos()">
+        <mat-icon>refresh</mat-icon> Refrescar Datos
+      </button>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      
+      <input type="file" #fileInput (change)="onArchivoSeleccionado($event)" accept=".xlsx, .xls" style="display: none;">
+
+      <button mat-raised-button style="background-color: #217346; color: white;" (click)="fileInput.click()">
+        <mat-icon>account_tree</mat-icon> Importar Catálogo
+      </button>
+
+    </div>
+  </div>
+
+  @if (mostrarFormulario) {
+    <mat-card class="mat-elevation-z4" style="margin-bottom: 20px; border-left: 5px solid #ff4081;">
+      <mat-card-header style="margin-bottom: 15px;">
+        <mat-card-title>Registrar Nuevo Modelo / Producto</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content style="display: flex; gap: 15px; flex-wrap: wrap;">
+        
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+          <mat-label>Nombre del Producto</mat-label>
+          <input matInput [(ngModel)]="nuevoProducto.nombre" placeholder="Ej: Mesa de Acero Inoxidable 2M" (keyup.enter)="guardarProducto()">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Tiempo Fabricación (Horas)</mat-label>
+          <input matInput type="number" [(ngModel)]="nuevoProducto.tiempo_fabricacion_horas" min="0.5" step="0.5">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Tipo de Catálogo</mat-label>
+          <mat-select [(ngModel)]="nuevoProducto.es_estandar">
+            <mat-option [value]="true">Estándar (En Serie)</mat-option>
+            <mat-option [value]="false">A Medida (Especial)</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+      </mat-card-content>
+
+      <mat-card-actions align="end" style="padding: 16px;">
+        <button mat-raised-button color="primary" (click)="guardarProducto()" [disabled]="guardando">
+          <mat-icon>save</mat-icon> {{ guardando ? 'Guardando...' : 'Guardar Producto' }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+    <ng-container matColumnDef="id_producto">
+      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> ID </th>
+      <td mat-cell *matCellDef="let prod"> {{prod.id_producto}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Nombre del Producto </th>
+      <td mat-cell *matCellDef="let prod"> {{prod.nombre}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="tiempo">
+      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Tiempo de Fabricación </th>
+      <td mat-cell *matCellDef="let prod"> {{prod.tiempo_fabricacion_horas}} horas </td>
+    </ng-container>
+
+    <ng-container matColumnDef="es_estandar">
+      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Tipo </th>
+      <td mat-cell *matCellDef="let prod">
+        <span [style.color]="prod.es_estandar ? 'green' : 'orange'">
+          {{prod.es_estandar ? 'Estándar' : 'A Medida'}}
+        </span>
+      </td>
+    </ng-container>
+    
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Receta </th>
+      <td mat-cell *matCellDef="let prod" style="text-align: right;">
+        <button mat-stroked-button color="primary" (click)="abrirReceta(prod)">
+          <mat-icon>list_alt</mat-icon> Configurar Receta
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+  </table>
+  @if (productoSeleccionado) {
+    <mat-card class="mat-elevation-z8" style="margin-top: 40px; border-top: 5px solid #1976d2; margin-bottom: 50px;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #f5f5f5; border-bottom: 1px solid #ddd;">
+        <div>
+          <h2 style="margin: 0; color: #1976d2;">Receta Técnica: <strong>{{productoSeleccionado.nombre}}</strong></h2>
+          <p style="margin: 0; color: gray;">Configura los materiales que se descontarán del inventario al fabricar este producto.</p>
+        </div>
+        <button mat-icon-button color="warn" (click)="cerrarReceta()" title="Cerrar Panel">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap;">
+        
+        <div style="flex: 1; min-width: 300px; background: #fafafa; padding: 20px; border-radius: 8px;">
+          <h3>Añadir Material a la Receta</h3>
+          
+          <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Selecciona un Material de Bodega</mat-label>
+            <mat-select [(ngModel)]="idMaterialSeleccionado">
+              @for (mat of materialesBodega; track mat.id_material) {
+                <mat-option [value]="mat.id_material">{{ mat.nombre }} (Disponible: {{mat.stock_actual}})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Cantidad Necesaria por Unidad</mat-label>
+            <input matInput type="number" [(ngModel)]="cantidadNecesaria" min="0.1" step="0.1">
+          </mat-form-field>
+
+          <button mat-raised-button color="accent" style="width: 100%; padding: 10px 0;" (click)="agregarIngrediente()">
+            <mat-icon>add_circle</mat-icon> Añadir a la Receta
+          </button>
+        </div>
+
+        <div style="flex: 2; min-width: 300px;">
+          <h3>Materiales Requeridos Actualmente</h3>
+          
+          @if (recetaActual.length === 0) {
+            <p style="color: gray; font-style: italic;">Este producto aún no tiene materiales asignados. Si recibes un pedido de este producto, no se descontará nada del inventario.</p>
+          } @else {
+            <mat-list>
+              @for (item of recetaActual; track item.id_estructura) {
+                <mat-list-item style="height: auto; padding: 15px 0; border-bottom: 1px solid #eee;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                      <mat-icon color="primary">build</mat-icon>
+                      <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                        <span style="font-weight: 500; font-size: 1.1em; color: #333;">
+                          {{ obtenerNombreMaterial(item.id_material) }}
+                        </span>
+                        <span style="font-size: 0.9em; color: gray; margin-top: 4px;">
+                          Consumo: <strong style="color: #d32f2f;">{{ item.cantidad_necesaria }} unidades</strong>
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <button mat-icon-button color="warn" (click)="eliminarIngrediente(item.id_estructura)" title="Quitar de la receta">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                    
+                  </div>
+                </mat-list-item>
+              }
+            </mat-list>
+          }
+        </div>
+
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
