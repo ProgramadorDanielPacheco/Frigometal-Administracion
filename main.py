@@ -35,7 +35,7 @@ app = FastAPI(title="Frigometal ERP API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"], # El puerto por defecto de Angular
+    allow_origins=["*"], # El puerto por defecto de Angular
     allow_credentials=True,
     allow_methods=["*"], # Permite GET, POST, PUT, DELETE
     allow_headers=["*"],
