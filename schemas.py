@@ -5,6 +5,7 @@ from datetime import date
 from typing import List
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import date, time
 # ==========================
 # ESQUEMAS PARA USUARIOS
 # ==========================
@@ -245,5 +246,28 @@ class OrdenTrabajoResponse(OrdenTrabajoBase):
     estado: str
     fecha_entrega_real: Optional[date] = None
 
+    class Config:
+        from_attributes = True
+
+
+class ReunionBase(BaseModel):
+    motivo: str
+    fecha: date
+    hora: time
+    participantes: str
+    estado: Optional[str] = "PROGRAMADA"
+
+class ReunionCreate(ReunionBase):
+    pass
+
+class ReunionUpdate(BaseModel):
+    motivo: Optional[str] = None
+    fecha: Optional[date] = None
+    hora: Optional[time] = None
+    participantes: Optional[str] = None
+    estado: Optional[str] = None
+
+class ReunionResponse(ReunionBase):
+    id_reunion: int
     class Config:
         from_attributes = True

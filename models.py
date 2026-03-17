@@ -3,6 +3,7 @@ from database import Base
 from sqlalchemy import ForeignKey, Date
 from sqlalchemy.orm import relationship
 from datetime import date
+from sqlalchemy import Date, Time, Text
 
 from sqlalchemy import Column, Integer, String, Boolean
 # Asegúrate de importar Base
@@ -81,7 +82,7 @@ class Proveedor(Base):
     
     # 👇 NUEVO: Conecta el proveedor con sus precios automáticamente
     precios = relationship("PrecioProveedor", backref="proveedor", cascade="all, delete-orphan")
-    
+
 class PrecioProveedor(Base):
     __tablename__ = "precios_proveedor"
 
@@ -120,3 +121,13 @@ class OrdenTrabajo(Base):
     fecha_entrega_programada = Column(Date, nullable=False)
     fecha_entrega_real = Column(Date, nullable=True)
     estado = Column(String(50), default='ASIGNADO') # ASIGNADO, EN_PROGRESO, COMPLETADO
+
+class Reunion(Base):
+    __tablename__ = "reuniones"
+
+    id_reunion = Column(Integer, primary_key=True, index=True)
+    motivo = Column(String(200), nullable=False)
+    fecha = Column(Date, nullable=False)
+    hora = Column(Time, nullable=False)
+    participantes = Column(Text, nullable=False) # Guardaremos los nombres separados por comas
+    estado = Column(String(50), default="PROGRAMADA") # PROGRAMADA, COMPLETADA, CANCELADA

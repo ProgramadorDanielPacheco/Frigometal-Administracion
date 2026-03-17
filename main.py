@@ -1057,6 +1057,15 @@ async def importar_pedidos_excel(file: UploadFile = File(...), db: Session = Dep
 def obtener_proveedores(db: Session = Depends(get_db)):
     return db.query(models.Proveedor).all()
 
+@app.post("/proveedores", response_model=schemas.ProveedorResponse)
+def crear_proveedor(proveedor: schemas.ProveedorCreate, db: Session = Depends(get_db)):
+    nuevo_proveedor = models.Proveedor(**proveedor.model_dump())
+    db.add(nuevo_proveedor)
+    db.commit()
+    db.refresh(nuevo_proveedor)
+    return nuevo_proveedor
+
+# 2. Asignar un nuevo precio de catálogo
 @app.post("/precios-proveedor/")
 def agregar_precio_material(precio: schemas.PrecioProveedorCreate, db: Session = Depends(get_db)):
     nuevo_precio = models.PrecioProveedor(**precio.model_dump())
@@ -1259,3 +1268,34 @@ def obtener_resumen_dashboard(db: Session = Depends(get_db)):
         "compras_pendientes": compras_pendientes,
         "tareas_activas": tareas_activas
     }
+# ==========================================
+# RUTAS DE REUNIONES
+# ==========================================
+@app.get("/reuniones/", response_model=List[schemas.ReunionResponse])
+def obtener_reuniones(db: Session = Depends(get_db)):
+    # Ordenamos por fecha y hora para que las más próximas salgan primero
+    return db.query(models.Reunion).order_by(models.Reunion.fecha.asc(), models.Reunion.hora.asc()).all()
+
+@app.post("/reuniones/", response_model=schemas.ReunionResponse)
+def crear_reunion(reunion: schemas.ReunionCreate, db: Session = Depends(get_db)):
+    nueva_reunion = models.Reunion(**reunion.model_dump())
+    db.add(nueva_reunion)
+    db.commit()
+    db.refresh(nueva_reunion)
+    return nueva_reunion
+
+@app.put("/reuniones/{id_reunion}", response_model=schemas.ReunionResponse)
+def actualizar_reunion(id_reunion: int, reunion_update: schemas.ReunionUpdate, db: Session = Depends(get_db)):
+    reunion_db = db.query(models.Reunion).filter(models.Reunion.id_reunion == id_reunion).first()
+    if not reunion_db:
+        raise HTTPException(status_code=404, detail="Reunión no encontrada")
+
+    if reunion_update.motivo is not None: reunion_db.motivo = reunion_update.motivo
+    if reunion_update.fecha is not None: reunion_db.fecha = reunion_update.fecha
+    if reunion_update.hora is not None: reunion_db.hora = reunion_update.hora
+    if reunion_update.participantes is not None: reunion_db.participantes = reunion_update.participantes
+    if reunion_update.estado is not None: reunion_db.estado = reunion_update.estado
+
+    db.commit()
+    db.refresh(reunion_db)
+    return reunion_db

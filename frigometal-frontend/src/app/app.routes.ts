@@ -3,13 +3,15 @@ import { ListaProductos } from './components/lista-productos/lista-productos';
 import { Inventario } from './components/inventario/inventario';
 import { PedidosComponent } from './components/pedidos/pedidos';
 import { ComprasComponent } from './components/compras/compras';
-import { ProgramacionComponent } from './components/programacion/programacion'; // <-- Importar
-import { DashboardComponent } from './components/dashboard/dashboard'; // <-- Importar
-import { authGuard } from './guards/auth-guard'; // <-- Importa el Guard
+import { ProgramacionComponent } from './components/programacion/programacion'; 
+import { DashboardComponent } from './components/dashboard/dashboard'; 
+import { authGuard } from './guards/auth-guard'; 
 import { LoginComponent } from './components/login/login';
-import { RegistroComponent } from './components/registro/registro'; // <-- Importar
+import { RegistroComponent } from './components/registro/registro'; 
 import { ClientesComponent } from './components/clientes/clientes';
 import { ProveedoresComponent } from './components/proveedores/proveedores';
+// 👇 NUEVA IMPORTACIÓN 👇
+import { ReunionesComponent } from './components/reuniones/reuniones'; 
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -22,6 +24,9 @@ export const routes: Routes = [
   { path: 'registro', component: RegistroComponent, canActivate: [authGuard] },
   { path: 'clientes', component: ClientesComponent, canActivate: [authGuard] },
   { path: 'proveedor', component: ProveedoresComponent, canActivate: [authGuard] },
+  
+  // 👇 NUEVA RUTA DE AGENDA 👇
+  { path: 'reuniones', component: ReunionesComponent, canActivate: [authGuard] },
   
   // Redirect por defecto a login
   { path: '', redirectTo: '/login', pathMatch: 'full' },
