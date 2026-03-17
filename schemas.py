@@ -83,8 +83,9 @@ class ProductoUpdate(BaseModel):
 class MaterialBase(BaseModel):
     nombre: str
     unidad_medida: Optional[str] = "Unidades"
-    stock_actual: Decimal = Decimal('0.0')         # 👈 Cambia a Decimal('0.0')
+    stock_actual: Decimal = Decimal('0.0')
     stock_minimo_alerta: Decimal = Decimal('0.0')
+    precio_unitario: Decimal = Decimal('0.0') # 👈 Agregado
 
 class MaterialCreate(MaterialBase):
     pass
@@ -102,6 +103,7 @@ class MaterialUpdate(BaseModel):
     unidad_medida: Optional[str] = None
     stock_actual: Optional[Decimal] = None
     stock_minimo_alerta: Optional[Decimal] = None
+    precio_unitario: Optional[Decimal] = None # 👈 Agregado
 
 class EstructuraProductoCreate(BaseModel):
     id_producto: int
@@ -269,5 +271,27 @@ class ReunionUpdate(BaseModel):
 
 class ReunionResponse(ReunionBase):
     id_reunion: int
+    class Config:
+        from_attributes = True
+
+class MantenimientoBase(BaseModel):
+    id_cliente: str
+    id_producto: int
+    fecha_mantenimiento: date
+    descripcion: Optional[str] = None
+    estado: Optional[str] = "Programado"
+
+class MantenimientoCreate(MantenimientoBase):
+    pass
+
+class MantenimientoUpdate(BaseModel):
+    id_cliente: Optional[str] = None
+    id_producto: Optional[int] = None
+    fecha_mantenimiento: Optional[date] = None
+    descripcion: Optional[str] = None
+    estado: Optional[str] = None
+
+class MantenimientoResponse(MantenimientoBase):
+    id_mantenimiento: int
     class Config:
         from_attributes = True

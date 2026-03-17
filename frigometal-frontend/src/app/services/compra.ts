@@ -34,7 +34,7 @@ export class CompraService {
 
   // Para llenar el selector de proveedores
   getProveedores(): Observable<any[]> {
-    return this.http.get<any[]>('hhttps://frigometal-administracion.vercel.app/proveedores/');
+    return this.http.get<any[]>('https://frigometal-administracion.vercel.app/proveedores/');
   }
 
   // Para guardar los cambios del borrador

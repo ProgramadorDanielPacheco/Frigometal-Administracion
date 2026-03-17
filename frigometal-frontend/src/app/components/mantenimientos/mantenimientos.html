@@ -1,0 +1,98 @@
+<div style="padding: 40px; max-width: 1100px; margin: auto;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <h2>📅 Mantenimientos Post-Venta</h2>
+  <button mat-raised-button color="primary" (click)="toggleFormulario()">
+    {{ mostrarFormulario ? 'Cerrar' : 'Agendar Nuevo' }}
+  </button>
+</div>
+
+  @if (mostrarFormulario) {
+    <mat-card style="margin-bottom: 30px; padding: 20px;">
+      <mat-card-title>{{ modoEdicion ? 'Editar' : 'Nuevo' }} Mantenimiento</mat-card-title>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px;">
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 200px;">
+          <mat-label>Cliente</mat-label>
+          <mat-select [(ngModel)]="nuevoMante.id_cliente" >
+            @for (c of clientes; track c.id_cliente) { <mat-option [value]="c.id_cliente">{{c.nombre}}</mat-option> }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 200px;">
+          <mat-label>Producto Entregado</mat-label>
+          <mat-select [(ngModel)]="nuevoMante.id_producto" >
+            @for (p of productos; track p.id_producto) { <mat-option [value]="p.id_producto">{{p.nombre}}</mat-option> }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Fecha Agendada</mat-label>
+          <input matInput type="date" [(ngModel)]="nuevoMante.fecha_mantenimiento">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Estado del Mantenimiento</mat-label>
+          <mat-select [(ngModel)]="nuevoMante.estado">
+            <mat-option value="Programado">Programado</mat-option>
+            <mat-option value="Completado">Completado</mat-option>
+            <mat-option value="Cancelado">Cancelado</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <button mat-raised-button color="accent" (click)="guardar()" style="width: 100%; margin-top: 10px;">
+        {{ modoEdicion ? 'Actualizar' : 'Agendar' }}
+      </button>
+    </mat-card>
+  }
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+    <ng-container matColumnDef="cliente">
+      <th mat-header-cell *matHeaderCellDef> Cliente </th>
+      <td mat-cell *matCellDef="let m"> {{ getNombreCliente(m.id_cliente) }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="producto">
+      <th mat-header-cell *matHeaderCellDef> Producto </th>
+      <td mat-cell *matCellDef="let m"> {{ getNombreProducto(m.id_producto) }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="fecha">
+      <th mat-header-cell *matHeaderCellDef> Fecha </th>
+      <td mat-cell *matCellDef="let m">
+        <span [style.color]="esFechaCercana(m.fecha_mantenimiento) ? 'red' : 'inherit'"
+              [style.font-weight]="esFechaCercana(m.fecha_mantenimiento) ? 'bold' : 'normal'">
+          {{ m.fecha_mantenimiento | date:'dd/MM/yyyy' }}
+          @if (esFechaCercana(m.fecha_mantenimiento)) { 🚨 }
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Estado </th>
+      <td mat-cell *matCellDef="let m">
+        @if (m.estado === 'Completado') {
+          <span style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">
+            <mat-icon style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">check_circle</mat-icon> Completado
+          </span>
+        } @else if (m.estado === 'Cancelado') {
+          <span style="background-color: #ffebee; color: #c62828; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">
+            <mat-icon style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">cancel</mat-icon> Cancelado
+          </span>
+        } @else {
+          <span style="background-color: #e3f2fd; color: #1565c0; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">
+            <mat-icon style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">schedule</mat-icon> Programado
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
+      <td mat-cell *matCellDef="let m" style="text-align: right;">
+        <button mat-icon-button color="primary" (click)="editar(m)"><mat-icon>edit</mat-icon></button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+  </table>
+</div>

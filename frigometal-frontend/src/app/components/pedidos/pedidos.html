@@ -43,14 +43,25 @@
       <mat-card-content style="display: flex; flex-direction: column; gap: 15px;">
         
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+          
           <mat-form-field appearance="outline" style="flex: 1; min-width: 250px;">
             <mat-label>Cliente (Solicitante)</mat-label>
             <mat-icon matPrefix style="margin-right: 10px;">person</mat-icon>
             <mat-select [(ngModel)]="clienteSeleccionado">
-              @for (cliente of clientes; track cliente.id_cliente) {
+              
+              <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                  <mat-label>Buscar cliente...</mat-label>
+                  <input matInput [(ngModel)]="filtroClientes" placeholder="Ej: Wafflers" autocomplete="off">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+              </div>
+
+              @for (cliente of clientesFiltrados; track cliente.id_cliente) {
                 <mat-option [value]="cliente.id_cliente">{{ cliente.nombre }}</mat-option>
-              } @empty {
-                <mat-option disabled>No hay clientes registrados</mat-option>
+              }
+              @if (clientesFiltrados.length === 0) {
+                <mat-option disabled>No se encontraron clientes</mat-option>
               }
             </mat-select>
           </mat-form-field>
@@ -59,10 +70,20 @@
             <mat-label>Producto a Fabricar</mat-label>
             <mat-icon matPrefix style="margin-right: 10px;">inventory_2</mat-icon>
             <mat-select [(ngModel)]="productoSeleccionado">
-              @for (prod of productos; track prod.id_producto) {
+              
+              <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                  <mat-label>Buscar producto...</mat-label>
+                  <input matInput [(ngModel)]="filtroProductos" placeholder="Ej: Campana" autocomplete="off">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+              </div>
+
+              @for (prod of productosFiltrados; track prod.id_producto) {
                 <mat-option [value]="prod.id_producto">{{ prod.nombre }}</mat-option>
-              } @empty {
-                <mat-option disabled>No hay productos en el catálogo</mat-option>
+              }
+              @if (productosFiltrados.length === 0) {
+                <mat-option disabled>No se encontraron productos</mat-option>
               }
             </mat-select>
           </mat-form-field>

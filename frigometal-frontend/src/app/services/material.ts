@@ -3,11 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Material {
-  id_material?: number; // Es opcional porque al crearlo aún no tiene ID
+  id_material?: number;
   nombre: string;
   stock_actual: number;
   stock_minimo_alerta: number;
   unidad_medida: string;
+  precio_unitario: number; // 👈 Agregado
 }
 
 @Injectable({ providedIn: 'root' })

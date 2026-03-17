@@ -10,6 +10,7 @@ import { LoginComponent } from './components/login/login';
 import { RegistroComponent } from './components/registro/registro'; 
 import { ClientesComponent } from './components/clientes/clientes';
 import { ProveedoresComponent } from './components/proveedores/proveedores';
+import { MantenimientosComponent } from './components/mantenimientos/mantenimientos'
 // 👇 NUEVA IMPORTACIÓN 👇
 import { ReunionesComponent } from './components/reuniones/reuniones'; 
 
@@ -27,7 +28,8 @@ export const routes: Routes = [
   
   // 👇 NUEVA RUTA DE AGENDA 👇
   { path: 'reuniones', component: ReunionesComponent, canActivate: [authGuard] },
-  
+  // 👇 NUEVA RUTA DE AGENDA 👇
+  { path: 'mantenimientos', component: MantenimientosComponent, canActivate: [authGuard] },
   // Redirect por defecto a login
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   // Si pone una URL que no existe, mándalo al login

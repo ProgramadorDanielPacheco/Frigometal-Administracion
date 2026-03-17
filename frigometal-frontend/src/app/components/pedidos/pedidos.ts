@@ -34,6 +34,9 @@ export class PedidosComponent implements OnInit {
   clientes: Cliente[] = [];
   productos: Producto[] = [];
 
+  filtroClientes: string = '';
+  filtroProductos: string = '';
+
   // Variables del formulario
   clienteSeleccionado: number | null = null;
   productoSeleccionado: number | null = null;
@@ -239,6 +242,8 @@ marcarComoEntregado(pedido: any): void {
       this.productoSeleccionado = null;
       this.cantidadPedido = 1;
       this.fechaEntrega = '';
+      this.filtroClientes = '';
+      this.filtroProductos = '';
       this.cdr.detectChanges();
     }, 0);
   }
@@ -283,6 +288,16 @@ marcarComoEntregado(pedido: any): void {
       return pedido.detalles[0].cantidad;
     }
     return 0;
+  }
+
+  get clientesFiltrados(): Cliente[] {
+    if (!this.filtroClientes) return this.clientes;
+    return this.clientes.filter(c => c.nombre.toLowerCase().includes(this.filtroClientes.toLowerCase()));
+  }
+
+  get productosFiltrados(): Producto[] {
+    if (!this.filtroProductos) return this.productos;
+    return this.productos.filter(p => p.nombre.toLowerCase().includes(this.filtroProductos.toLowerCase()));
   }
 
   onArchivoSeleccionado(event: any): void {

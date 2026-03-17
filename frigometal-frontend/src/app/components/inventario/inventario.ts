@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-inventario',
@@ -18,7 +19,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule, 
     MatIconModule, MatCardModule, MatFormFieldModule, 
-    MatInputModule, MatSelectModule, MatSnackBarModule
+    MatInputModule, MatSelectModule, MatSnackBarModule, MatMenuModule
   ],
   templateUrl: './inventario.html',
   styleUrls: ['./inventario.scss']
@@ -26,7 +27,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 export class Inventario implements OnInit {
   // Usamos el DataSource oficial de Material
   dataSource = new MatTableDataSource<Material>([]);
-  columnasMostradas: string[] = ['id_material', 'nombre', 'stock_actual', 'stock_minimo_alerta', 'estado', 'acciones'];
+  columnasMostradas: string[] = ['id_material', 'nombre', 'stock_actual', 'precio_unitario', 'estado', 'acciones'];
+
+  soloStockBajo: boolean = false;
+  textoBusqueda: string = '';
 
   mostrarFormulario: boolean = false;
   guardando: boolean = false;
@@ -34,7 +38,8 @@ export class Inventario implements OnInit {
     nombre: '',
     stock_actual: 0,
     stock_minimo_alerta: 5,
-    unidad_medida: 'Unidades'
+    unidad_medida: 'Unidades',
+    precio_unitario: 0 // 👈 Inicializado en 0
   };
 
   modoEdicion: boolean = false;
@@ -47,22 +52,33 @@ export class Inventario implements OnInit {
 
   ngOnInit(): void {
     this.cargarInventario();
+    this.dataSource.filterPredicate = (data: Material, filter: string) => {
+    // 1. Lógica de Stock Bajo
+    if (this.soloStockBajo) {
+      // Usamos parseFloat para estar 100% seguros de la comparación matemática
+      const stock = parseFloat(data.stock_actual.toString());
+      const minimo = parseFloat(data.stock_minimo_alerta.toString());
+      
+      if (stock > minimo) return false; // Si NO está bajo, lo ocultamos
+    }
+
+    // 2. Lógica de búsqueda por texto (siempre al final)
+    const nombre = data.nombre.toLowerCase();
+    return nombre.includes(filter.trim().toLowerCase());
+  };
   }
 
   cargarInventario(): void {
     this.materialService.getMateriales().subscribe({
       next: (datos) => {
-        // CORRECCIÓN: Forzamos a que el stock se lea como número matemático
         const datosCorregidos = datos.map(mat => ({
           ...mat,
           stock_actual: Number(mat.stock_actual),
-          stock_minimo_alerta: Number(mat.stock_minimo_alerta)
+          stock_minimo_alerta: Number(mat.stock_minimo_alerta),
+          precio_unitario: Number(mat.precio_unitario) // 👈 Casteo a número
         }));
-        
-        // Asignamos los datos ya corregidos a la tabla
         this.dataSource.data = datosCorregidos;
-      },
-      error: (err) => console.error('Error cargando inventario', err)
+      }
     });
   }
   toggleFormulario(): void {
@@ -126,9 +142,30 @@ export class Inventario implements OnInit {
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idMaterialEditando = null;
-    this.nuevoMaterial = { nombre: '', stock_actual: 0, stock_minimo_alerta: 5, unidad_medida: 'Unidades' };
+    this.nuevoMaterial = { nombre: '', stock_actual: 0, stock_minimo_alerta: 5, unidad_medida: 'Unidades', precio_unitario: 0 };
   }
 
+  aplicarFiltroTexto(event: Event) {
+  const filterValue = (event.target as HTMLInputElement).value;
+  this.textoBusqueda = filterValue;
+  this.dataSource.filter = filterValue.trim().toLowerCase();
+}
+
+// 4. Función para activar/desactivar el filtro de Stock Bajo
+toggleStockBajo() {
+  this.soloStockBajo = !this.soloStockBajo;
+  
+  /* TRUCO: Angular Material ignora el filtro si el string es idéntico al anterior.
+     Al poner este "if", nos aseguramos de que siempre se ejecute la lógica 
+     del filterPredicate, incluso si el buscador está vacío.
+  */
+  const dummyFilter = this.textoBusqueda || ' '; 
+  this.dataSource.filter = this.soloStockBajo ? 'LOW_STOCK_FILTER' : this.textoBusqueda;
+
+  // Si el buscador tiene texto, mantenemos el texto, 
+  // si no, le mandamos un comando interno para que reaccione.
+  this.dataSource.filter = this.textoBusqueda.trim().toLowerCase() || (this.soloStockBajo ? ' ' : '');
+}
   descargarExcel(): void {
     // Le pasamos los datos directamente desde la tabla
     const datos = this.dataSource.data;

@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { DashboardService, ResumenDashboard } from '../../services/dashboard';
+import { MantenimientoService } from '../../services/mantenimiento';
 
 // Módulos de Angular Material
 import { MatCardModule } from '@angular/material/card';
@@ -17,6 +18,8 @@ import { CommonModule } from '@angular/common';
 })
 export class DashboardComponent implements OnInit {
   
+  mantenimientosUrgentes: number = 0;
+
   resumen: ResumenDashboard = {
     pedidos_activos: 0,
     alertas_inventario: 0,
@@ -26,12 +29,14 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private dashboardService: DashboardService,
-    private cdr: ChangeDetectorRef // <-- Herramienta para "despertar" a la pantalla
+    private cdr: ChangeDetectorRef, // <-- Herramienta para "despertar" a la pantalla
+    private manteService: MantenimientoService
   ) {}
 
   ngOnInit(): void {
     // Cargamos los datos apenas entras a la pantalla
     this.cargarDatos();
+    this.revisarMantenimientos();
   }
 
   // La función conectada a tu nuevo botón
@@ -46,5 +51,23 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => console.error('Error cargando el dashboard', err)
     });
+  }
+
+  revisarMantenimientos(): void {
+    this.manteService.getMantenimientos().subscribe(datos => {
+      // Filtramos la lista para quedarnos solo con los que están "cerca" o ya vencieron
+      const urgentes = datos.filter(m => this.esFechaCercana(m.fecha_mantenimiento));
+      this.mantenimientosUrgentes = urgentes.length;
+    });
+  }
+
+  esFechaCercana(fechaStr: string): boolean {
+    const fecha = new Date(fechaStr + 'T00:00:00');
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    const diff = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Si faltan entre 0 y 3 días, es urgente
+    return diff <= 3 && diff >= 0; 
   }
 }

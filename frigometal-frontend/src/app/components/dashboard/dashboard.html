@@ -1,23 +1,42 @@
 <div style="padding: 40px; max-width: 1200px; margin: auto;">
-  
 
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+    <div>
+      <h1 style="font-family: Roboto, sans-serif; font-weight: 500; color: #333; margin: 0;">Panel de Control General</h1>
+      <p style="color: gray; margin-top: 5px;">Resumen operativo de Frigometal al día de hoy.</p>
+    </div>
     
     <button mat-raised-button color="primary" (click)="cargarDatos()">
       <mat-icon>refresh</mat-icon> Actualizar Resumen
     </button>
   </div>
 
+  @if (mantenimientosUrgentes > 0) {
+    <mat-card class="mat-elevation-z6" style="background-color: #fff3f3; border-left: 6px solid #d32f2f; margin-bottom: 30px; border-radius: 8px;">
+      <mat-card-content style="display: flex; align-items: center; justify-content: space-between; padding: 20px; flex-wrap: wrap; gap: 15px;">
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <mat-icon style="color: #d32f2f; font-size: 48px; width: 48px; height: 48px; animation: pulse 2s infinite;">notification_important</mat-icon>
+          <div>
+            <h2 style="margin: 0; color: #c62828; font-weight: bold; font-size: 1.5rem;">
+              ¡Atención! Tienes {{ mantenimientosUrgentes }} mantenimiento(s) próximo(s)
+            </h2>
+            <p style="margin: 5px 0 0 0; color: #555; font-size: 1.1rem;">
+              Hay equipos entregados que requieren revisión en los próximos 3 días.
+            </p>
+          </div>
+        </div>
 
+        <button mat-raised-button color="warn" style="padding: 5px 20px; font-size: 1.1rem;" routerLink="/mantenimientos">
+          Revisar Agenda <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
 
-
-<div style="padding: 40px; max-width: 1200px; margin: auto;">
-  <div style="margin-bottom: 30px;">
-    <h1 style="font-family: Roboto, sans-serif; font-weight: 500; color: #333; margin: 0;">Panel de Control General</h1>
-    <p style="color: gray; margin-top: 5px;">Resumen operativo de Frigometal al día de hoy.</p>
-  </div>
+      </mat-card-content>
+    </mat-card>
+  }
 
   <div class="grid-tarjetas">
-    
+
     <mat-card class="tarjeta-kpi pedidos" routerLink="/pedidos">
       <div class="icono-contenedor"><mat-icon>shopping_cart</mat-icon></div>
       <div class="datos">

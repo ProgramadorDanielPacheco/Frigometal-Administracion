@@ -44,6 +44,8 @@ class Material(Base):
     unidad_medida = Column(String(20))
     stock_actual = Column(Numeric(10, 2), default=0)
     stock_minimo_alerta = Column(Numeric(10, 2), default=0)
+    # 👇 NUEVO CAMPO PARA EL COSTO 👇
+    precio_unitario = Column(Numeric(10, 2), default=0.0)
 
 class EstructuraProducto(Base):
     __tablename__ = "estructura_producto"
@@ -131,3 +133,13 @@ class Reunion(Base):
     hora = Column(Time, nullable=False)
     participantes = Column(Text, nullable=False) # Guardaremos los nombres separados por comas
     estado = Column(String(50), default="PROGRAMADA") # PROGRAMADA, COMPLETADA, CANCELADA
+
+class Mantenimiento(Base):
+    __tablename__ = "mantenimientos"
+
+    id_mantenimiento = Column(Integer, primary_key=True, index=True)
+    id_cliente = Column(String(20), ForeignKey("clientes.id_cliente"))
+    id_producto = Column(Integer, ForeignKey("productos.id_producto"))
+    fecha_mantenimiento = Column(Date, nullable=False)
+    descripcion = Column(String(500))
+    estado = Column(String(50), default="Programado") # Programado, Completado, Cancelado

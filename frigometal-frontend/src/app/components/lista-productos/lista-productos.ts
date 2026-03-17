@@ -48,6 +48,8 @@ export class ListaProductos implements OnInit {
   idMaterialSeleccionado: number | null = null;
   cantidadNecesaria: number = 1;
 
+  filtroMateriales: string = '';
+
   constructor(
     private productoService: ProductoService,
     private materialService: MaterialService,
@@ -122,6 +124,15 @@ export class ListaProductos implements OnInit {
     }, 0);
   }
 
+  get materialesFiltrados(): Material[] {
+  if (!this.filtroMateriales) {
+    return this.materialesBodega;
+  }
+  return this.materialesBodega.filter(mat => 
+    mat.nombre.toLowerCase().includes(this.filtroMateriales.toLowerCase())
+  );
+}
+
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idProductoEditando = null;
@@ -172,6 +183,7 @@ export class ListaProductos implements OnInit {
         // Limpiamos los campos
         this.idMaterialSeleccionado = null;
         this.cantidadNecesaria = 1;
+        this.filtroMateriales = '';
       },
       error: (err) => this.snackBar.open('❌ Error al agregar', 'Cerrar', { duration: 3000 })
     });
@@ -190,6 +202,28 @@ export class ListaProductos implements OnInit {
     const material = this.materialesBodega.find(m => m.id_material === idMaterial);
     return material ? material.nombre : `Material Desconocido (#${idMaterial})`;
   }
+
+  obtenerUnidadMedida(idMaterial: number): string {
+  const material = this.materialesBodega.find(m => m.id_material === idMaterial);
+  return material ? material.unidad_medida : '';
+}
+
+obtenerPrecioMaterial(idMaterial: number): number {
+  const material = this.materialesBodega.find(m => m.id_material === idMaterial);
+  return material ? Number(material.precio_unitario) : 0;
+}
+
+// 2. Calcula el subtotal para una fila de la receta
+calcularSubtotal(item: any): number {
+  const precio = this.obtenerPrecioMaterial(item.id_material);
+  const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
+  return precio * cantidad;
+}
+
+// 3. Suma todos los subtotales para el costo total del producto
+calcularCostoTotalReceta(): number {
+  return this.recetaActual.reduce((total, item) => total + this.calcularSubtotal(item), 0);
+}
 
   // ==========================================
   // LÓGICA DE IMPORTACIÓN MASIVA (EXCEL)

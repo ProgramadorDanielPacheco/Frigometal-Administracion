@@ -112,77 +112,108 @@
   </table>
 
   @if (productoSeleccionado) {
-    <mat-card class="mat-elevation-z8" style="margin-top: 40px; border-top: 5px solid #1976d2; margin-bottom: 50px;">
+  <mat-card class="mat-elevation-z8" style="margin-top: 40px; border-top: 5px solid #1976d2; margin-bottom: 50px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #f5f5f5; border-bottom: 1px solid #ddd; flex-wrap: wrap; gap: 15px;">
+      <div>
+        <h2 style="margin: 0; color: #1976d2;">Receta Técnica: <strong>{{productoSeleccionado.nombre}}</strong></h2>
+        <p style="margin: 0; color: gray;">Configuración de costos y materiales de producción.</p>
+      </div>
       
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #f5f5f5; border-bottom: 1px solid #ddd;">
-        <div>
-          <h2 style="margin: 0; color: #1976d2;">Receta Técnica: <strong>{{productoSeleccionado.nombre}}</strong></h2>
-          <p style="margin: 0; color: gray;">Configura los materiales que se descontarán del inventario al fabricar este producto.</p>
-        </div>
-        <button mat-icon-button color="warn" (click)="cerrarReceta()" title="Cerrar Panel">
-          <mat-icon>close</mat-icon>
-        </button>
+      <div style="background: #e8f5e9; padding: 10px 25px; border-radius: 8px; border: 1px solid #2e7d32; text-align: right;">
+        <span style="color: #2e7d32; font-size: 0.9em; font-weight: 500; display: block; text-transform: uppercase;">Costo Total de Producción</span>
+        <strong style="color: #1b5e20; font-size: 1.8em;">${{ calcularCostoTotalReceta() | number:'1.2-2' }}</strong>
       </div>
 
-      <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap;">
-        
-        <div style="flex: 1; min-width: 300px; background: #fafafa; padding: 20px; border-radius: 8px;">
-          <h3>Añadir Material a la Receta</h3>
-          
-          <mat-form-field appearance="outline" style="width: 100%;">
+      <button mat-icon-button color="warn" (click)="cerrarReceta()" title="Cerrar Panel">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap;">
+      
+      <div style="flex: 1; min-width: 300px; background: #fafafa; padding: 20px; border-radius: 8px;">
+        <h3 style="margin-top: 0;">Añadir Material</h3>
+        <mat-form-field appearance="outline" style="width: 100%;">
             <mat-label>Selecciona un Material de Bodega</mat-label>
             <mat-select [(ngModel)]="idMaterialSeleccionado">
-              @for (mat of materialesBodega; track mat.id_material) {
-                <mat-option [value]="mat.id_material">{{ mat.nombre }} (Disponible: {{mat.stock_actual}})</mat-option>
+              
+              <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                  <mat-label>Escribe para buscar...</mat-label>
+                  <input matInput 
+                        [(ngModel)]="filtroMateriales" 
+                        placeholder="Ej: Vitrina, Tubo, Acero..." 
+                        autocomplete="off">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+              </div>
+
+              @for (mat of materialesFiltrados; track mat.id_material) {
+                <mat-option [value]="mat.id_material">
+                  {{ mat.nombre }} - <span style="color: green;">(${{mat.precio_unitario}} / {{mat.unidad_medida}})</span>
+                </mat-option>
               }
+
+              @if (materialesFiltrados.length === 0) {
+                <mat-option disabled>No se encontraron materiales con "{{filtroMateriales}}"</mat-option>
+              }
+
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" style="width: 100%;">
-            <mat-label>Cantidad Necesaria por Unidad</mat-label>
-            <input matInput type="number" [(ngModel)]="cantidadNecesaria" min="0.1" step="0.1">
-          </mat-form-field>
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Cantidad Necesaria</mat-label>
+          <input matInput type="number" [(ngModel)]="cantidadNecesaria" min="0.1" step="0.1">
+        </mat-form-field>
 
-          <button mat-raised-button color="accent" style="width: 100%; padding: 10px 0;" (click)="agregarIngrediente()">
-            <mat-icon>add_circle</mat-icon> Añadir a la Receta
-          </button>
-        </div>
+        <button mat-raised-button color="accent" style="width: 100%; padding: 10px 0;" (click)="agregarIngrediente()">
+          <mat-icon>add_circle</mat-icon> Añadir a la Receta
+        </button>
+      </div>
 
-        <div style="flex: 2; min-width: 300px;">
-          <h3>Materiales Requeridos Actualmente</h3>
-          
+      <div style="flex: 2; min-width: 300px;">
+        <h3>Materiales y Desglose de Costos</h3>
+        <div style="min-height: 200px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background: white;">
           @if (recetaActual.length === 0) {
-            <p style="color: gray; font-style: italic;">Este producto aún no tiene materiales asignados. Si recibes un pedido de este producto, no se descontará nada del inventario.</p>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; color: #999; text-align: center;">
+              <mat-icon style="font-size: 48px; width: 48px; height: 48px; margin-bottom: 10px;">assignment_late</mat-icon>
+              <p>No hay materiales asignados.</p>
+            </div>
           } @else {
             <mat-list>
               @for (item of recetaActual; track item.id_estructura) {
-                <mat-list-item style="height: auto; padding: 15px 0; border-bottom: 1px solid #eee;">
+                <mat-list-item style="height: auto; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
                   <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                     
                     <div style="display: flex; align-items: center; gap: 15px;">
-                      <mat-icon color="primary">build</mat-icon>
-                      <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                        <span style="font-weight: 500; font-size: 1.1em; color: #333;">
-                          {{ obtenerNombreMaterial(item.id_material) }}
-                        </span>
-                        <span style="font-size: 0.9em; color: gray; margin-top: 4px;">
-                          Consumo: <strong style="color: #d32f2f;">{{ item.cantidad_necesaria }} unidades</strong>
+                      <mat-icon color="primary">settings_suggest</mat-icon>
+                      <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 600; color: #333;">{{ obtenerNombreMaterial(item.id_material) }}</span>
+                        <span style="font-size: 0.85em; color: gray;">
+                          {{ item.cantidad_necesaria }} {{ obtenerUnidadMedida(item.id_material) }} x 
+                          ${{ obtenerPrecioMaterial(item.id_material) }}
                         </span>
                       </div>
                     </div>
-                    
-                    <button mat-icon-button color="warn" (click)="eliminarIngrediente(item.id_estructura)" title="Quitar de la receta">
-                      <mat-icon>delete</mat-icon>
+
+                    <div style="text-align: right; margin-right: 20px;">
+                      <span style="display: block; font-size: 0.8em; color: gray; text-transform: uppercase;">Subtotal</span>
+                      <strong style="font-size: 1.1em; color: #2e7d32;">${{ calcularSubtotal(item) | number:'1.2-2' }}</strong>
+                    </div>
+
+                    <button mat-icon-button color="warn" (click)="eliminarIngrediente(item.id_estructura)">
+                      <mat-icon>delete_outline</mat-icon>
                     </button>
-                    
                   </div>
                 </mat-list-item>
               }
             </mat-list>
           }
         </div>
+      </div>
 
-      </mat-card-content>
-    </mat-card>
-  }
+    </mat-card-content>
+  </mat-card>
+}
 </div>

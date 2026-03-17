@@ -582,13 +582,12 @@ async def importar_materiales_excel(file: UploadFile = File(...), db: Session = 
     try:
         contents = await file.read()
         df = pd.read_excel(io.BytesIO(contents))
-        
-        # Limpiamos: llenamos los textos vacíos con "" y los números vacíos con 0
         df = df.fillna({
             'nombre': '', 
             'unidad_medida': 'Unidades', 
             'stock_actual': 0, 
-            'stock_minimo_alerta': 0
+            'stock_minimo_alerta': 0,
+            'precio_unitario': 0 # 👈 Agregado
         })
 
         materiales_agregados = 0
@@ -619,12 +618,14 @@ async def importar_materiales_excel(file: UploadFile = File(...), db: Session = 
                 errores.append(f"Fila {index + 2}: El material '{nombre_mat}' ya existe en el inventario.")
                 continue
 
+            precio = float(row.get('precio_unitario', 0))
             # 4. Guardar en la base de datos
             nuevo_material = models.Material(
                 nombre=nombre_mat,
                 unidad_medida=unidad,
                 stock_actual=stock,
-                stock_minimo_alerta=stock_minimo
+                stock_minimo_alerta=stock_minimo,
+                precio_unitario=precio # 👈 Guardar precio
             )
             db.add(nuevo_material)
             materiales_agregados += 1
@@ -684,12 +685,23 @@ def agregar_material_a_producto(estructura: schemas.EstructuraProductoCreate, db
         "id_material": nueva_estructura.id_material,
         "cantidad_necesaria": nueva_estructura.cantidad_requerida
     }
-@app.get("/estructura-producto/{id_producto}")
+@app.get("/estructura-producto/{id_producto}", response_model=List[schemas.EstructuraProductoResponse])
 def obtener_receta_producto(id_producto: int, db: Session = Depends(get_db)):
-    # Buscamos todos los materiales asignados a este producto en específico
+    # 1. Buscamos la receta
     receta = db.query(models.EstructuraProducto).filter(models.EstructuraProducto.id_producto == id_producto).all()
-    return receta
-
+    
+    # 2. MAPEAMOS los datos para que 'cantidad_requerida' pase a ser 'cantidad_necesaria'
+    # Esto asegura que Angular reciba el nombre exacto que está esperando.
+    receta_mapeada = []
+    for item in receta:
+        receta_mapeada.append({
+            "id_estructura": item.id_estructura,
+            "id_producto": item.id_producto,
+            "id_material": item.id_material,
+            "cantidad_necesaria": item.cantidad_requerida # 👈 Aquí ocurre la magia
+        })
+        
+    return receta_mapeada
 @app.delete("/estructura-producto/{id_estructura}")
 def eliminar_material_receta(id_estructura: int, db: Session = Depends(get_db)):
     # Buscamos el registro específico que queremos borrar
@@ -1299,3 +1311,39 @@ def actualizar_reunion(id_reunion: int, reunion_update: schemas.ReunionUpdate, d
     db.commit()
     db.refresh(reunion_db)
     return reunion_db
+
+@app.get("/mantenimientos", response_model=List[schemas.MantenimientoResponse])
+def obtener_mantenimientos(db: Session = Depends(get_db)):
+    return db.query(models.Mantenimiento).order_by(models.Mantenimiento.fecha_mantenimiento.asc()).all()
+
+@app.post("/mantenimientos", response_model=schemas.MantenimientoResponse)
+def agendar_mantenimiento(mante: schemas.MantenimientoCreate, db: Session = Depends(get_db)):
+    # Validar choque de fechas
+    existe = db.query(models.Mantenimiento).filter(models.Mantenimiento.fecha_mantenimiento == mante.fecha_mantenimiento).first()
+    if existe:
+        raise HTTPException(status_code=400, detail="Ya existe un mantenimiento para este día. Elige otra fecha.")
+    
+    nuevo = models.Mantenimiento(**mante.model_dump())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo
+
+@app.put("/mantenimientos/{id_mante}", response_model=schemas.MantenimientoResponse)
+def actualizar_mantenimiento(id_mante: int, update: schemas.MantenimientoUpdate, db: Session = Depends(get_db)):
+    mante_db = db.query(models.Mantenimiento).filter(models.Mantenimiento.id_mantenimiento == id_mante).first()
+    if not mante_db:
+        raise HTTPException(status_code=404, detail="Mantenimiento no encontrado")
+    
+    # Si intentan cambiar la fecha, verificar que no choque con otra
+    if update.fecha_mantenimiento and update.fecha_mantenimiento != mante_db.fecha_mantenimiento:
+        choque = db.query(models.Mantenimiento).filter(models.Mantenimiento.fecha_mantenimiento == update.fecha_mantenimiento).first()
+        if choque:
+            raise HTTPException(status_code=400, detail="La nueva fecha ya está ocupada por otro mantenimiento.")
+
+    for key, value in update.model_dump(exclude_unset=True).items():
+        setattr(mante_db, key, value)
+    
+    db.commit()
+    db.refresh(mante_db)
+    return mante_db
