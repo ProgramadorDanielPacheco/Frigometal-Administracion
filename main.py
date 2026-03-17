@@ -1057,7 +1057,7 @@ async def importar_pedidos_excel(file: UploadFile = File(...), db: Session = Dep
 def obtener_proveedores(db: Session = Depends(get_db)):
     return db.query(models.Proveedor).all()
 
-@app.post("/proveedores", response_model=schemas.ProveedorResponse)
+@app.post("/proveedores/", response_model=schemas.ProveedorResponse)
 def crear_proveedor(proveedor: schemas.ProveedorCreate, db: Session = Depends(get_db)):
     nuevo_proveedor = models.Proveedor(**proveedor.model_dump())
     db.add(nuevo_proveedor)
