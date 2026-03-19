@@ -1318,22 +1318,26 @@ def crear_reunion(reunion: schemas.ReunionCreate, db: Session = Depends(get_db))
     db.refresh(nueva_reunion)
     return nueva_reunion
 
+# 👇 main.py (Endpoint PUT Optimizado) 👇
+
 @app.put("/reuniones/{id_reunion}", response_model=schemas.ReunionResponse)
 def actualizar_reunion(id_reunion: int, reunion_update: schemas.ReunionUpdate, db: Session = Depends(get_db)):
     reunion_db = db.query(models.Reunion).filter(models.Reunion.id_reunion == id_reunion).first()
     if not reunion_db:
         raise HTTPException(status_code=404, detail="Reunión no encontrada")
 
-    if reunion_update.motivo is not None: reunion_db.motivo = reunion_update.motivo
-    if reunion_update.fecha is not None: reunion_db.fecha = reunion_update.fecha
-    if reunion_update.hora is not None: reunion_db.hora = reunion_update.hora
-    if reunion_update.participantes is not None: reunion_db.participantes = reunion_update.participantes
-    if reunion_update.estado is not None: reunion_db.estado = reunion_update.estado
+    # 👇 ESTA ES LA MAGIA 👇
+    # model_dump(exclude_unset=True) obtiene solo los campos que Angular envió, 
+    # ignorando los predeterminados de Pydantic.
+    update_data = reunion_update.model_dump(exclude_unset=True)
+    
+    # Recorremos el objeto y actualizamos dinámicamente cada campo
+    for key, value in update_data.items():
+        setattr(reunion_db, key, value)
 
     db.commit()
     db.refresh(reunion_db)
     return reunion_db
-
 @app.get("/mantenimientos", response_model=List[schemas.MantenimientoResponse])
 def obtener_mantenimientos(db: Session = Depends(get_db)):
     return db.query(models.Mantenimiento).order_by(models.Mantenimiento.fecha_mantenimiento.asc()).all()

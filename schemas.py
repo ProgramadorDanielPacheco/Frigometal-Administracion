@@ -270,12 +270,21 @@ class ReunionBase(BaseModel):
 class ReunionCreate(ReunionBase):
     pass
 
+# 👇 schemas.py 👇
+
+# (TareaReunion y ReunionBase se quedan igual)
+
 class ReunionUpdate(BaseModel):
     motivo: Optional[str] = None
     fecha: Optional[date] = None
     hora: Optional[time] = None
     participantes: Optional[str] = None
     estado: Optional[str] = None
+    # 👇 AGREGA ESTOS DOS CAMPOS 👇
+    detalle: Optional[str] = None
+    tareas: Optional[List[TareaReunion]] = [] 
+
+# (ReunionResponse se queda igual)
 
 class ReunionResponse(ReunionBase):
     id_reunion: int
