@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'https://frigometal-administracion.vercel.app/login/';
+  private apiUrl = 'http://127.0.0.1:8000/login/';
 
   constructor(private http: HttpClient, private router: Router) { }
 
@@ -23,5 +23,18 @@ export class AuthService {
   iniciarSesion(credenciales: any): Observable<any> {
     // Apuntamos a la nueva ruta /login/ que acabamos de crear en FastAPI
     return this.http.post('https://frigometal-administracion.vercel.app/login/', credenciales);
+  }
+
+  cambiarPassword(actual: string, nueva: string) {
+    // Asumimos que guardas el ID o Token del usuario al iniciar sesión.
+    // Ajusta 'id_usuario' según cómo lo tengas en tu sistema.
+    const idUsuario = localStorage.getItem('id_usuario'); 
+    
+    const payload = {
+      password_actual: actual,
+      password_nueva: nueva
+    };
+
+    return this.http.put(`https://frigometal-administracion.vercel.app/usuarios/${idUsuario}/password`, payload);
   }
 }

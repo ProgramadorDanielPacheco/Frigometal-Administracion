@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface TareaReunion {
+  accion: string;
+  responsable: string;
+  fecha_accion: string;
+}
+
 export interface Reunion {
   id_reunion?: number;
   motivo: string;
@@ -9,6 +15,8 @@ export interface Reunion {
   hora: string;
   participantes: string;
   estado?: string;
+  detalle?: string;
+  tareas: TareaReunion[]; // 👈 Array de tareas
 }
 
 @Injectable({ providedIn: 'root' })

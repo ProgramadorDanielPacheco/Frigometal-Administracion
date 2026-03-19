@@ -24,6 +24,19 @@
       <button mat-raised-button style="background-color: #217346; color: white;" (click)="fileInput.click()">
         <mat-icon>account_tree</mat-icon> Importar Catálogo
       </button>
+      <button mat-icon-button [matMenuTriggerFor]="menuMas" title="Más opciones">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #menuMas="matMenu">
+        <button mat-menu-item (click)="generarReporte('excel')">
+          <mat-icon style="color: #1b5e20;">table_view</mat-icon>
+          <span>Exportar a Excel</span>
+        </button>
+        <button mat-menu-item (click)="generarReporte('pdf')">
+          <mat-icon style="color: #c62828;">picture_as_pdf</mat-icon>
+          <span>Exportar a PDF</span>
+        </button>
+        </mat-menu>
 
     </div>
   </div>
@@ -58,11 +71,12 @@
 
       </mat-card-content>
 
-      <mat-card-actions align="end" style="padding: 16px;">
+      <mat-card-actions align="end" style="padding: 15px;">
         <button mat-raised-button color="primary" (click)="guardarProducto()" [disabled]="guardando">
           <mat-icon>{{ modoEdicion ? 'update' : 'save' }}</mat-icon> 
           {{ guardando ? 'Procesando...' : (modoEdicion ? 'Actualizar Cambios' : 'Guardar Producto') }}
         </button>
+        
       </mat-card-actions>
     </mat-card>
   }

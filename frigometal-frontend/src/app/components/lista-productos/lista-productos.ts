@@ -1,11 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
+import { MatCardActions, MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -15,6 +17,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { Producto, ProductoService } from '../../services/producto'; // Revisa si es .service o no
 import { Material, MaterialService } from '../../services/material';
 import { RecetaDetalle, RecetaService } from '../../services/receta';
+import { ReportesService } from '../../services/reportes';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-lista-productos',
@@ -22,7 +26,7 @@ import { RecetaDetalle, RecetaService } from '../../services/receta';
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule, 
     MatIconModule, MatCardModule, MatFormFieldModule, 
-    MatInputModule, MatSelectModule, MatListModule, MatSnackBarModule
+    MatInputModule, MatSelectModule, MatListModule, MatSnackBarModule, MatMenuModule
   ],
   templateUrl: './lista-productos.html',
   styleUrls: ['./lista-productos.scss']
@@ -53,6 +57,7 @@ export class ListaProductos implements OnInit {
   constructor(
     private productoService: ProductoService,
     private materialService: MaterialService,
+    private reportesService: ReportesService,
     private recetaService: RecetaService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef
@@ -262,5 +267,88 @@ calcularCostoTotalReceta(): number {
         }
       });
     }
+  }
+
+  // ==========================================
+  // GENERACIÓN DE REPORTES (EXCEL Y PDF)
+  // ==========================================
+  generarReporte(formato: 'excel' | 'pdf'): void {
+    const productos = this.dataSource.data;
+    
+    if (productos.length === 0) {
+      this.snackBar.open('⚠️ No hay productos para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.snackBar.open('⏳ Recopilando recetas y calculando costos...', '', { duration: 2500 });
+
+    // 1. Creamos un arreglo de peticiones HTTP (una por cada producto) para traer su receta
+    const peticionesRecetas = productos.map(prod => 
+      this.recetaService.getReceta(prod.id_producto!).pipe(
+        catchError(() => of([])) // Si un producto falla o no tiene receta, devolvemos un arreglo vacío
+      )
+    );
+
+    // 2. forkJoin ejecuta todas las peticiones a la vez y espera a que terminen
+    // 2. forkJoin ejecuta todas las peticiones a la vez y espera a que terminen
+    forkJoin(peticionesRecetas).subscribe({
+      next: (todasLasRecetas) => {
+        
+        // 3. Ya tenemos todas las recetas, ahora armamos la tabla final
+        const datosLimpios = productos.map((prod, index) => {
+          const recetaDelProducto = todasLasRecetas[index];
+          
+          let recetaTexto = 'Sin materiales';
+          let costoTotal = 0;
+
+          if (recetaDelProducto && recetaDelProducto.length > 0) {
+            
+            // Recorremos cada ítem de la receta
+            const detallesMapeados = recetaDelProducto.map((r: any) => {
+              
+              // 👇 MAGIA AQUÍ: Buscamos el material en la lista que ya tienes cargada en el componente 👇
+              const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
+              
+              const nombreMat = materialBD ? materialBD.nombre : 'Material Desconocido';
+              const precioMat = materialBD ? Number(materialBD.precio_unitario || 0) : 0;
+              
+              // Aseguramos capturar la cantidad, sin importar si viene de Python o de Angular
+              const cantidadMat = Number(r.cantidad_requerida || r.cantidad_necesaria || 0);
+
+              // Vamos sumando el costo
+              costoTotal += (cantidadMat * precioMat);
+
+              // Retornamos el texto para la columna de Excel
+              return `${nombreMat} (${cantidadMat})`;
+            });
+
+            // Unimos todos los materiales con una barrita
+            recetaTexto = detallesMapeados.join(' | ');
+          }
+
+          // Este objeto será una Fila en nuestro Excel/PDF
+          return {
+            'ID': prod.id_producto,
+            'Nombre del Producto': prod.nombre,
+            'Tiempo (Horas)': prod.tiempo_fabricacion_horas,
+            'Tipo': prod.es_estandar ? 'Estándar' : 'A Medida',
+            'Receta (Materiales)': recetaTexto,
+            'Costo Total ($)': costoTotal.toFixed(2)
+          };
+        });
+
+        // 4. Mandamos a descargar según el botón que presionó el usuario
+        if (formato === 'excel') {
+          this.reportesService.exportarExcel(datosLimpios, 'Catalogo_Frigometal');
+        } else {
+          const columnas = ['ID', 'Nombre del Producto', 'Tiempo (Horas)', 'Tipo', 'Receta (Materiales)', 'Costo Total ($)'];
+          this.reportesService.exportarPDF(datosLimpios, columnas, 'Catálogo de Productos y Costos', 'Catalogo_Frigometal');
+        }
+      },
+      error: (err) => {
+        console.error('Error al compilar reporte', err);
+        this.snackBar.open('❌ Hubo un error al generar el reporte', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 }

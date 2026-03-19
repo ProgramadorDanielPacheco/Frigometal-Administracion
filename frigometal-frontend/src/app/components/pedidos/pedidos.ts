@@ -16,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon'; // <-- Para los botones 
 import { Cliente, ClienteService } from '../../services/cliente';
 import { Producto, ProductoService } from '../../services/producto';
 import { PedidoService, Pedido } from '../../services/pedido';
+import { ReportesService } from '../../services/reportes';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-pedidos',
@@ -24,7 +26,7 @@ import { PedidoService, Pedido } from '../../services/pedido';
     CommonModule, FormsModule, 
     MatCardModule, MatFormFieldModule, MatSelectModule, 
     MatInputModule, MatButtonModule, MatSnackBarModule,
-    MatTableModule, MatIconModule // <-- Añadidos aquí también
+    MatTableModule, MatIconModule, MatMenuModule // <-- Añadidos aquí también
   ],
   templateUrl: './pedidos.html',
   styleUrls: ['./pedidos.scss'] 
@@ -58,6 +60,7 @@ export class PedidosComponent implements OnInit {
     private productoService: ProductoService,
     private pedidoService: PedidoService,
     private snackBar: MatSnackBar,
+    private reportesService: ReportesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -332,6 +335,38 @@ marcarComoEntregado(pedido: any): void {
           event.target.value = ''; 
         }
       });
+    }
+  }
+
+  generarReporte(formato: 'excel' | 'pdf'): void {
+    const pedidos = this.dataSource.data;
+
+    if (pedidos.length === 0) {
+      this.snackBar.open('⚠️ No hay pedidos para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // 1. Mapeamos los datos usando las funciones helper que ya creaste antes
+    const datosLimpios = pedidos.map(pedido => {
+      // Usamos el "texto" de tu semáforo para no exportar códigos feos
+      const estadoLimpio = pedido.semaforo?.texto || pedido.estado || 'DESCONOCIDO';
+
+      return {
+        'ID Pedido': `#${pedido.id_pedido}`,
+        'Cliente': this.obtenerNombreCliente(pedido.id_cliente),
+        'Producto Solicitado': this.obtenerNombreProducto(pedido),
+        'Cantidad': this.obtenerCantidad(pedido),
+        'Fecha de Entrega Prevista': pedido.fecha_entrega || 'Sin fecha',
+        'Estado de Producción': estadoLimpio
+      };
+    });
+
+    // 2. Exportamos según el botón presionado
+    if (formato === 'excel') {
+      this.reportesService.exportarExcel(datosLimpios, 'Historial_Pedidos_Frigometal');
+    } else {
+      const columnas = ['ID Pedido', 'Cliente', 'Producto Solicitado', 'Cantidad', 'Fecha de Entrega Prevista', 'Estado de Producción'];
+      this.reportesService.exportarPDF(datosLimpios, columnas, 'Historial de Pedidos y Producción', 'Pedidos_Frigometal');
     }
   }
 }

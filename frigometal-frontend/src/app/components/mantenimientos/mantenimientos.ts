@@ -15,6 +15,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Mantenimiento, MantenimientoService } from '../../services/mantenimiento';
 import { ClienteService } from '../../services/cliente';
 import { ProductoService } from '../../services/producto';
+import { ReportesService } from '../../services/reportes';
+import { MatMenuModule } from '@angular/material/menu';
 
 
 @Component({
@@ -31,7 +33,8 @@ import { ProductoService } from '../../services/producto';
     MatInputModule, 
     MatSelectModule, 
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatMenuModule
   ],
   templateUrl: './mantenimientos.html',
   styleUrls: ['./mantenimientos.scss']
@@ -55,6 +58,7 @@ export class MantenimientosComponent implements OnInit {
     private manteService: MantenimientoService,
     private clienteService: ClienteService,
     private productoService: ProductoService,
+    private reportesServices: ReportesService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -142,4 +146,38 @@ export class MantenimientosComponent implements OnInit {
   // Cambiamos el estado de visibilidad
   this.mostrarFormulario = !this.mostrarFormulario;
 }
+
+generarReporte(formato: 'excel' | 'pdf'): void {
+    const mantenimientos = this.dataSource.data;
+
+    if (mantenimientos.length === 0) {
+      this.snackBar.open('⚠️ No hay mantenimientos para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Transformamos los datos crudos a texto legible para el reporte
+    const datosLimpios = mantenimientos.map(m => {
+      // Nota: Convertimos id_cliente a Number por si acaso, para que no falle tu función getNombreCliente
+      const nombreCliente = this.getNombreCliente(Number(m.id_cliente));
+      const nombreProducto = this.getNombreProducto(m.id_producto);
+
+      return {
+        'ID': `#${m.id_mantenimiento}`,
+        'Cliente': nombreCliente,
+        'Producto Entregado': nombreProducto,
+        'Fecha Programada': m.fecha_mantenimiento,
+        'Descripción / Motivo': m.descripcion || 'Sin descripción',
+        'Estado': m.estado
+      };
+    });
+
+    // Enviamos a tu servicio de reportes
+    if (formato === 'excel') {
+      this.reportesServices.exportarExcel(datosLimpios, 'Mantenimientos_Frigometal');
+    } else {
+      const columnas = ['ID', 'Cliente', 'Producto Entregado', 'Fecha Programada', 'Descripción / Motivo', 'Estado'];
+      this.reportesServices.exportarPDF(datosLimpios, columnas, 'Historial de Mantenimientos Post-Venta', 'Mantenimientos_Frigometal');
+    }
+  }
+
 }

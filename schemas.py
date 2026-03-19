@@ -252,13 +252,21 @@ class OrdenTrabajoResponse(OrdenTrabajoBase):
         from_attributes = True
 
 
+class TareaReunion(BaseModel):
+    accion: str
+    responsable: str
+    fecha_accion: Optional[str] = None # Como string para evitar dolores de cabeza con fechas vacías
+
 class ReunionBase(BaseModel):
     motivo: str
     fecha: date
     hora: time
     participantes: str
     estado: Optional[str] = "PROGRAMADA"
-
+    detalle: Optional[str] = None
+    
+    # 👇 Reemplazamos los 3 campos por esta lista 👇
+    tareas: Optional[List[TareaReunion]] = []
 class ReunionCreate(ReunionBase):
     pass
 

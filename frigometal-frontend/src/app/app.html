@@ -1,19 +1,18 @@
 @if (authService.estaAutenticado()) {
 <mat-sidenav-container class="contenedor-principal">
   
-  <mat-sidenav mode="side" opened class="sidebar">
+  <mat-sidenav mode="side" opened class="sidebar" style="min-width: 280px;">
     <div class="logo-empresa">
       <img src="/logo.png" alt="Logotipo Frigometal" class="logo-img">
-      
       <span class="app-title">Frigometal ERP</span>
     </div>
-    
 
     <mat-nav-list>
       <a mat-list-item routerLink="/dashboard" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <div matListItemTitle>Inicio / Dashboard</div>
       </a>
+      
       <a mat-list-item routerLink="/productos" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>inventory_2</mat-icon>
         <div matListItemTitle>Catálogo y Recetas</div>
@@ -43,28 +42,67 @@
         <mat-icon matListItemIcon style="color: #ff9800;">build_circle</mat-icon>
         <div matListItemTitle>Mantenimientos</div>
       </a>
-      <mat-divider style="margin: 10px 0;"></mat-divider> <a mat-list-item routerLink="/registro" routerLinkActive="link-activo">
+      
+      <mat-divider style="margin: 10px 0;"></mat-divider> 
+      
+      <a mat-list-item routerLink="/registro" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>group_add</mat-icon>
         <div matListItemTitle>Recursos Humanos</div>
       </a>
+      
       <a mat-list-item routerLink="/clientes" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>groups</mat-icon>
         <div matListItemTitle>Directorio de Clientes</div>
       </a>
+      
       <a mat-list-item routerLink="/proveedor" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>groups</mat-icon>
+        <mat-icon matListItemIcon>local_shipping</mat-icon>
         <div matListItemTitle>Directorio de Proveedores</div>
       </a>
-      <a routerLink="/reuniones" mat-list-item><mat-icon>event</mat-icon> Agenda / Reuniones</a>
+      
+      <a mat-list-item routerLink="/reuniones" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>event</mat-icon>
+        <div matListItemTitle>Agenda / Reuniones</div>
+      </a>
     </mat-nav-list>
   </mat-sidenav>
 
   <mat-sidenav-content>
-    <mat-toolbar color="primary" class="barra-superior">
-      <span>Panel de Administración Central</span>
-      <button mat-icon-button (click)="cerrarSesion()" title="Cerrar Sesión" >
-          <mat-icon >logout</mat-icon>
+    <mat-toolbar class="barra-superior" style="background-color: #ffffff; border-bottom: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); height: 64px;">
+      
+      <span style="color: #333; font-weight: 500; font-size: 1.1rem; margin-left: 10px;">
+        Panel de Administración Central
+      </span>
+      
+      <span style="flex: 1 1 auto;"></span>
+      
+      <button mat-button [matMenuTriggerFor]="menuPerfil" style="border-radius: 20px; padding: 0 15px; border: 1px solid #e0e0e0;">
+        <mat-icon style="color: #1976d2; margin-right: 5px;">account_circle</mat-icon>
+        Mi Perfil <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
+      </button>
+
+      <mat-menu #menuPerfil="matMenu" xPosition="before" class="menu-perfil">
+        
+        <div style="padding: 20px 20px 10px 20px; text-align: center; outline: none; min-width: 200px;">
+          <mat-icon style="font-size: 48px; height: 48px; width: 48px; color: #bdbdbd;">account_circle</mat-icon>
+          <p style="margin: 10px 0 0 0; font-weight: bold; color: #333; font-size: 1.1rem;">Usuario Activo</p>
+          <p style="margin: 0; font-size: 0.85em; color: gray;">Administrador</p>
+        </div>
+        
+        <mat-divider style="margin: 10px 0;"></mat-divider>
+        
+        <button mat-menu-item (click)="abrirCambioPassword()">
+          <mat-icon color="primary">lock_reset</mat-icon>
+          <span>Cambiar Contraseña</span>
         </button>
+        
+        <button mat-menu-item (click)="cerrarSesion()" style="color: #c62828;">
+          <mat-icon color="warn">logout</mat-icon>
+          <span>Cerrar Sesión</span>
+        </button>
+        
+      </mat-menu>
+
     </mat-toolbar>
     
     <main class="area-trabajo">
@@ -76,4 +114,44 @@
 } @else {
   <router-outlet></router-outlet>
 }
+<ng-template #dialogoCambioPassword>
+  <h2 mat-dialog-title style="color: #1976d2; display: flex; align-items: center; gap: 8px;">
+    <mat-icon>lock_reset</mat-icon> Cambiar Contraseña
+  </h2>
+  
+  <mat-dialog-content style="display: flex; flex-direction: column; gap: 15px; padding-top: 20px; min-width: 300px;">
+    
+    <mat-form-field appearance="outline">
+      <mat-label>Contraseña Actual</mat-label>
+      <input matInput [type]="mostrarActual ? 'text' : 'password'" [(ngModel)]="passActual">
+      <button mat-icon-button matSuffix (click)="mostrarActual = !mostrarActual">
+        <mat-icon>{{mostrarActual ? 'visibility' : 'visibility_off'}}</mat-icon>
+      </button>
+    </mat-form-field>
 
+    <mat-form-field appearance="outline">
+      <mat-label>Nueva Contraseña</mat-label>
+      <input matInput [type]="mostrarNueva ? 'text' : 'password'" [(ngModel)]="passNueva">
+      <button mat-icon-button matSuffix (click)="mostrarNueva = !mostrarNueva">
+        <mat-icon>{{mostrarNueva ? 'visibility' : 'visibility_off'}}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Confirmar Nueva Contraseña</mat-label>
+      <input matInput [type]="mostrarNueva ? 'text' : 'password'" [(ngModel)]="passConfirmar">
+    </mat-form-field>
+
+    @if (passNueva && passConfirmar && passNueva !== passConfirmar) {
+      <span style="color: #c62828; font-size: 0.85em; margin-top: -10px;">❌ Las contraseñas nuevas no coinciden</span>
+    }
+
+  </mat-dialog-content>
+  
+  <mat-dialog-actions align="end" style="padding-bottom: 20px; padding-right: 20px;">
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="!passActual || !passNueva || passNueva !== passConfirmar" (click)="guardarNuevaPassword()">
+      Actualizar
+    </button>
+  </mat-dialog-actions>
+</ng-template>

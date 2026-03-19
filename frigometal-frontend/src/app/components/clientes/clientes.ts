@@ -13,6 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
 
 // Servicio
 import { Cliente, ClienteService } from '../../services/cliente'; 
+import { MatMenuModule } from '@angular/material/menu';
+import { ReportesService } from '../../services/reportes';
 
 @Component({
   selector: 'app-clientes',
@@ -20,7 +22,7 @@ import { Cliente, ClienteService } from '../../services/cliente';
   imports: [
     CommonModule, FormsModule, 
     MatCardModule, MatFormFieldModule, MatInputModule, 
-    MatButtonModule, MatSnackBarModule, MatTableModule, MatIconModule
+    MatButtonModule, MatSnackBarModule, MatTableModule, MatIconModule, MatMenuModule
   ],
   templateUrl: './clientes.html'
 })
@@ -38,6 +40,7 @@ export class ClientesComponent implements OnInit {
   constructor(
     private clienteService: ClienteService,
     private snackBar: MatSnackBar,
+    private reportesService: ReportesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -148,6 +151,32 @@ export class ClientesComponent implements OnInit {
           event.target.value = ''; 
         }
       });
+    }
+  }
+
+  generarReporte(formato: 'excel' | 'pdf'): void {
+    const clientes = this.dataSource.data;
+
+    if (clientes.length === 0) {
+      this.snackBar.open('⚠️ No hay clientes para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Mapeamos y limpiamos los datos para el reporte
+    const datosLimpios = clientes.map(c => ({
+      'Cédula / RUC': c.id_cliente,
+      'Nombre / Razón Social': c.nombre,
+      'Teléfono': c.telefono || 'No registrado',
+      'Correo Electrónico': c.correo || 'No registrado',
+      'Dirección': c.direccion || 'No registrada'
+    }));
+
+    // Enviamos al servicio de reportes
+    if (formato === 'excel') {
+      this.reportesService.exportarExcel(datosLimpios, 'Directorio_Clientes_Frigometal');
+    } else {
+      const columnas = ['Cédula / RUC', 'Nombre / Razón Social', 'Teléfono', 'Correo Electrónico', 'Dirección'];
+      this.reportesService.exportarPDF(datosLimpios, columnas, 'Directorio de Clientes', 'Clientes_Frigometal');
     }
   }
 }

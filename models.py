@@ -1,9 +1,10 @@
-from sqlalchemy import Boolean, Column, Integer, String, Numeric
+from sqlalchemy import Boolean, Column, Integer, String, Numeric, JSON
 from database import Base
 from sqlalchemy import ForeignKey, Date
 from sqlalchemy.orm import relationship
 from datetime import date
 from sqlalchemy import Date, Time, Text
+
 
 from sqlalchemy import Column, Integer, String, Boolean
 # Asegúrate de importar Base
@@ -131,8 +132,12 @@ class Reunion(Base):
     motivo = Column(String(200), nullable=False)
     fecha = Column(Date, nullable=False)
     hora = Column(Time, nullable=False)
-    participantes = Column(Text, nullable=False) # Guardaremos los nombres separados por comas
-    estado = Column(String(50), default="PROGRAMADA") # PROGRAMADA, COMPLETADA, CANCELADA
+    participantes = Column(Text, nullable=False)
+    estado = Column(String(50), default="PROGRAMADA")
+    detalle = Column(Text, nullable=True)
+    
+    # 👇 NUEVA COLUMNA JSON 👇
+    tareas = Column(JSON, default=[])
 
 class Mantenimiento(Base):
     __tablename__ = "mantenimientos"

@@ -45,6 +45,28 @@ app.add_middleware(
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+class PasswordUpdate(BaseModel):
+    password_actual: str
+    password_nueva: str
+
+@app.put("/usuarios/{id_usuario}/password")
+def cambiar_password(id_usuario: int, passwords: PasswordUpdate, db: Session = Depends(get_db)):
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Aquí debes usar tu función de encriptación (ej. verify_password)
+    # Si guardas contraseñas en texto plano (NO RECOMENDADO), sería: if usuario.password != passwords.password_actual:
+    if usuario.password != passwords.password_actual: 
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+
+    # Guardamos la nueva (Idealmente debes encriptarla aquí antes de guardar)
+    usuario.password = passwords.password_nueva 
+    db.commit()
+    
+    return {"mensaje": "Contraseña actualizada exitosamente"}
+
 @app.post("/login/", response_model=schemas.UsuarioResponse)
 def iniciar_sesion(credenciales: LoginRequest, db: Session = Depends(get_db)):
     

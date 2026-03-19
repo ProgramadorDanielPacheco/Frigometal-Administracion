@@ -12,7 +12,8 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 
-import { Reunion, ReunionService } from '../../services/reunion'; 
+import { Reunion, ReunionService, TareaReunion } from '../../services/reunion'; 
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-reuniones',
@@ -20,19 +21,25 @@ import { Reunion, ReunionService } from '../../services/reunion';
   imports: [
     CommonModule, FormsModule, 
     MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatSnackBarModule, MatTableModule, MatIconModule, MatChipsModule
+    MatButtonModule, MatSnackBarModule, MatTableModule, MatIconModule, MatChipsModule,
+    MatDividerModule
   ],
   templateUrl: './reuniones.html'
 })
 export class ReunionesComponent implements OnInit {
   
   dataSource = new MatTableDataSource<Reunion>([]);
-  columnasMostradas: string[] = ['fecha', 'motivo', 'participantes', 'estado', 'acciones'];
+  columnasMostradas: string[] = ['fecha', 'motivo', 'participantes', 'compromisos', 'estado', 'acciones'];
   
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false;
   
-  nuevaReunion: Reunion = { motivo: '', fecha: '', hora: '', participantes: '', estado: 'PROGRAMADA' };
+  nuevaReunion: Reunion = { 
+    motivo: '', fecha: '', hora: '', participantes: '', estado: 'PROGRAMADA',
+    detalle: '', tareas: [] 
+  };
+
+  nuevaTarea: TareaReunion = { accion: '', responsable: '', fecha_accion: '' };
 
   constructor(
     private reunionService: ReunionService,
@@ -69,7 +76,29 @@ export class ReunionesComponent implements OnInit {
 
   cancelarEdicion(): void {
     this.modoEdicion = false;
-    this.nuevaReunion = { motivo: '', fecha: '', hora: '', participantes: '', estado: 'PROGRAMADA' };
+    this.nuevaReunion = { 
+      motivo: '', fecha: '', hora: '', participantes: '', estado: 'PROGRAMADA',
+      detalle: '', tareas: [] 
+    };
+    this.nuevaTarea = { accion: '', responsable: '', fecha_accion: '' }; // Limpiamos la temporal
+  }
+
+  agregarTareaLista(): void {
+    if (this.nuevaTarea.accion.trim() === '' || this.nuevaTarea.responsable.trim() === '') {
+      this.snackBar.open('⚠️ Ingresa al menos la acción y el responsable', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    
+    // Aseguramos que exista el array y metemos una copia de la tarea
+    if (!this.nuevaReunion.tareas) this.nuevaReunion.tareas = [];
+    this.nuevaReunion.tareas.push({ ...this.nuevaTarea });
+    
+    // Limpiamos los inputs para la siguiente
+    this.nuevaTarea = { accion: '', responsable: '', fecha_accion: '' };
+  }
+
+  eliminarTareaLista(index: number): void {
+    this.nuevaReunion.tareas.splice(index, 1);
   }
 
   guardarReunion(): void {
@@ -77,6 +106,8 @@ export class ReunionesComponent implements OnInit {
       this.snackBar.open('⚠️ Todos los campos son obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
+
+    
 
     if (this.modoEdicion && this.nuevaReunion.id_reunion) {
       this.reunionService.actualizarReunion(this.nuevaReunion.id_reunion, this.nuevaReunion).subscribe({
