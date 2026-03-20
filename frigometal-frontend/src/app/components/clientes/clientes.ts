@@ -93,7 +93,7 @@ export class ClientesComponent implements OnInit {
       // 🔵 MODO ACTUALIZAR
       const datosActualizar = {
         nombre: this.nuevoCliente.nombre,
-        nombre_comecial: this.nuevoCliente.nombre_comercial,
+        nombre_comercial: this.nuevoCliente.nombre_comercial,
         telefono: this.nuevoCliente.telefono,
         correo: this.nuevoCliente.correo,
         direccion: this.nuevoCliente.direccion,
