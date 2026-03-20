@@ -1,0 +1,162 @@
+<mat-card style="width: 100%; padding: 30px; border-radius: 12px; background-color: white;">
+  <mat-card-header style="margin-bottom: 25px; border-bottom: 2px solid #1976d2; padding-bottom: 10px;">
+    <mat-icon style="color: #1976d2; margin-right: 10px; margin-top: 5px;">receipt_long</mat-icon>
+    <mat-card-title style="font-size: 24px; color: #1976d2;">ORDEN DE PRODUCCIÓN</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    
+    <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+  
+
+      <mat-form-field appearance="outline" style="flex: 1;">
+        <mat-label>Número de Pedido</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.numero_pedido">
+      </mat-form-field>
+      
+      <mat-form-field appearance="outline" style="flex: 1;">
+        <mat-label>Recibido Por</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.recibido_por">
+      </mat-form-field>
+    </div>
+
+    <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Datos del Cliente</h3>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+      <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+        <mat-label>Nombre / Razón Social</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.cliente_nombre">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Cédula / RUC</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.cliente_cedula">
+      </mat-form-field>
+    </div>
+
+    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 10px;">
+      <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+        <mat-label>Dirección</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.cliente_direccion">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Teléfono</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.cliente_telefono">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Email</mat-label>
+        <input matInput [(ngModel)]="nuevaOrden.cliente_email">
+      </mat-form-field>
+    </div>
+
+    <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Tiempos</h3>
+    <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+      <mat-form-field appearance="outline" style="flex: 1;">
+        <mat-label>Fecha del Pedido</mat-label>
+        <input matInput [matDatepicker]="pickerPedido" [(ngModel)]="nuevaOrden.fecha_pedido">
+        <mat-datepicker-toggle matIconSuffix [for]="pickerPedido"></mat-datepicker-toggle>
+        <mat-datepicker #pickerPedido></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1;">
+        <mat-label>Inicio de Producción</mat-label>
+        <input matInput [matDatepicker]="pickerInicio" [(ngModel)]="nuevaOrden.fecha_inicio">
+        <mat-datepicker-toggle matIconSuffix [for]="pickerInicio"></mat-datepicker-toggle>
+        <mat-datepicker #pickerInicio></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1;">
+        <mat-label>Fecha de Entrega</mat-label>
+        <input matInput [matDatepicker]="pickerEntrega" [(ngModel)]="nuevaOrden.fecha_entrega">
+        <mat-datepicker-toggle matIconSuffix [for]="pickerEntrega"></mat-datepicker-toggle>
+        <mat-datepicker #pickerEntrega></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalle del Pedido</h3>
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Descripción General del Pedido</mat-label>
+      <textarea matInput rows="3" [(ngModel)]="nuevaOrden.descripcion_pedido"></textarea>
+    </mat-form-field>
+
+    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px dashed #ccc;">
+      <h4 style="margin-top: 0; color: #1976d2;">Equipos Solicitados</h4>
+      
+      <div style="margin-bottom: 15px;">
+        @for (equipo of nuevaOrden.equipos; track equipo; let i = $index) {
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; margin-bottom: 5px; border-radius: 4px; border-left: 4px solid #1976d2;">
+            <span><b>{{equipo.cantidad}}x</b> - {{equipo.descripcion}}</span>
+            <button mat-icon-button color="warn" (click)="eliminarEquipo(i)"><mat-icon>delete</mat-icon></button>
+          </div>
+        }
+        @if (nuevaOrden.equipos.length === 0) {
+          <span style="color: gray; font-style: italic; font-size: 0.9em;">No has agregado equipos a esta orden.</span>
+        }
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1.25em;">
+          <mat-label>Cant.</mat-label>
+          <input matInput type="number" [(ngModel)]="nuevoEquipo.cantidad" min="1">
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+          <mat-label>Descripción del Equipo</mat-label>
+          <input matInput [(ngModel)]="nuevoEquipo.descripcion" (keyup.enter)="agregarEquipo()">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+            <mat-label>Orden de Producción (OP)</mat-label>
+            <input matInput [(ngModel)]="nuevaOrden.numero_op" placeholder="Ej. OP-001">
+        </mat-form-field>
+        
+        <button mat-raised-button color="primary" (click)="agregarEquipo()" style="height: 50px;">
+          <mat-icon>add</mat-icon> Añadir
+        </button>
+      </div>
+    </div>
+
+    <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Finanzas y Pagos</h3>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+      
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Precio Total ($)</mat-label>
+        <input matInput type="number" [(ngModel)]="nuevaOrden.precio_total" (ngModelChange)="calcularSaldo()">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Forma de Pago</mat-label>
+        <mat-select [(ngModel)]="nuevaOrden.forma_pago">
+          @for (forma of formasDePago; track forma) {
+            <mat-option [value]="forma">{{ forma }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Fecha de Abono</mat-label>
+        <input matInput [matDatepicker]="pickerAbono" [(ngModel)]="nuevaOrden.fecha_abono">
+        <mat-datepicker-toggle matIconSuffix [for]="pickerAbono"></mat-datepicker-toggle>
+        <mat-datepicker #pickerAbono></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Valor Abono ($)</mat-label>
+        <input matInput type="number" [(ngModel)]="nuevaOrden.valor_abono" (ngModelChange)="calcularSaldo()">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+        <mat-label>Saldo Restante ($)</mat-label>
+        <input matInput type="number" [value]="nuevaOrden.saldo" readonly style="font-weight: bold; color: #c62828;">
+      </mat-form-field>
+    </div>
+
+  </mat-card-content>
+
+  <mat-card-actions style="display: flex; justify-content: flex-end; padding-top: 20px;">
+    <button mat-raised-button color="primary" (click)="crearOrden()" style="background-color: #1976d2; padding: 5px 30px;">
+      <mat-icon>save</mat-icon> GUARDAR ORDEN DE PRODUCCIÓN
+    </button>
+  </mat-card-actions>
+</mat-card>

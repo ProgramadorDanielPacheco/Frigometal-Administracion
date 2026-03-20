@@ -148,3 +148,32 @@ class Mantenimiento(Base):
     fecha_mantenimiento = Column(Date, nullable=False)
     descripcion = Column(String(500))
     estado = Column(String(50), default="Programado") # Programado, Completado, Cancelado
+
+
+# 👇 models.py 👇
+class OrdenProduccion(Base):
+    __tablename__ = "ordenes_produccion"
+
+    id_orden = Column(Integer, primary_key=True, index=True)
+    numero_op = Column(String(50), unique=True, nullable=False)
+    numero_pedido = Column(String(50))
+    
+    cliente_nombre = Column(String(200), nullable=False)
+    cliente_cedula = Column(String(20))
+    cliente_direccion = Column(String(255))
+    cliente_telefono = Column(String(50))
+    cliente_email = Column(String(100))
+    
+    recibido_por = Column(String(100))
+    fecha_pedido = Column(Date)
+    fecha_inicio = Column(Date)
+    fecha_entrega = Column(Date)
+    
+    descripcion_pedido = Column(Text)
+    equipos = Column(JSON, default=[])
+    
+    precio_total = Column(Numeric(10, 2), default=0.0)
+    forma_pago = Column(String(50))
+    fecha_abono = Column(Date)
+    valor_abono = Column(Numeric(10, 2), default=0.0)
+    saldo = Column(Numeric(10, 2), default=0.0)

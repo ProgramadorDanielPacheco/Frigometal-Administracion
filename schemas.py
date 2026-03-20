@@ -312,3 +312,56 @@ class MantenimientoResponse(MantenimientoBase):
     id_mantenimiento: int
     class Config:
         from_attributes = True
+
+class EquipoDetalle(BaseModel):
+    cantidad: int
+    descripcion: str
+
+class OrdenProduccionBase(BaseModel):
+    numero_op: str
+    numero_pedido: Optional[str] = None
+    cliente_nombre: str
+    cliente_cedula: Optional[str] = None
+    cliente_direccion: Optional[str] = None
+    cliente_telefono: Optional[str] = None
+    cliente_email: Optional[str] = None
+    recibido_por: Optional[str] = None
+    fecha_pedido: Optional[date] = None
+    fecha_inicio: Optional[date] = None
+    fecha_entrega: Optional[date] = None
+    descripcion_pedido: Optional[str] = None
+    equipos: Optional[List[EquipoDetalle]] = []
+    precio_total: Optional[float] = 0.0
+    forma_pago: Optional[str] = None
+    fecha_abono: Optional[date] = None
+    valor_abono: Optional[float] = 0.0
+    saldo: Optional[float] = 0.0
+
+class OrdenProduccionCreate(OrdenProduccionBase):
+    pass
+
+class OrdenProduccionUpdate(BaseModel):
+    # Todo opcional para poder actualizar campos sueltos
+    numero_op: Optional[str] = None
+    numero_pedido: Optional[str] = None
+    cliente_nombre: Optional[str] = None
+    cliente_cedula: Optional[str] = None
+    cliente_direccion: Optional[str] = None
+    cliente_telefono: Optional[str] = None
+    cliente_email: Optional[str] = None
+    recibido_por: Optional[str] = None
+    fecha_pedido: Optional[date] = None
+    fecha_inicio: Optional[date] = None
+    fecha_entrega: Optional[date] = None
+    descripcion_pedido: Optional[str] = None
+    equipos: Optional[List[EquipoDetalle]] = None
+    precio_total: Optional[float] = None
+    forma_pago: Optional[str] = None
+    fecha_abono: Optional[date] = None
+    valor_abono: Optional[float] = None
+    saldo: Optional[float] = None
+
+class OrdenProduccionResponse(OrdenProduccionBase):
+    id_orden: int
+    class Config:
+        from_attributes = True

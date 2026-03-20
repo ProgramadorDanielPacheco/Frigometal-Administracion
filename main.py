@@ -1373,3 +1373,35 @@ def actualizar_mantenimiento(id_mante: int, update: schemas.MantenimientoUpdate,
     db.commit()
     db.refresh(mante_db)
     return mante_db
+
+# 👇 main.py 👇
+
+@app.get("/ordenes-produccion/", response_model=List[schemas.OrdenProduccionResponse])
+def obtener_ordenes(db: Session = Depends(get_db)):
+    return db.query(models.OrdenProduccion).order_by(models.OrdenProduccion.id_orden.desc()).all()
+
+@app.post("/ordenes-produccion/", response_model=schemas.OrdenProduccionResponse)
+def crear_orden(orden: schemas.OrdenProduccionCreate, db: Session = Depends(get_db)):
+    nueva_orden = models.OrdenProduccion(**orden.model_dump())
+    db.add(nueva_orden)
+    try:
+        db.commit()
+        db.refresh(nueva_orden)
+        return nueva_orden
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Error al crear. Verifica que el Número de OP no esté duplicado.")
+
+@app.put("/ordenes-produccion/{id_orden}", response_model=schemas.OrdenProduccionResponse)
+def actualizar_orden(id_orden: int, orden_update: schemas.OrdenProduccionUpdate, db: Session = Depends(get_db)):
+    orden_db = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.id_orden == id_orden).first()
+    if not orden_db:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    update_data = orden_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(orden_db, key, value)
+
+    db.commit()
+    db.refresh(orden_db)
+    return orden_db
