@@ -30,12 +30,12 @@ export class ClientesComponent implements OnInit {
   
   // Variables de la tabla (Añadimos 'acciones' al final)
   dataSource = new MatTableDataSource<Cliente>([]);
-  columnasMostradas: string[] = ['id_cliente', 'nombre', 'telefono', 'correo', 'direccion', 'acciones'];
+  columnasMostradas: string[] = ['id_cliente', 'nombre', 'nombre_comercial', 'telefono', 'correo', 'direccion','ciudad', 'acciones'];
   
   // Variables del formulario
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false; // 👈 NUEVO: Controla si estamos creando o editando
-  nuevoCliente: Cliente = { id_cliente: '', nombre: '', telefono: '', correo: '', direccion: '' };
+  nuevoCliente: Cliente = { id_cliente: '', nombre: '', nombre_comercial: '', telefono: '', correo: '', direccion: '' , ciudad:''};
 
   constructor(
     private clienteService: ClienteService,
@@ -80,7 +80,7 @@ export class ClientesComponent implements OnInit {
 
   cancelarEdicion(): void {
     this.modoEdicion = false;
-    this.nuevoCliente = { id_cliente: '', nombre: '', telefono: '', correo: '', direccion: '' };
+    this.nuevoCliente = { id_cliente: '', nombre: '', nombre_comercial: '', telefono: '', correo: '', direccion: '', ciudad: '' };
   }
 
   guardarCliente(): void {
@@ -93,9 +93,11 @@ export class ClientesComponent implements OnInit {
       // 🔵 MODO ACTUALIZAR
       const datosActualizar = {
         nombre: this.nuevoCliente.nombre,
+        nombre_comecial: this.nuevoCliente.nombre_comercial,
         telefono: this.nuevoCliente.telefono,
         correo: this.nuevoCliente.correo,
-        direccion: this.nuevoCliente.direccion
+        direccion: this.nuevoCliente.direccion,
+        ciudad: this.nuevoCliente.ciudad
       };
 
       this.clienteService.actualizarCliente(this.nuevoCliente.id_cliente, datosActualizar).subscribe({
@@ -166,16 +168,18 @@ export class ClientesComponent implements OnInit {
     const datosLimpios = clientes.map(c => ({
       'Cédula / RUC': c.id_cliente,
       'Nombre / Razón Social': c.nombre,
+      'Nombre Comercial': c.nombre_comercial  || 'No registrado',
       'Teléfono': c.telefono || 'No registrado',
       'Correo Electrónico': c.correo || 'No registrado',
-      'Dirección': c.direccion || 'No registrada'
+      'Dirección': c.direccion || 'No registrada',
+      'Ciudad': c.ciudad || 'No registrada'
     }));
 
     // Enviamos al servicio de reportes
     if (formato === 'excel') {
       this.reportesService.exportarExcel(datosLimpios, 'Directorio_Clientes_Frigometal');
     } else {
-      const columnas = ['Cédula / RUC', 'Nombre / Razón Social', 'Teléfono', 'Correo Electrónico', 'Dirección'];
+      const columnas = ['Cédula / RUC', 'Nombre / Razón Social', 'Nombre Comercial', 'Teléfono', 'Correo Electrónico', 'Dirección', 'Ciudad'];
       this.reportesService.exportarPDF(datosLimpios, columnas, 'Directorio de Clientes', 'Clientes_Frigometal');
     }
   }

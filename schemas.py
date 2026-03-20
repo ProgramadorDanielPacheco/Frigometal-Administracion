@@ -38,9 +38,11 @@ class UsuarioUpdate(BaseModel):
 # ==========================
 class ClienteBase(BaseModel):
     nombre: str
+    nombre_comercial: Optional[str] = None
     telefono: Optional[str] = None
     correo: Optional[str] = None
     direccion: Optional[str] = None
+    ciudad: Optional[str] = None
 
 class ClienteCreate(ClienteBase):
     # 👇 LE DECIMOS A FASTAPI QUE AHORA EXIJA LA CÉDULA/RUC AL CREAR 👇
@@ -54,9 +56,11 @@ class ClienteResponse(ClienteBase):
 
 class ClienteUpdate(BaseModel):
     nombre: Optional[str] = None
+    nombre_comercial: Optional[str] = None
     telefono: Optional[str] = None
     correo: Optional[str] = None
     direccion: Optional[str] = None
+    ciudad: Optional[str] = None
 
 # ==========================
 # ESQUEMAS PARA PRODUCTOS

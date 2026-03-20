@@ -6,9 +6,11 @@ import { Observable } from 'rxjs';
 export interface Cliente {
   id_cliente: string;
   nombre: string;
+  nombre_comercial?: string;
   telefono?: string;
   correo?: string;
   direccion?: string; 
+  ciudad?: string;
 }
 
 @Injectable({ providedIn: 'root' })

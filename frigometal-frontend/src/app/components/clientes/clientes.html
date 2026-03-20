@@ -52,6 +52,8 @@
             <input matInput [(ngModel)]="nuevoCliente.id_cliente" placeholder="Ej: 0108889137" [readonly]="modoEdicion">
           </mat-form-field>
 
+          
+
           <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
             <mat-label>Nombre / Razón Social</mat-label>
             <mat-icon matPrefix style="margin-right: 10px;">business</mat-icon>
@@ -66,18 +68,35 @@
         </div>
 
         <div style="display: flex; gap: 15px; width: 100%;">
-          <mat-form-field appearance="outline" style="flex: 1; min-width: 250px;">
-            <mat-label>Correo Electrónico</mat-label>
-            <mat-icon matPrefix style="margin-right: 10px;">email</mat-icon>
-            <input matInput type="email" [(ngModel)]="nuevoCliente.correo">
+          <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+            <mat-label>Nombre Comercial</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">business</mat-icon>
+            <input matInput [(ngModel)]="nuevoCliente.nombre_comercial" placeholder="Ej: Frigometal S.A.">
           </mat-form-field>
+        </div>
 
+        <div style="display: flex; gap: 15px; width: 100%;">
+          
           <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
             <mat-label>Dirección</mat-label>
             <mat-icon matPrefix style="margin-right: 10px;">location_on</mat-icon>
             <input matInput [(ngModel)]="nuevoCliente.direccion">
           </mat-form-field>
+          <mat-form-field appearance="outline" style="flex: 2; min-width: 100px;">
+            <mat-label>Ciudad</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">location_on</mat-icon>
+            <input matInput [(ngModel)]="nuevoCliente.ciudad">
+          </mat-form-field>
+          
         </div>
+
+        <div style="display: flex; gap: 15px; width: 100%;">
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 400px;">
+            <mat-label>Correo Electrónico</mat-label>
+            <mat-icon matPrefix style="margin-right: 10px;">email</mat-icon>
+            <input matInput type="email" [(ngModel)]="nuevoCliente.correo">
+          </mat-form-field>
+          </div>
 
       </mat-card-content>
 
@@ -92,13 +111,18 @@
   <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
     
     <ng-container matColumnDef="id_cliente">
-      <th mat-header-cell *matHeaderCellDef> ID </th>
-      <td mat-cell *matCellDef="let cliente"> #{{cliente.id_cliente}} </td>
+      <th mat-header-cell *matHeaderCellDef> Cedula/RUC </th>
+      <td mat-cell *matCellDef="let cliente"> {{cliente.id_cliente}} </td>
     </ng-container>
 
     <ng-container matColumnDef="nombre">
       <th mat-header-cell *matHeaderCellDef> Nombre / Razón Social </th>
       <td mat-cell *matCellDef="let cliente" style="font-weight: 500;"> {{cliente.nombre}} </td>
+    </ng-container>
+
+     <ng-container matColumnDef="nombre_comercial">
+      <th mat-header-cell *matHeaderCellDef> Nombre Comercial </th>
+      <td mat-cell *matCellDef="let cliente" style="font-weight: 500;"> {{cliente.nombre_comercial || 'N/A'}} </td>
     </ng-container>
 
     <ng-container matColumnDef="telefono">
@@ -114,6 +138,11 @@
     <ng-container matColumnDef="direccion">
       <th mat-header-cell *matHeaderCellDef> Dirección </th>
       <td mat-cell *matCellDef="let cliente"> {{cliente.direccion || 'N/A'}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="ciudad">
+      <th mat-header-cell *matHeaderCellDef> Ciudad </th>
+      <td mat-cell *matCellDef="let cliente"> {{cliente.ciudad || 'N/A'}} </td>
     </ng-container>
 
     <ng-container matColumnDef="acciones">

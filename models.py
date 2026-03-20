@@ -25,9 +25,11 @@ class Cliente(Base):
 
     id_cliente = Column(String(20), primary_key=True, index=True)
     nombre = Column(String(150), nullable=False)
+    nombre_comercial = Column(String(200), nullable=True)
     telefono = Column(String(20))
     correo = Column(String(100))
     direccion = Column(String)
+    ciudad = Column(String(200))
 
 class Producto(Base):
     __tablename__ = "productos"

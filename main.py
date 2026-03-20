@@ -356,12 +356,16 @@ def actualizar_cliente(id_cliente: str, cliente_update: schemas.ClienteUpdate, d
 
     if cliente_update.nombre is not None:
         cliente_db.nombre = cliente_update.nombre
+    if cliente_update.nombre_comercial is not None:
+        cliente_db.nombre_comercial = cliente_update.nombre_comercial
     if cliente_update.telefono is not None:
         cliente_db.telefono = cliente_update.telefono
     if cliente_update.correo is not None:
         cliente_db.correo = cliente_update.correo
     if cliente_update.direccion is not None:
         cliente_db.direccion = cliente_update.direccion
+    if cliente_update.ciudad is not None:
+        cliente_db.ciudad = cliente_update.ciudad
 
     db.commit()
     db.refresh(cliente_db)
