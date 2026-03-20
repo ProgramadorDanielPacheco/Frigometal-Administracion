@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table'; // 👈 IMPORTANTE AÑADIR ESTO
 import { OrdenProduccionService } from '../../services/orden-produccion';
 
 @Component({
@@ -18,23 +19,46 @@ import { OrdenProduccionService } from '../../services/orden-produccion';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, 
-    MatDatepickerModule, MatNativeDateModule, MatSnackBarModule
+    MatDatepickerModule, MatNativeDateModule, MatSnackBarModule,
+    MatTableModule // 👈 AÑADIDO A LOS IMPORTS
   ],
   templateUrl: './ordenes-produccion.html',
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
 })
 export class OrdenesProduccionComponent implements OnInit {
   
+  // Variables de la tabla
+  dataSource = new MatTableDataSource<any>([]);
+  columnasMostradas: string[] = ['numero_op', 'cliente', 'fecha_entrega', 'precio', 'saldo', 'acciones'];
+  
+  // Variables del estado de la vista
+  mostrarFormulario: boolean = false;
+  modoEdicion: boolean = false;
+  idEditando: number | null = null;
+
   nuevaOrden: any = this.obtenerModeloVacio();
   nuevoEquipo: any = { cantidad: 1, descripcion: '' };
   formasDePago: string[] = ['Efectivo', 'Transferencia Bancaria', 'Tarjeta de Crédito', 'Cheque'];
 
   constructor(
     private ordenService: OrdenProduccionService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.cargarOrdenes();
+  }
+
+  cargarOrdenes(): void {
+    this.ordenService.getOrdenes().subscribe({
+      next: (datos) => {
+        this.dataSource.data = datos;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar órdenes', err)
+    });
+  }
 
   obtenerModeloVacio() {
     return {
@@ -47,7 +71,32 @@ export class OrdenesProduccionComponent implements OnInit {
     };
   }
 
-  // 👇 Magia: Calcula el saldo automáticamente 👇
+  toggleFormulario(): void {
+    this.mostrarFormulario = !this.mostrarFormulario;
+    if (!this.mostrarFormulario) {
+      this.cancelarEdicion();
+    }
+  }
+
+  cancelarEdicion(): void {
+    this.modoEdicion = false;
+    this.idEditando = null;
+    this.nuevaOrden = this.obtenerModeloVacio();
+    this.nuevoEquipo = { cantidad: 1, descripcion: '' };
+  }
+
+  editarOrden(orden: any): void {
+    this.modoEdicion = true;
+    this.idEditando = orden.id_orden;
+    this.mostrarFormulario = true;
+    
+    // Clonamos la orden para no afectar la tabla en tiempo real
+    this.nuevaOrden = { ...orden };
+    if (!this.nuevaOrden.equipos) this.nuevaOrden.equipos = [];
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   calcularSaldo(): void {
     const precio = Number(this.nuevaOrden.precio_total) || 0;
     const abono = Number(this.nuevaOrden.valor_abono) || 0;
@@ -60,14 +109,14 @@ export class OrdenesProduccionComponent implements OnInit {
       return;
     }
     this.nuevaOrden.equipos.push({ ...this.nuevoEquipo });
-    this.nuevoEquipo = { cantidad: 1, descripcion: '' }; // Limpiamos
+    this.nuevoEquipo = { cantidad: 1, descripcion: '' }; 
   }
 
   eliminarEquipo(index: number): void {
     this.nuevaOrden.equipos.splice(index, 1);
   }
 
-  crearOrden(): void {
+  guardarOrden(): void {
     if (!this.nuevaOrden.numero_op || !this.nuevaOrden.cliente_nombre) {
       this.snackBar.open('⚠️ Faltan datos obligatorios (OP y Cliente)', 'Cerrar', { duration: 4000 });
       return;
@@ -75,23 +124,40 @@ export class OrdenesProduccionComponent implements OnInit {
 
     this.snackBar.open('⏳ Guardando Orden...', '', { duration: 2000 });
 
-    // Aseguramos que las fechas se envíen formateadas si existen
     const payload = { ...this.nuevaOrden };
-    if (payload.fecha_pedido) payload.fecha_pedido = payload.fecha_pedido.toISOString().split('T')[0];
-    if (payload.fecha_inicio) payload.fecha_inicio = payload.fecha_inicio.toISOString().split('T')[0];
-    if (payload.fecha_entrega) payload.fecha_entrega = payload.fecha_entrega.toISOString().split('T')[0];
-    if (payload.fecha_abono) payload.fecha_abono = payload.fecha_abono.toISOString().split('T')[0];
+    if (payload.fecha_pedido) payload.fecha_pedido = new Date(payload.fecha_pedido).toISOString().split('T')[0];
+    if (payload.fecha_inicio) payload.fecha_inicio = new Date(payload.fecha_inicio).toISOString().split('T')[0];
+    if (payload.fecha_entrega) payload.fecha_entrega = new Date(payload.fecha_entrega).toISOString().split('T')[0];
+    if (payload.fecha_abono) payload.fecha_abono = new Date(payload.fecha_abono).toISOString().split('T')[0];
 
-    this.ordenService.crearOrden(payload).subscribe({
-      next: () => {
-        this.snackBar.open('✅ Orden de Producción creada con éxito', 'Excelente', { duration: 4000 });
-        this.nuevaOrden = this.obtenerModeloVacio(); // Reseteamos el form
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      },
-      error: (err) => {
-        const msg = err.error?.detail || 'Error al crear la orden';
-        this.snackBar.open(`❌ ${msg}`, 'Cerrar', { duration: 5000 });
-      }
-    });
+    if (this.modoEdicion && this.idEditando) {
+      // MODO ACTUALIZAR
+      this.ordenService.actualizarOrden(this.idEditando, payload).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Orden actualizada con éxito', 'Excelente', { duration: 4000 });
+          this.mostrarFormulario = false;
+          this.cancelarEdicion();
+          this.cargarOrdenes();
+        },
+        error: (err) => {
+          const msg = err.error?.detail || 'Error al actualizar';
+          this.snackBar.open(`❌ ${msg}`, 'Cerrar', { duration: 5000 });
+        }
+      });
+    } else {
+      // MODO CREAR
+      this.ordenService.crearOrden(payload).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Orden de Producción creada con éxito', 'Excelente', { duration: 4000 });
+          this.mostrarFormulario = false;
+          this.cancelarEdicion();
+          this.cargarOrdenes();
+        },
+        error: (err) => {
+          const msg = err.error?.detail || 'Error al crear la orden';
+          this.snackBar.open(`❌ ${msg}`, 'Cerrar', { duration: 5000 });
+        }
+      });
+    }
   }
 }
