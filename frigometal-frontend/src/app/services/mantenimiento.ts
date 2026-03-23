@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface Mantenimiento {
   id_mantenimiento?: number;
   id_cliente: string;
-  id_producto: number;
+  nombre_producto: string; // 👈 CAMBIADO
   fecha_mantenimiento: string;
   descripcion: string;
   estado: string;

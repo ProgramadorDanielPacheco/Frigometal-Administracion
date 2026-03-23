@@ -12,6 +12,11 @@
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <div matListItemTitle>Inicio / Dashboard</div>
       </a>
+
+      <a mat-list-item routerLink="/clientes" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon>groups</mat-icon>
+        <div matListItemTitle>Directorio de Clientes</div>
+      </a>
       
       <a mat-list-item routerLink="/productos" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>inventory_2</mat-icon>
@@ -35,12 +40,17 @@
 
       <a mat-list-item routerLink="/programacion" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>engineering</mat-icon>
-        <div matListItemTitle>Programación (Horas)</div>
+        <div matListItemTitle>Control de Planta</div>
       </a>
 
       <a mat-list-item routerLink="/mantenimientos" routerLinkActive="active-menu-item">
         <mat-icon matListItemIcon style="color: #ff9800;">build_circle</mat-icon>
         <div matListItemTitle>Mantenimientos</div>
+      </a>
+
+      <a mat-list-item routerLink="/estadisticas" routerLinkActive="active-menu-item">
+        <mat-icon matListItemIcon style="color: #ff9800;">analytics</mat-icon>
+        <div matListItemTitle>Estadisticas</div>
       </a>
 
       <a mat-list-item routerLink="/ordenes-produccion" routerLinkActive="activo">
@@ -55,10 +65,7 @@
         <div matListItemTitle>Recursos Humanos</div>
       </a>
       
-      <a mat-list-item routerLink="/clientes" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>groups</mat-icon>
-        <div matListItemTitle>Directorio de Clientes</div>
-      </a>
+      
       
       <a mat-list-item routerLink="/proveedor" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>local_shipping</mat-icon>

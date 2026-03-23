@@ -8,6 +8,8 @@ from datetime import date
 from fastapi import UploadFile, File
 import pandas as pd
 import io
+# 👇 Añade esta importación al principio de main.py si no la tienes 👇
+from decimal import Decimal
 
 import models
 import schemas
@@ -743,6 +745,83 @@ def eliminar_material_receta(id_estructura: int, db: Session = Depends(get_db)):
 # ==========================================
 # RUTAS PARA PEDIDOS Y DESCUENTO DE STOCK (LA MAGIA)
 # ==========================================
+
+def sincronizar_inventario_pedido(id_pedido: int, db: Session):
+    pedido = db.query(models.Pedido).filter(models.Pedido.id_pedido == id_pedido).first()
+    
+    # 1. SEGURIDAD: Si no existe o ya se entregó, NO HACEMOS NADA.
+    if not pedido or "ENTREGADO" in pedido.estado:
+        return 
+
+    # 2. Calculamos qué necesita la receta HOY
+    necesidad_actual = {}
+    detalles_del_pedido = db.query(models.DetallePedido).filter(models.DetallePedido.id_pedido == id_pedido).all()
+    
+    for detalle in detalles_del_pedido:
+        receta = db.query(models.EstructuraProducto).filter(models.EstructuraProducto.id_producto == detalle.id_producto).all()
+        for ingrediente in receta:
+            mat_id = str(ingrediente.id_material)
+            cantidad_total = float(ingrediente.cantidad_requerida) * float(detalle.cantidad)
+            necesidad_actual[mat_id] = necesidad_actual.get(mat_id, 0.0) + cantidad_total
+
+    # 3. Leemos la "Memoria"
+    memoria = dict(pedido.materiales_descontados) if pedido.materiales_descontados else {}
+    cambios_realizados = False
+
+    # 4. Comparamos Receta de HOY vs Memoria
+    for mat_id, cant_necesaria in necesidad_actual.items():
+        cant_ya_descontada = float(memoria.get(mat_id, 0.0))
+        diferencia_a_descontar = cant_necesaria - cant_ya_descontada
+        
+        # Solo descontamos si la diferencia es POSITIVA
+        if diferencia_a_descontar > 0:
+            material_bodega = db.query(models.Material).filter(models.Material.id_material == int(mat_id)).first()
+            
+            if material_bodega:
+                # 👇 LA MAGIA ANTI-ERRORES AQUÍ 👇
+                # Convertimos el float a un string, y luego a un Decimal estricto para PostgreSQL
+                descuento_seguro = Decimal(str(diferencia_a_descontar))
+                
+                material_bodega.stock_actual -= descuento_seguro
+                memoria[mat_id] = cant_necesaria 
+                cambios_realizados = True
+                
+                print(f"Sincronizando: Descontando {descuento_seguro} de {material_bodega.nombre}. Nuevo stock: {material_bodega.stock_actual}")
+
+                # ==========================================
+                # LÓGICA DE COMPRA INTELIGENTE
+                # ==========================================
+                if material_bodega.stock_actual <= material_bodega.stock_minimo_alerta:
+                    orden_pendiente = db.query(models.DetalleOrdenCompra).join(models.OrdenCompra).filter(
+                        models.DetalleOrdenCompra.id_material == material_bodega.id_material,
+                        models.OrdenCompra.estado == 'BORRADOR'
+                    ).first()
+                    
+                    if not orden_pendiente:
+                        print(f"⚠️ Alerta: {material_bodega.nombre} bajo stock. Generando Orden de Compra...")
+                        proveedor_info = db.query(models.PrecioProveedor).filter(models.PrecioProveedor.id_material == material_bodega.id_material).first()
+                        
+                        id_prov_sugerido = proveedor_info.id_proveedor if proveedor_info else 1
+                        precio_sugerido = proveedor_info.precio_unitario if proveedor_info else 0.0
+                        
+                        nueva_orden = models.OrdenCompra(id_proveedor=id_prov_sugerido, estado='BORRADOR')
+                        db.add(nueva_orden)
+                        db.flush()
+                        
+                        cantidad_a_comprar = (material_bodega.stock_minimo_alerta - material_bodega.stock_actual) + 10
+                        nuevo_detalle = models.DetalleOrdenCompra(
+                            id_orden_compra=nueva_orden.id_orden_compra,
+                            id_material=material_bodega.id_material,
+                            cantidad=cantidad_a_comprar,
+                            precio_unitario_acordado=precio_sugerido
+                        )
+                        db.add(nuevo_detalle)
+
+    # 5. Si hubo cambios, guardamos
+    if cambios_realizados:
+        pedido.materiales_descontados = memoria
+        db.commit()
+
 @app.post("/pedidos/", response_model=schemas.PedidoResponse)
 def crear_pedido(pedido: schemas.PedidoCreate, db: Session = Depends(get_db)):
     # 1. Creamos la cabecera del pedido (Estado por defecto: PENDIENTE)
@@ -834,6 +913,12 @@ def actualizar_pedido(id_pedido: int, pedido_actualizado: schemas.PedidoUpdate, 
 # ==========================================
 # ACTUALIZAR ESTADO DEL PEDIDO (PATCH)
 # ==========================================
+# ==========================================
+# ACTUALIZAR ESTADO DEL PEDIDO (PATCH)
+# ==========================================
+# ==========================================
+# ACTUALIZAR ESTADO DEL PEDIDO (PATCH)
+# ==========================================
 @app.patch("/pedidos/{id_pedido}/estado")
 def actualizar_estado_pedido(id_pedido: int, estado_update: schemas.EstadoUpdate, db: Session = Depends(get_db)):
     pedido = db.query(models.Pedido).filter(models.Pedido.id_pedido == id_pedido).first()
@@ -841,65 +926,45 @@ def actualizar_estado_pedido(id_pedido: int, estado_update: schemas.EstadoUpdate
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
         
-    if estado_update.estado == 'EN PRODUCCIÓN' and pedido.estado != 'EN PRODUCCIÓN':
-        
-        detalles_del_pedido = db.query(models.DetallePedido).filter(models.DetallePedido.id_pedido == id_pedido).all()
-        
-        for detalle in detalles_del_pedido:
-            receta = db.query(models.EstructuraProducto).filter(models.EstructuraProducto.id_producto == detalle.id_producto).all()
-            
-            for ingrediente in receta:
-                material_bodega = db.query(models.Material).filter(models.Material.id_material == ingrediente.id_material).first()
-                
-                if material_bodega:
-                    descuento_total = detalle.cantidad * ingrediente.cantidad_requerida
-                    material_bodega.stock_actual -= descuento_total
-                    print(f"Descontando {descuento_total} de {material_bodega.nombre}. Nuevo stock: {material_bodega.stock_actual}")
-
-                    # ==========================================
-                    # 👇 ¡NUEVO: LÓGICA DE COMPRA INTELIGENTE! 👇
-                    # ==========================================
-                    if material_bodega.stock_actual <= material_bodega.stock_minimo_alerta:
-                        
-                        # 1. Revisamos que no exista ya un borrador de este material para no duplicar
-                        orden_pendiente = db.query(models.DetalleOrdenCompra).join(models.OrdenCompra).filter(
-                            models.DetalleOrdenCompra.id_material == material_bodega.id_material,
-                            models.OrdenCompra.estado == 'BORRADOR'
-                        ).first()
-                        
-                        if not orden_pendiente:
-                            print(f"⚠️ Alerta: {material_bodega.nombre} bajo stock. Generando Orden de Compra...")
-                            
-                            # 2. Buscamos qué proveedor vende esto
-                            proveedor_info = db.query(models.PrecioProveedor).filter(models.PrecioProveedor.id_material == material_bodega.id_material).first()
-                            
-                            id_prov_sugerido = proveedor_info.id_proveedor if proveedor_info else 1 # Proveedor #1 por defecto
-                            precio_sugerido = proveedor_info.precio_unitario if proveedor_info else 0.0
-                            
-                            # 3. Creamos la Orden en Borrador
-                            nueva_orden = models.OrdenCompra(
-                                id_proveedor=id_prov_sugerido,
-                                estado='BORRADOR'
-                            )
-                            db.add(nueva_orden)
-                            db.flush() # 👈 Magia: Guarda temporalmente para darnos el ID de la orden de inmediato
-                            
-                            # 4. Calculamos cuánto comprar (Lo que falta para salir de la alerta + un "colchón" extra de 10)
-                            cantidad_a_comprar = (material_bodega.stock_minimo_alerta - material_bodega.stock_actual) + 10
-                            
-                            # 5. Agregamos el material a la orden
-                            nuevo_detalle = models.DetalleOrdenCompra(
-                                id_orden_compra=nueva_orden.id_orden_compra,
-                                id_material=material_bodega.id_material,
-                                cantidad=cantidad_a_comprar,
-                                precio_unitario_acordado=precio_sugerido
-                            )
-                            db.add(nuevo_detalle)
-
-    # Guardamos todos los cambios (El estado del pedido, el descuento de bodega y la nueva orden)
+    # 1. Guardamos el nuevo estado (ej: EN PRODUCCIÓN o ENTREGADO)
     pedido.estado = estado_update.estado
     db.commit()
     
+    # 2. 👇 LLAMAMOS A LA FUNCIÓN INTELIGENTE DE INVENTARIO 👇
+    # Sincroniza el inventario solo si está en producción o si lo acaban de terminar
+    if estado_update.estado in ['EN PRODUCCIÓN', 'ENTREGADO', 'ENTREGADO CON ATRASO']:
+        sincronizar_inventario_pedido(id_pedido, db)
+        
+    # 3. 👇 NUEVA MAGIA: AUTOCREACIÓN DE ÓRDENES DE PLANTA 👇
+    if estado_update.estado == 'EN PRODUCCIÓN':
+        # Verificamos si ya existen órdenes de planta para este pedido (evita duplicados si le dan al botón "Sincronizar" en Angular)
+        ops_existentes = db.query(models.OrdenPlanta).filter(models.OrdenPlanta.id_pedido == id_pedido).count()
+        
+        if ops_existentes == 0:
+            detalles_del_pedido = db.query(models.DetallePedido).filter(models.DetallePedido.id_pedido == id_pedido).all()
+            
+            # Obtenemos el nombre del cliente para copiarlo a la OP
+            cliente = db.query(models.Cliente).filter(models.Cliente.id_cliente == pedido.id_cliente).first()
+            cliente_nombre = cliente.nombre if cliente else "Cliente Desconocido"
+            
+            for detalle in detalles_del_pedido:
+                # Generamos un número temporal fácil de identificar. Ej: OP-P15-PROD3
+                numero_op_generado = f"OP-P{id_pedido}-PROD{detalle.id_producto}"
+                
+                nueva_op = models.OrdenPlanta(
+                    numero_op=numero_op_generado,
+                    id_pedido=id_pedido,
+                    id_producto=detalle.id_producto,
+                    cantidad=detalle.cantidad,
+                    cliente_nombre=cliente_nombre,
+                    fecha_entrega_prevista=pedido.fecha_entrega,
+                    estado='EN COLA'
+                )
+                db.add(nueva_op)
+                
+            db.commit() # Guardamos todas las nuevas OPs generadas en la base de datos
+    
+    db.refresh(pedido)
     return {"mensaje": f"Estado actualizado a {estado_update.estado}"}
 # ==========================================
 # IMPORTACIÓN MASIVA DE PROVEEDORES (EXCEL)
@@ -1187,81 +1252,38 @@ def editar_orden_compra(id_orden: int, orden_edit: schemas.OrdenEdicion, db: Ses
 # ==========================================
 # RUTAS PARA PROGRAMACIÓN Y CONTROL DE HORAS
 # ==========================================
-@app.post("/ordenes-trabajo/", response_model=schemas.OrdenTrabajoResponse)
-def asignar_trabajador(orden: schemas.OrdenTrabajoCreate, db: Session = Depends(get_db)):
-    
-    # 1. Obtener al trabajador para saber su límite de horas
-    trabajador = db.query(models.Usuario).filter(models.Usuario.id_usuario == orden.id_usuario).first()
-    if not trabajador:
-        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+# 👇 main.py 👇
 
-    # 2. Obtener el detalle del pedido y el producto para saber el tiempo de fabricación
-    detalle = db.query(models.DetallePedido).filter(models.DetallePedido.id_detalle == orden.id_detalle_pedido).first()
-    if not detalle:
-        raise HTTPException(status_code=404, detail="El detalle del pedido no existe")
-        
-    producto = db.query(models.Producto).filter(models.Producto.id_producto == detalle.id_producto).first()
-    
-    # Horas que tomará hacer este pedido (Cantidad x Tiempo de 1 producto)
-    horas_nueva_tarea = detalle.cantidad * producto.tiempo_fabricacion_horas
+@app.get("/planta/", response_model=List[schemas.OrdenPlantaResponse])
+def obtener_ops_planta(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    # Traemos las OPs ordenadas por ID descendente (las más nuevas primero)
+    return db.query(models.OrdenPlanta).order_by(models.OrdenPlanta.id_op.desc()).offset(skip).limit(limit).all()
 
-    # 3. Calcular las horas que el trabajador YA tiene ocupadas en otras tareas no terminadas
-    ordenes_activas = db.query(models.OrdenTrabajo).filter(
-        models.OrdenTrabajo.id_usuario == trabajador.id_usuario,
-        models.OrdenTrabajo.estado.in_(['ASIGNADO', 'EN_PROGRESO'])
-    ).all()
+@app.post("/planta/", response_model=schemas.OrdenPlantaResponse)
+def crear_op_planta(op: schemas.OrdenPlantaCreate, db: Session = Depends(get_db)):
+    nueva_op = models.OrdenPlanta(**op.model_dump())
+    db.add(nueva_op)
+    try:
+        db.commit()
+        db.refresh(nueva_op)
+        return nueva_op
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Error al crear OP. ¿Número de OP duplicado?")
 
-    horas_actuales_ocupadas = 0
-    for oa in ordenes_activas:
-        det = db.query(models.DetallePedido).filter(models.DetallePedido.id_detalle == oa.id_detalle_pedido).first()
-        prod = db.query(models.Producto).filter(models.Producto.id_producto == det.id_producto).first()
-        horas_actuales_ocupadas += (det.cantidad * prod.tiempo_fabricacion_horas)
+@app.put("/planta/{id_op}", response_model=schemas.OrdenPlantaResponse)
+def actualizar_op_planta(id_op: int, op_update: schemas.OrdenPlantaUpdate, db: Session = Depends(get_db)):
+    op_db = db.query(models.OrdenPlanta).filter(models.OrdenPlanta.id_op == id_op).first()
+    if not op_db:
+        raise HTTPException(status_code=404, detail="OP no encontrada")
 
-    # 4. VALIDACIÓN ESTRICTA: ¿Se pasa de su límite semanal?
-    if (horas_actuales_ocupadas + horas_nueva_tarea) > trabajador.horas_maximas_semanales:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"ALERTA: Límite excedido. {trabajador.nombre} tiene {horas_actuales_ocupadas}h ocupadas. Límite: {trabajador.horas_maximas_semanales}h. Esta nueva tarea exige {horas_nueva_tarea}h."
-        )
-
-    # 5. Si no se excede el límite, se crea la orden de trabajo (La Programación)
-    nueva_orden = models.OrdenTrabajo(**orden.model_dump())
-    db.add(nueva_orden)
-    db.commit()
-    db.refresh(nueva_orden)
-    
-    return nueva_orden
-@app.get("/ordenes-trabajo/", response_model=List[schemas.OrdenTrabajoResponse])
-def obtener_programacion(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    ordenes = db.query(models.OrdenTrabajo).offset(skip).limit(limit).all()
-    return ordenes
-
-class EstadoOrdenUpdate(BaseModel):
-    estado: str
-
-# ==========================================
-# ACTUALIZAR ESTADO DE LA ORDEN DE TRABAJO (PATCH)
-# ==========================================
-@app.patch("/ordenes-trabajo/{id_orden}/estado")
-def actualizar_estado_orden(id_orden: int, datos: EstadoOrdenUpdate, db: Session = Depends(get_db)):
-    orden = db.query(models.OrdenTrabajo).filter(models.OrdenTrabajo.id_orden_trabajo == id_orden).first()
-    
-    if not orden:
-        raise HTTPException(status_code=404, detail="Orden de trabajo no encontrada")
-        
-    # 1. Actualizamos el estado de texto
-    orden.estado = datos.estado
-
-    # 2. MAGIA ERP: Si lo completan, sellamos la fecha real de entrega.
-    if datos.estado == 'COMPLETADO':
-        orden.fecha_entrega_real = date.today()
-    elif datos.estado in ['ASIGNADO', 'EN_PROGRESO']:
-        # Por si el trabajador se equivocó y lo regresa a un estado anterior, borramos la fecha
-        orden.fecha_entrega_real = None 
+    update_data = op_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(op_db, key, value)
 
     db.commit()
-    
-    return {"mensaje": f"Orden actualizada a {datos.estado}"}
+    db.refresh(op_db)
+    return op_db
 
 # ==========================================
 # RUTAS PARA MATERIALES E INVENTARIO
@@ -1298,13 +1320,13 @@ def obtener_resumen_dashboard(db: Session = Depends(get_db)):
     compras_pendientes = db.query(models.OrdenCompra).filter(models.OrdenCompra.estado.in_(['BORRADOR']) ).count()
     
     # 4. Contar cuántas tareas están agendadas
-    tareas_activas = db.query(models.OrdenTrabajo).filter(models.OrdenTrabajo.estado.in_(['ASIGNADO', 'EN_PROGRESO'])).count()
+    
 
     return {
         "pedidos_activos": pedidos_activos,
         "alertas_inventario": alertas_inventario,
         "compras_pendientes": compras_pendientes,
-        "tareas_activas": tareas_activas
+       
     }
 # ==========================================
 # RUTAS DE REUNIONES
@@ -1409,3 +1431,45 @@ def actualizar_orden(id_orden: int, orden_update: schemas.OrdenProduccionUpdate,
     db.commit()
     db.refresh(orden_db)
     return orden_db
+
+@app.get("/kpis/ingresos", response_model=List[schemas.KpiIngresoResponse])
+def get_kpi_ingresos(db: Session = Depends(get_db)):
+    return db.query(models.KpiIngreso).order_by(models.KpiIngreso.anio.asc(), models.KpiIngreso.semana.asc()).all()
+
+@app.post("/kpis/ingresos", response_model=schemas.KpiIngresoResponse)
+def crear_kpi_ingresos(kpi: schemas.KpiIngresoCreate, db: Session = Depends(get_db)):
+    neto = kpi.ingresos - kpi.egresos
+    # Verificamos si ya existe la semana para actualizarla o crearla
+    db_kpi = db.query(models.KpiIngreso).filter(models.KpiIngreso.semana == kpi.semana, models.KpiIngreso.anio == kpi.anio).first()
+    
+    if db_kpi:
+        db_kpi.meta = kpi.meta
+        db_kpi.ingresos = kpi.ingresos
+        db_kpi.egresos = kpi.egresos
+        db_kpi.neto = neto
+    else:
+        db_kpi = models.KpiIngreso(**kpi.model_dump(), neto=neto)
+        db.add(db_kpi)
+    
+    db.commit()
+    db.refresh(db_kpi)
+    return db_kpi
+
+@app.get("/kpis/productividad", response_model=List[schemas.KpiProductividadResponse])
+def get_kpi_productividad(db: Session = Depends(get_db)):
+    return db.query(models.KpiProductividad).order_by(models.KpiProductividad.anio.asc(), models.KpiProductividad.semana.asc()).all()
+
+@app.post("/kpis/productividad", response_model=schemas.KpiProductividadResponse)
+def crear_kpi_productividad(kpi: schemas.KpiProductividadCreate, db: Session = Depends(get_db)):
+    db_kpi = db.query(models.KpiProductividad).filter(models.KpiProductividad.semana == kpi.semana, models.KpiProductividad.anio == kpi.anio).first()
+    
+    if db_kpi:
+        db_kpi.meta_planchas = kpi.meta_planchas
+        db_kpi.planchas_usadas = kpi.planchas_usadas
+    else:
+        db_kpi = models.KpiProductividad(**kpi.model_dump())
+        db.add(db_kpi)
+        
+    db.commit()
+    db.refresh(db_kpi)
+    return db_kpi

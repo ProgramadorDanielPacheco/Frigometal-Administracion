@@ -2,29 +2,40 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface OrdenTrabajo {
-  id_orden_trabajo?: number;
-  id_detalle_pedido: number;
-  id_usuario: string;
-  fecha_inicio: string;
-  fecha_entrega_programada: string;
-  estado?: string;
+export interface ProcesoTaller {
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  responsable: string;
+}
+
+export interface OrdenPlanta {
+  id_op?: number;
+  numero_op: string;
+  id_pedido: number;
+  id_producto: number;
+  cantidad: number;
+  cliente_nombre: string;
+  fecha_entrega_prevista?: string;
+  fecha_inicio_produccion?: string;
+  fecha_fin_produccion?: string;
+  seguimiento_procesos: Record<string, ProcesoTaller>;
+  observaciones_taller?: string;
+  estado: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ProgramacionService {
-  private apiUrl = 'https://frigometal-administracion.vercel.app/ordenes-trabajo/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/planta/'; // 👈 Apunta a la nueva ruta
+  
   constructor(private http: HttpClient) { }
 
-  getOrdenes(): Observable<OrdenTrabajo[]> {
-    return this.http.get<OrdenTrabajo[]>(this.apiUrl);
+  getOrdenes(): Observable<OrdenPlanta[]> {
+    return this.http.get<OrdenPlanta[]>(this.apiUrl);
   }
 
-  crearOrden(orden: OrdenTrabajo): Observable<any> {
-    return this.http.post(this.apiUrl, orden);
-  }
-
-  actualizarEstadoOrden(id_orden: number, estado: string): Observable<any> {
-    return this.http.patch(`https://frigometal-administracion.vercel.app/ordenes-trabajo/${id_orden}/estado`, { estado: estado });
+  // Ahora actualizamos todo el objeto de la OP, incluyendo el JSON de procesos
+  actualizarOrden(id_op: number, orden: Partial<OrdenPlanta>): Observable<any> {
+    return this.http.put(`${this.apiUrl}${id_op}`, orden);
   }
 }

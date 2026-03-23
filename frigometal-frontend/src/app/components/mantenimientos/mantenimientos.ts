@@ -14,9 +14,10 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Mantenimiento, MantenimientoService } from '../../services/mantenimiento';
 import { ClienteService } from '../../services/cliente';
-import { ProductoService } from '../../services/producto';
 import { ReportesService } from '../../services/reportes';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 
 
 @Component({
@@ -34,8 +35,10 @@ import { MatMenuModule } from '@angular/material/menu';
     MatSelectModule, 
     MatSnackBarModule,
     MatTooltipModule,
-    MatMenuModule
+    MatMenuModule, 
+    MatDatepickerModule, MatNativeDateModule // 👈 AÑADIDOS AQUÍ
   ],
+  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
   templateUrl: './mantenimientos.html',
   styleUrls: ['./mantenimientos.scss']
 })
@@ -51,13 +54,12 @@ export class MantenimientosComponent implements OnInit {
   idEditando: number | null = null;
   
   nuevoMante: Mantenimiento = {
-    id_cliente: '', id_producto: 0, fecha_mantenimiento: '', descripcion: '', estado: 'Programado'
+    id_cliente: '', nombre_producto: '', fecha_mantenimiento: '', descripcion: '', estado: 'Programado'
   };
 
   constructor(
     private manteService: MantenimientoService,
     private clienteService: ClienteService,
-    private productoService: ProductoService,
     private reportesServices: ReportesService,
     private snackBar: MatSnackBar
   ) {}
@@ -69,7 +71,7 @@ export class MantenimientosComponent implements OnInit {
   cargarDatos(): void {
     // Cargamos clientes y productos como ya lo tenías...
     this.clienteService.getClientes().subscribe(res => this.clientes = res);
-    this.productoService.getProductos().subscribe(res => this.productos = res);
+    
 
     // 👇 MODIFICACIÓN AQUÍ: Ordenamos antes de mostrar 👇
     this.manteService.getMantenimientos().subscribe(res => {
@@ -99,21 +101,35 @@ export class MantenimientosComponent implements OnInit {
   }
 
   guardar(): void {
+    // 1. Creamos una copia de los datos para enviarlos al backend (payload)
+    const payload = { ...this.nuevoMante };
+
+    // 2. 👇 CORRECCIÓN: Convertimos la fecha del calendario al formato estricto que pide Python 👇
+    if (payload.fecha_mantenimiento) {
+      payload.fecha_mantenimiento = new Date(payload.fecha_mantenimiento).toISOString().split('T')[0];
+    }
+
     if (this.modoEdicion && this.idEditando) {
-      this.manteService.actualizar(this.idEditando, this.nuevoMante).subscribe({
+      this.manteService.actualizar(this.idEditando, payload).subscribe({
         next: () => {
           this.snackBar.open('✅ Mantenimiento actualizado', 'OK', {duration: 3000});
           this.finalizar();
         },
-        error: (err) => this.snackBar.open('❌ ' + err.error.detail, 'Cerrar')
+        error: (err) => {
+          const msg = err.error?.detail || 'Error al actualizar';
+          this.snackBar.open('❌ ' + msg, 'Cerrar');
+        }
       });
     } else {
-      this.manteService.crear(this.nuevoMante).subscribe({
+      this.manteService.crear(payload).subscribe({
         next: () => {
           this.snackBar.open('📅 Mantenimiento agendado', 'OK', {duration: 3000});
           this.finalizar();
         },
-        error: (err) => this.snackBar.open('❌ ' + err.error.detail, 'Cerrar')
+        error: (err) => {
+          const msg = err.error?.detail || 'Error al agendar';
+          this.snackBar.open('❌ ' + msg, 'Cerrar');
+        }
       });
     }
   }
@@ -130,25 +146,37 @@ export class MantenimientosComponent implements OnInit {
     this.cargarDatos();
     this.mostrarFormulario = false;
     this.modoEdicion = false;
-    this.nuevoMante = { id_cliente: '', id_producto: 0, fecha_mantenimiento: '', descripcion: '', estado: 'Programado' };
+    this.nuevoMante = { id_cliente: '', nombre_producto: '', fecha_mantenimiento: '', descripcion: '', estado: 'Programado' };
   }
 
   getNombreCliente(id: number) { return this.clientes.find(c => c.id_cliente === id)?.nombre || 'Cargando...'; }
-  getNombreProducto(id: number) { return this.productos.find(p => p.id_producto === id)?.nombre || 'Cargando...'; }
+  
 
   toggleFormulario(): void {
-  // Si lo vamos a abrir, nos aseguramos de que esté limpio para "Agendar Nuevo"
-  if (!this.mostrarFormulario) {
-    this.modoEdicion = false;
-    this.idEditando = null;
-    this.nuevoMante = { id_cliente:'', id_producto: 0, fecha_mantenimiento: '', descripcion: '', estado: 'Programado' };
+    if (!this.mostrarFormulario) {
+      this.modoEdicion = false;
+      this.idEditando = null;
+      this.nuevoMante = { id_cliente:'', nombre_producto: '', fecha_mantenimiento: '', descripcion: '', estado: 'Programado' };
+    }
+    this.mostrarFormulario = !this.mostrarFormulario;
   }
-  // Cambiamos el estado de visibilidad
-  this.mostrarFormulario = !this.mostrarFormulario;
-}
+
+  // 👇 NUEVA FUNCIÓN PARA COMPLETAR RÁPIDO 👇
+  completarMantenimiento(mante: Mantenimiento): void {
+    if (mante.id_mantenimiento) {
+      this.manteService.actualizar(mante.id_mantenimiento, { estado: 'Completado' }).subscribe({
+        next: () => {
+          this.snackBar.open('✅ Mantenimiento marcado como Completado', 'OK', {duration: 3000});
+          this.cargarDatos(); // Refrescamos la tabla para que cambie de color automáticamente
+        },
+        error: (err) => this.snackBar.open('❌ Error al completar', 'Cerrar')
+      });
+    }
+  }
 
 generarReporte(formato: 'excel' | 'pdf'): void {
     const mantenimientos = this.dataSource.data;
+    
 
     if (mantenimientos.length === 0) {
       this.snackBar.open('⚠️ No hay mantenimientos para exportar', 'Cerrar', { duration: 3000 });
@@ -159,12 +187,12 @@ generarReporte(formato: 'excel' | 'pdf'): void {
     const datosLimpios = mantenimientos.map(m => {
       // Nota: Convertimos id_cliente a Number por si acaso, para que no falle tu función getNombreCliente
       const nombreCliente = this.getNombreCliente(Number(m.id_cliente));
-      const nombreProducto = this.getNombreProducto(m.id_producto);
+     
 
       return {
         'ID': `#${m.id_mantenimiento}`,
         'Cliente': nombreCliente,
-        'Producto Entregado': nombreProducto,
+        'Producto Entregado': m.nombre_producto,
         'Fecha Programada': m.fecha_mantenimiento,
         'Descripción / Motivo': m.descripcion || 'Sin descripción',
         'Estado': m.estado

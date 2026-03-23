@@ -69,6 +69,8 @@ class Pedido(Base):
     fecha_entrega = Column(Date, nullable=True) 
     
     estado = Column(String(50), default='PENDIENTE')
+    materiales_descontados = Column(JSON, default={})
+
 class DetallePedido(Base):
     __tablename__ = "detalles_pedido"
 
@@ -116,16 +118,24 @@ class DetalleOrdenCompra(Base):
 
 # ... (Mantén lo anterior) ...
 
-class OrdenTrabajo(Base):
-    __tablename__ = "ordenes_trabajo"
+# 👇 models.py 👇
+class OrdenPlanta(Base):
+    __tablename__ = "ordenes_planta"
 
-    id_orden_trabajo = Column(Integer, primary_key=True, index=True)
-    id_detalle_pedido = Column(Integer, ForeignKey("detalles_pedido.id_detalle", ondelete="CASCADE"))
-    id_usuario = Column(String(20), ForeignKey("usuarios.id_usuario", ondelete="RESTRICT"))
-    fecha_inicio = Column(Date, nullable=False)
-    fecha_entrega_programada = Column(Date, nullable=False)
-    fecha_entrega_real = Column(Date, nullable=True)
-    estado = Column(String(50), default='ASIGNADO') # ASIGNADO, EN_PROGRESO, COMPLETADO
+    id_op = Column(Integer, primary_key=True, index=True)
+    numero_op = Column(String(50), unique=True, nullable=False)
+    id_pedido = Column(Integer, ForeignKey("pedidos.id_pedido", ondelete="CASCADE"))
+    id_producto = Column(Integer, ForeignKey("productos.id_producto", ondelete="RESTRICT"))
+    cantidad = Column(Integer, nullable=False)
+    cliente_nombre = Column(String(200), nullable=False)
+    
+    fecha_entrega_prevista = Column(Date, nullable=True)
+    fecha_inicio_produccion = Column(Date, nullable=True)
+    fecha_fin_produccion = Column(Date, nullable=True)
+    
+    seguimiento_procesos = Column(JSON, default={})
+    observaciones_taller = Column(Text, nullable=True)
+    estado = Column(String(50), default='EN COLA')
 
 class Reunion(Base):
     __tablename__ = "reuniones"
@@ -141,15 +151,16 @@ class Reunion(Base):
     # 👇 NUEVA COLUMNA JSON 👇
     tareas = Column(JSON, default=[])
 
+# 👇 models.py 👇
 class Mantenimiento(Base):
     __tablename__ = "mantenimientos"
 
     id_mantenimiento = Column(Integer, primary_key=True, index=True)
     id_cliente = Column(String(20), ForeignKey("clientes.id_cliente"))
-    id_producto = Column(Integer, ForeignKey("productos.id_producto"))
+    nombre_producto = Column(String(255)) # 👈 CAMBIADO
     fecha_mantenimiento = Column(Date, nullable=False)
     descripcion = Column(String(500))
-    estado = Column(String(50), default="Programado") # Programado, Completado, Cancelado
+    estado = Column(String(50), default="Programado")
 
 
 # 👇 models.py 👇
@@ -179,3 +190,21 @@ class OrdenProduccion(Base):
     fecha_abono = Column(Date)
     valor_abono = Column(Numeric(10, 2), default=0.0)
     saldo = Column(Numeric(10, 2), default=0.0)
+
+class KpiIngreso(Base):
+    __tablename__ = "kpi_ingresos"
+    id = Column(Integer, primary_key=True, index=True)
+    semana = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    meta = Column(Numeric(10, 2), nullable=False)
+    ingresos = Column(Numeric(10, 2), nullable=False)
+    egresos = Column(Numeric(10, 2), nullable=False)
+    neto = Column(Numeric(10, 2), nullable=False)
+
+class KpiProductividad(Base):
+    __tablename__ = "kpi_productividad"
+    id = Column(Integer, primary_key=True, index=True)
+    semana = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    meta_planchas = Column(Integer, nullable=False)
+    planchas_usadas = Column(Integer, nullable=False)

@@ -6,7 +6,7 @@ export interface ResumenDashboard {
   pedidos_activos: number;
   alertas_inventario: number;
   compras_pendientes: number;
-  tareas_activas: number;
+
 }
 
 @Injectable({ providedIn: 'root' })

@@ -24,7 +24,7 @@ export class DashboardComponent implements OnInit {
     pedidos_activos: 0,
     alertas_inventario: 0,
     compras_pendientes: 0,
-    tareas_activas: 0
+    
   };
 
   constructor(
@@ -55,12 +55,13 @@ export class DashboardComponent implements OnInit {
 
   revisarMantenimientos(): void {
     this.manteService.getMantenimientos().subscribe(datos => {
-      // Filtramos la lista para quedarnos solo con los que están "cerca" o ya vencieron
-      const urgentes = datos.filter(m => this.esFechaCercana(m.fecha_mantenimiento));
+      // 👇 CORRECCIÓN: Filtramos por fecha cercana Y que el estado sea 'Programado' 👇
+      const urgentes = datos.filter(m => 
+        m.estado === 'Programado' && this.esFechaCercana(m.fecha_mantenimiento)
+      );
       this.mantenimientosUrgentes = urgentes.length;
     });
   }
-
   esFechaCercana(fechaStr: string): boolean {
     const fecha = new Date(fechaStr + 'T00:00:00');
     const hoy = new Date();

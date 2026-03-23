@@ -31,15 +31,15 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 200px;">
-          <mat-label>Producto Entregado</mat-label>
-          <mat-select [(ngModel)]="nuevoMante.id_producto" >
-            @for (p of productos; track p.id_producto) { <mat-option [value]="p.id_producto">{{p.nombre}}</mat-option> }
-          </mat-select>
+          <mat-label>Producto (Ej: Cámara de Frío)</mat-label>
+          <input matInput [(ngModel)]="nuevoMante.nombre_producto">
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
           <mat-label>Fecha Agendada</mat-label>
-          <input matInput type="date" [(ngModel)]="nuevoMante.fecha_mantenimiento">
+          <input matInput [matDatepicker]="pickerMante" [(ngModel)]="nuevoMante.fecha_mantenimiento">
+          <mat-datepicker-toggle matIconSuffix [for]="pickerMante"></mat-datepicker-toggle>
+          <mat-datepicker #pickerMante></mat-datepicker>
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
@@ -65,7 +65,7 @@
 
     <ng-container matColumnDef="producto">
       <th mat-header-cell *matHeaderCellDef> Producto </th>
-      <td mat-cell *matCellDef="let m"> {{ getNombreProducto(m.id_producto) }} </td>
+      <td mat-cell *matCellDef="let m"> {{ m.nombre_producto }} </td>
     </ng-container>
 
     <ng-container matColumnDef="fecha">
@@ -101,7 +101,16 @@
     <ng-container matColumnDef="acciones">
       <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
       <td mat-cell *matCellDef="let m" style="text-align: right;">
-        <button mat-icon-button color="primary" (click)="editar(m)"><mat-icon>edit</mat-icon></button>
+        
+        @if (m.estado === 'Programado') {
+          <button mat-icon-button style="color: #2e7d32;" (click)="completarMantenimiento(m)" title="Marcar como Completado">
+            <mat-icon>check_circle</mat-icon>
+          </button>
+        }
+
+        <button mat-icon-button color="primary" (click)="editar(m)" title="Editar">
+          <mat-icon>edit</mat-icon>
+        </button>
       </td>
     </ng-container>
 

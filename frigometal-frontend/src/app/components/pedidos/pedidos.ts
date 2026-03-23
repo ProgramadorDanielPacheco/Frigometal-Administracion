@@ -18,6 +18,8 @@ import { Producto, ProductoService } from '../../services/producto';
 import { PedidoService, Pedido } from '../../services/pedido';
 import { ReportesService } from '../../services/reportes';
 import { MatMenuModule } from '@angular/material/menu';
+import { MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 
 @Component({
   selector: 'app-pedidos',
@@ -26,8 +28,9 @@ import { MatMenuModule } from '@angular/material/menu';
     CommonModule, FormsModule, 
     MatCardModule, MatFormFieldModule, MatSelectModule, 
     MatInputModule, MatButtonModule, MatSnackBarModule,
-    MatTableModule, MatIconModule, MatMenuModule // <-- Añadidos aquí también
+    MatTableModule, MatIconModule, MatMenuModule, MatNativeDateModule, MatDatepickerModule // <-- Añadidos aquí también
   ],
+  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
   templateUrl: './pedidos.html',
   styleUrls: ['./pedidos.scss'] 
 })
@@ -198,19 +201,31 @@ marcarComoEntregado(pedido: any): void {
   });
 }
   // Guardar la nueva venta
- generarPedido(): void {
-    // CORRECCIÓN: Si faltan datos, mostramos mensaje de advertencia real
+ // Guardar la nueva venta
+  generarPedido(): void {
+    // 1. Validamos que estén todos los datos
     if (!this.clienteSeleccionado || !this.productoSeleccionado || this.cantidadPedido <= 0 || !this.fechaEntrega) {
       this.snackBar.open('⚠️ Por favor completa todos los campos correctamente.', 'Cerrar', { duration: 4000 });
       return;
     }
 
+    // 2. Formateamos la fecha del Datepicker para que Python no se queje
+    // Creamos una variable temporal para la fecha limpia
+    let fechaLimpia = this.fechaEntrega; 
+    
+    // Verificamos si es un objeto de tipo Date (lo que manda el Datepicker)
+    if (this.fechaEntrega && typeof this.fechaEntrega !== 'string') {
+        fechaLimpia = new Date(this.fechaEntrega).toISOString().split('T')[0];
+    }
+
+    // 3. Preparamos los datos tal cual los pide schemas.py
     const datosPedido: any = {
       id_cliente: this.clienteSeleccionado,
-      fecha_entrega: this.fechaEntrega,
+      fecha_entrega: fechaLimpia, // Usamos la fecha limpia
       detalles: [{ id_producto: this.productoSeleccionado, cantidad: this.cantidadPedido }]
     };
 
+    // 4. Enviamos al servidor
     if (this.modoEdicion && this.idPedidoEditando) {
       // 🟢 MODO ACTUALIZAR
       this.pedidoService.actualizarPedido(this.idPedidoEditando, datosPedido).subscribe({
@@ -222,10 +237,8 @@ marcarComoEntregado(pedido: any): void {
       });
     } else {
       // 🔵 MODO CREAR
-      // 🔵 MODO CREAR
       this.pedidoService.crearPedido(datosPedido).subscribe({
         next: () => {
-          // 👇 Mensaje corregido
           this.snackBar.open('✅ Pedido registrado como PENDIENTE (Inventario intacto)', 'Excelente', { duration: 4000 });
           this.finalizarGuardado();
         },
@@ -336,6 +349,22 @@ marcarComoEntregado(pedido: any): void {
         }
       });
     }
+  }
+
+  // Añade esta función en tu pedidos.ts
+  sincronizarReceta(pedido: any): void {
+    this.snackBar.open('⏳ Sincronizando cambios de receta con el inventario...', '', { duration: 2000 });
+    
+    // Le volvemos a mandar el estado 'EN PRODUCCIÓN' a Python. 
+    // Python detectará la llamada, correrá la matemática y actualizará todo sin duplicar.
+    this.pedidoService.actualizarEstado(pedido.id_pedido, pedido.estado).subscribe({
+      next: () => {
+        this.snackBar.open('✅ Inventario sincronizado. Solo se descontaron materiales nuevos (si los hubo).', 'Cerrar', { duration: 5000 });
+      },
+      error: (err) => {
+        this.snackBar.open('❌ Error al sincronizar el inventario', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   generarReporte(formato: 'excel' | 'pdf'): void {

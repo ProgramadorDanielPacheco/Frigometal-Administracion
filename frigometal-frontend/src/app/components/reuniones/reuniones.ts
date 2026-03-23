@@ -14,6 +14,8 @@ import { MatChipsModule } from '@angular/material/chips';
 
 import { Reunion, ReunionService, TareaReunion } from '../../services/reunion'; 
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 
 @Component({
   selector: 'app-reuniones',
@@ -22,8 +24,9 @@ import { MatDividerModule } from '@angular/material/divider';
     CommonModule, FormsModule, 
     MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule,
     MatButtonModule, MatSnackBarModule, MatTableModule, MatIconModule, MatChipsModule,
-    MatDividerModule
+    MatDividerModule, MatDatepickerModule, MatNativeDateModule
   ],
+  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
   templateUrl: './reuniones.html'
 })
 export class ReunionesComponent implements OnInit {
@@ -89,11 +92,20 @@ export class ReunionesComponent implements OnInit {
       return;
     }
     
-    // Aseguramos que exista el array y metemos una copia de la tarea
-    if (!this.nuevaReunion.tareas) this.nuevaReunion.tareas = [];
-    this.nuevaReunion.tareas.push({ ...this.nuevaTarea });
+    // 👇 1. Limpiamos la fecha del calendario de la Tarea 👇
+    let fechaAccionLimpia = this.nuevaTarea.fecha_accion;
+    if (fechaAccionLimpia && typeof fechaAccionLimpia !== 'string') {
+      fechaAccionLimpia = new Date(fechaAccionLimpia).toISOString().split('T')[0];
+    }
     
-    // Limpiamos los inputs para la siguiente
+    // Aseguramos que exista el array y metemos una copia de la tarea con la fecha limpia
+    if (!this.nuevaReunion.tareas) this.nuevaReunion.tareas = [];
+    this.nuevaReunion.tareas.push({ 
+      ...this.nuevaTarea, 
+      fecha_accion: fechaAccionLimpia // Inyectamos la fecha ya formateada
+    });
+    
+    // Limpiamos los inputs para la siguiente tarea
     this.nuevaTarea = { accion: '', responsable: '', fecha_accion: '' };
   }
 
@@ -103,14 +115,21 @@ export class ReunionesComponent implements OnInit {
 
   guardarReunion(): void {
     if (!this.nuevaReunion.motivo || !this.nuevaReunion.fecha || !this.nuevaReunion.hora || !this.nuevaReunion.participantes) {
-      this.snackBar.open('⚠️ Todos los campos son obligatorios', 'Cerrar', { duration: 3000 });
+      this.snackBar.open('⚠️ Todos los campos principales son obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    
+    // 👇 1. Creamos el payload copiando los datos 👇
+    const payload = { ...this.nuevaReunion };
 
-    if (this.modoEdicion && this.nuevaReunion.id_reunion) {
-      this.reunionService.actualizarReunion(this.nuevaReunion.id_reunion, this.nuevaReunion).subscribe({
+    // 👇 2. Limpiamos la fecha del calendario principal de la Reunión 👇
+    if (payload.fecha && typeof payload.fecha !== 'string') {
+      payload.fecha = new Date(payload.fecha).toISOString().split('T')[0];
+    }
+
+    // 3. Enviamos el PAYLOAD en lugar de nuevaReunion
+    if (this.modoEdicion && payload.id_reunion) {
+      this.reunionService.actualizarReunion(payload.id_reunion, payload).subscribe({
         next: () => {
           this.snackBar.open('✅ Reunión actualizada', 'Genial', { duration: 3000 });
           this.mostrarFormulario = false;
@@ -119,7 +138,7 @@ export class ReunionesComponent implements OnInit {
         }
       });
     } else {
-      this.reunionService.crearReunion(this.nuevaReunion).subscribe({
+      this.reunionService.crearReunion(payload).subscribe({
         next: () => {
           this.snackBar.open('✅ Reunión agendada', 'Genial', { duration: 3000 });
           this.mostrarFormulario = false;

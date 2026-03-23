@@ -38,9 +38,10 @@
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
           <mat-form-field appearance="outline" style="flex: 1; min-width: 200px;">
             <mat-label>Fecha</mat-label>
-            <input matInput type="date" [(ngModel)]="nuevaReunion.fecha">
+            <input matInput [matDatepicker]="pickerReunion" [(ngModel)]="nuevaReunion.fecha" placeholder="dd/mm/aaaa">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerReunion"></mat-datepicker-toggle>
+            <mat-datepicker #pickerReunion></mat-datepicker>
           </mat-form-field>
-
           <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
             <mat-label>Hora</mat-label>
             <input matInput type="time" [(ngModel)]="nuevaReunion.hora">
@@ -91,8 +92,9 @@
 
           <mat-form-field appearance="outline" style="flex: 1; min-width: 130px; background: white; margin-bottom: -1.25em;">
             <mat-label>Fecha Límite</mat-label>
-            <mat-icon matPrefix style="margin-right: 10px;">event_busy</mat-icon>
-            <input matInput type="date" [(ngModel)]="nuevaTarea.fecha_accion" (keyup.enter)="agregarTareaLista()">
+            <input matInput [matDatepicker]="pickerTarea" [(ngModel)]="nuevaTarea.fecha_accion" placeholder="dd/mm/aaaa" (keyup.enter)="agregarTareaLista()">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerTarea"></mat-datepicker-toggle>
+            <mat-datepicker #pickerTarea></mat-datepicker>
           </mat-form-field>
 
           <button mat-flat-button color="accent" (click)="agregarTareaLista()" style="height: 50px;">

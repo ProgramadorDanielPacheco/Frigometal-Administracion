@@ -238,20 +238,40 @@ class OrdenEdicion(BaseModel):
 # ==========================
 # ESQUEMAS PARA ORDENES DE TRABAJO (PLANIFICACIÓN)
 # ==========================
-class OrdenTrabajoBase(BaseModel):
-    id_detalle_pedido: int
-    id_usuario: str
-    fecha_inicio: date
-    fecha_entrega_programada: date
+# 👇 schemas.py 👇
+class ProcesoTaller(BaseModel):
+    proceso: str # Ej: 'Corte Laser', 'Plegado'
+    fecha: date
+    hora_inicio: str
+    hora_fin: str
+    responsable: str
 
-class OrdenTrabajoCreate(OrdenTrabajoBase):
+class OrdenPlantaBase(BaseModel):
+    numero_op: str
+    id_pedido: int
+    id_producto: int
+    cantidad: int
+    cliente_nombre: str
+    fecha_entrega_prevista: Optional[date] = None
+    fecha_inicio_produccion: Optional[date] = None
+    fecha_fin_produccion: Optional[date] = None
+    seguimiento_procesos: Optional[dict] = {}
+    observaciones_taller: Optional[str] = None
+    estado: Optional[str] = 'EN COLA'
+
+class OrdenPlantaCreate(OrdenPlantaBase):
     pass
 
-class OrdenTrabajoResponse(OrdenTrabajoBase):
-    id_orden_trabajo: int
-    estado: str
-    fecha_entrega_real: Optional[date] = None
+class OrdenPlantaUpdate(BaseModel):
+    # Todo opcional para actualizar cosas sueltas
+    fecha_inicio_produccion: Optional[date] = None
+    fecha_fin_produccion: Optional[date] = None
+    seguimiento_procesos: Optional[dict] = None
+    observaciones_taller: Optional[str] = None
+    estado: Optional[str] = None
 
+class OrdenPlantaResponse(OrdenPlantaBase):
+    id_op: int
     class Config:
         from_attributes = True
 
@@ -295,9 +315,10 @@ class ReunionResponse(ReunionBase):
     class Config:
         from_attributes = True
 
+# 👇 schemas.py 👇
 class MantenimientoBase(BaseModel):
     id_cliente: str
-    id_producto: int
+    nombre_producto: str # 👈 CAMBIADO DE id_producto (int) a nombre_producto (str)
     fecha_mantenimiento: date
     descripcion: Optional[str] = None
     estado: Optional[str] = "Programado"
@@ -307,7 +328,7 @@ class MantenimientoCreate(MantenimientoBase):
 
 class MantenimientoUpdate(BaseModel):
     id_cliente: Optional[str] = None
-    id_producto: Optional[int] = None
+    nombre_producto: Optional[str] = None # 👈 CAMBIADO
     fecha_mantenimiento: Optional[date] = None
     descripcion: Optional[str] = None
     estado: Optional[str] = None
@@ -367,5 +388,34 @@ class OrdenProduccionUpdate(BaseModel):
 
 class OrdenProduccionResponse(OrdenProduccionBase):
     id_orden: int
+    class Config:
+        from_attributes = True
+class KpiIngresoBase(BaseModel):
+    semana: int
+    anio: int
+    meta: float
+    ingresos: float
+    egresos: float
+
+class KpiIngresoCreate(KpiIngresoBase):
+    pass
+
+class KpiIngresoResponse(KpiIngresoBase):
+    id: int
+    neto: float
+    class Config:
+        from_attributes = True
+
+class KpiProductividadBase(BaseModel):
+    semana: int
+    anio: int
+    meta_planchas: int
+    planchas_usadas: int
+
+class KpiProductividadCreate(KpiProductividadBase):
+    pass
+
+class KpiProductividadResponse(KpiProductividadBase):
+    id: int
     class Config:
         from_attributes = True
