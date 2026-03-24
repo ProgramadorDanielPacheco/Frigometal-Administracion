@@ -209,6 +209,7 @@ export class EstadisticasComponent implements OnInit {
         if (Number(d.planchas_usadas) === Number(d.meta_planchas)) return 'rgba(255, 193, 7, 0.8)'; 
         return 'rgba(76, 175, 80, 0.8)'; 
       });
+      
 
       if (this.graficoProductividad) { this.graficoProductividad.destroy(); }
 
@@ -247,7 +248,7 @@ export class EstadisticasComponent implements OnInit {
     });
 
     // ==========================================
-    // 3. GRÁFICO DE VENTAS
+    // 3. GRÁFICO DE VENTAS (CON ACUMULADO)
     // ==========================================
     this.kpiService.getVentas().subscribe(datos => {
       this.historialVentas = datos;
@@ -256,14 +257,32 @@ export class EstadisticasComponent implements OnInit {
       if (datos.length === 0) return;
 
       const labels = datos.map(d => `Sem ${d.semana}`);
-      const ingresos = datos.map(d => d.ingresos)
+      const ingresos = datos.map(d => Number(d.ingresos));
       const metaFijaValue = datos[datos.length - 1].meta;
 
-      const colores = datos.map(d => {
+      // Le agregamos : string[] para evitar el error de TypeScript
+      const colores: string[] = datos.map(d => {
         if (Number(d.ingresos) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
         if (Number(d.ingresos) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
         return 'rgba(76, 175, 80, 0.8)'; 
       });
+
+      // 👇 MAGIA DEL ACUMULADO (Solo suma de ingresos truncada a 2 decimales) 👇
+      const sumaIngresos = datos.reduce((acc, curr) => acc + Number(curr.ingresos), 0);
+      const netoAcumulado = parseFloat(sumaIngresos.toFixed(2));
+
+      // Agregamos la columna final
+      labels.push('ACUMULADO');
+      ingresos.push(netoAcumulado);
+
+      // Evaluamos el acumulado contra la última meta fija
+      if (netoAcumulado < metaFijaValue) {
+        colores.push('rgba(244, 67, 54, 1)'); // Rojo intenso
+      } else if (netoAcumulado === metaFijaValue) {
+        colores.push('rgba(255, 193, 7, 1)'); // Amarillo intenso
+      } else {
+        colores.push('rgba(76, 175, 80, 1)'); // Verde intenso
+      }
 
       if (this.graficoVentas) { this.graficoVentas.destroy(); }
 
@@ -276,7 +295,7 @@ export class EstadisticasComponent implements OnInit {
             data: ingresos, 
             backgroundColor: colores,
             borderColor: colores.map(c => c.replace('0.8', '1')),
-            borderWidth: 1,
+            borderWidth: 2, // Lo subimos a 2 para igualar el de ingresos
             barThickness: 'flex',
             maxBarThickness: 90
           }]
@@ -291,13 +310,13 @@ export class EstadisticasComponent implements OnInit {
                 lineaMeta: {
                   type: 'line', yMin: metaFijaValue, yMax: metaFijaValue,
                   borderColor: '#333', borderWidth: 3, borderDash: [6, 6],
-                  label: { content: `META: $${metaFijaValue}`, display: true, position: 'end', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
+                  label: { content: `META SEMANAL: $${metaFijaValue}`, display: true, position: 'start', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
                 }
               }
             }
           }
         },
-        plugins: [this.textOnTopPlugin] // 👈 ACTIVAMOS EL PLUGIN AQUÍ
+        plugins: [this.textOnTopPlugin] // 👈 ACTIVAMOS EL PLUGIN DE TEXTO AQUÍ
       });
     });
   }
