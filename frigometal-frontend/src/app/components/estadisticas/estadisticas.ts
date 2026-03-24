@@ -33,7 +33,7 @@ export class EstadisticasComponent implements OnInit {
   
   formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
   formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
-  formVentas = { meta: 0, ingresos: 0, egresos: 0 };
+  formVentas = { meta: 0, ingresos: 0};
 
   graficoIngresos: any;
   graficoProductividad: any;
@@ -84,9 +84,9 @@ export class EstadisticasComponent implements OnInit {
   buscarVentasPorSemana(): void {
     const dataSemana = this.historialVentas.find(d => d.semana === this.semanaVentas);
     if (dataSemana) {
-      this.formVentas = { meta: dataSemana.meta, ingresos: dataSemana.ingresos, egresos: dataSemana.egresos };
+      this.formVentas = { meta: dataSemana.meta, ingresos: dataSemana.ingresos };
     } else {
-      this.formVentas = { meta: 0, ingresos: 0, egresos: 0 }; // Limpiar si la semana no existe
+      this.formVentas = { meta: 0, ingresos: 0 }; // Limpiar si la semana no existe
     }
   }
 
@@ -200,12 +200,12 @@ export class EstadisticasComponent implements OnInit {
       if (datos.length === 0) return;
 
       const labels = datos.map(d => `Sem ${d.semana}`);
-      const netos = datos.map(d => d.neto);
+      const ingresos = datos.map(d => d.ingresos)
       const metaFijaValue = datos[datos.length - 1].meta;
 
       const colores = datos.map(d => {
-        if (Number(d.neto) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
-        if (Number(d.neto) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
+        if (Number(d.ingresos) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
+        if (Number(d.ingresos) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
         return 'rgba(76, 175, 80, 0.8)'; 
       });
 
@@ -217,7 +217,7 @@ export class EstadisticasComponent implements OnInit {
           labels: labels,
           datasets: [{ 
             label: 'Ingreso Neto ($)', 
-            data: netos, 
+            data: ingresos, 
             backgroundColor: colores,
             borderColor: colores.map(c => c.replace('0.8', '1')),
             borderWidth: 1,

@@ -1473,3 +1473,24 @@ def crear_kpi_productividad(kpi: schemas.KpiProductividadCreate, db: Session = D
     db.commit()
     db.refresh(db_kpi)
     return db_kpi
+
+
+@app.get("/kpis/ventas", response_model=List[schemas.KpiVentasResponse])
+def get_kpi_ventas(db: Session = Depends(get_db)):
+    return db.query(models.KpiVentas).order_by(models.KpiVentas.anio.asc(), models.KpiVentas.semana.asc()).all()
+
+@app.post("/kpis/ventas", response_model=schemas.KpiVentasResponse)
+def crear_kpi_ventas(kpi: schemas.KpiVentasCreate, db: Session = Depends(get_db)):
+    # Verificamos si ya existe la semana para actualizarla o crearla
+    db_kpi = db.query(models.KpiVentas).filter(models.KpiVentas.semana == kpi.semana, models.KpiVentas.anio == kpi.anio).first()
+    
+    if db_kpi:
+        db_kpi.meta = kpi.meta
+        db_kpi.ingresos = kpi.ingresos
+    else:
+        db_kpi = models.KpiVentas(**kpi.model_dump())
+        db.add(db_kpi)
+    
+    db.commit()
+    db.refresh(db_kpi)
+    return db_kpi

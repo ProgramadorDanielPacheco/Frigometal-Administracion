@@ -208,3 +208,12 @@ class KpiProductividad(Base):
     anio = Column(Integer, nullable=False)
     meta_planchas = Column(Integer, nullable=False)
     planchas_usadas = Column(Integer, nullable=False)
+
+class KpiVentas(Base):
+    __tablename__ = "kpi_ingresos"
+    id = Column(Integer, primary_key=True, index=True)
+    semana = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    meta = Column(Numeric(10, 2), nullable=False)
+    ingresos = Column(Numeric(10, 2), nullable=False)
+

@@ -419,3 +419,19 @@ class KpiProductividadResponse(KpiProductividadBase):
     id: int
     class Config:
         from_attributes = True
+
+class KpiVentasBase(BaseModel):
+    semana: int
+    anio: int
+    meta: float
+    ingresos: float
+
+
+class KpiVentasCreate(KpiIngresoBase):
+    pass
+
+class KpiVentasResponse(KpiIngresoBase):
+    id: int
+    class Config:
+        from_attributes = True
+

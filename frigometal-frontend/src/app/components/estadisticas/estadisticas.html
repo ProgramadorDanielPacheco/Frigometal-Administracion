@@ -81,19 +81,14 @@
           <input matInput type="number" min="1" max="52" [(ngModel)]="semanaVentas" (ngModelChange)="buscarVentasPorSemana()">
         </mat-form-field>
 
-        <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
           <mat-label>Meta ($)</mat-label>
           <input matInput type="number" [(ngModel)]="formVentas.meta">
         </mat-form-field>
 
-        <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
           <mat-label>Ingresos ($)</mat-label>
           <input matInput type="number" [(ngModel)]="formVentas.ingresos">
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
-          <mat-label>Egresos ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formVentas.egresos">
         </mat-form-field>
 
         <button mat-raised-button color="primary" (click)="guardarVentas()" style="height: 52px; flex: 1; min-width: 150px; font-weight: bold;">
