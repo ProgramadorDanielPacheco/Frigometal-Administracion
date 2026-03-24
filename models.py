@@ -210,7 +210,7 @@ class KpiProductividad(Base):
     planchas_usadas = Column(Integer, nullable=False)
 
 class KpiVentas(Base):
-    __tablename__ = "kpi_ingresos"
+    __tablename__ = "kpi_ventas"
     id = Column(Integer, primary_key=True, index=True)
     semana = Column(Integer, nullable=False)
     anio = Column(Integer, nullable=False)
