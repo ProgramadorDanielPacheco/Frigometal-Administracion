@@ -42,7 +42,7 @@ export class EstadisticasComponent implements OnInit {
   historialProductividad: any[] = [];
   historialVentas: any[] = [];
 
-  // 👇 1. PLUGIN MEJORADO PARA DIBUJAR NÚMEROS (Incluso negativos y acumulados) 👇
+  // 👇 1. PLUGIN MEJORADO (CON REDONDEO A 2 DECIMALES) 👇
   textOnTopPlugin = {
     id: 'textOnTop',
     afterDatasetsDraw(chart: any) {
@@ -50,16 +50,17 @@ export class EstadisticasComponent implements OnInit {
       chart.data.datasets.forEach((dataset: any, i: number) => {
         const meta = chart.getDatasetMeta(i);
         meta.data.forEach((bar: any, index: number) => {
-          const data = dataset.data[index];
+          let data = dataset.data[index];
           ctx.fillStyle = '#333';
           ctx.font = 'bold 12px Roboto';
           ctx.textAlign = 'center';
           
-          // Si el valor es negativo (pérdida), dibujamos el número abajo. Si es positivo, arriba.
           const yPos = data < 0 ? bar.y + 15 : bar.y - 8;
           
-          // Si es dinero, le agregamos el signo de dólar para que se vea más pro
-          const texto = dataset.label.includes('$') ? `$${data}` : data;
+          // Magia de redondeo: Si tiene decimales, lo corta a 2. Si es entero, lo deja igual.
+          let valorRedondeado = Number(data) % 1 === 0 ? data : Number(data).toFixed(2);
+          
+          const texto = dataset.label.includes('$') ? `$${valorRedondeado}` : valorRedondeado;
           
           ctx.fillText(texto, bar.x, yPos);
         });
@@ -118,7 +119,7 @@ export class EstadisticasComponent implements OnInit {
   }
 
   cargarGraficos(): void {
-    // ==========================================
+   // ==========================================
     // 1. GRÁFICO DE INGRESOS (CON ACUMULADO)
     // ==========================================
     this.kpiService.getIngresos().subscribe(datos => {
@@ -139,15 +140,17 @@ export class EstadisticasComponent implements OnInit {
 
       const sumaIngresos = datos.reduce((acc, curr) => acc + Number(curr.ingresos), 0);
       const sumaEgresos = datos.reduce((acc, curr) => acc + Number(curr.egresos), 0);
-      const sumaMetas = datos.reduce((acc, curr) => acc + Number(curr.meta), 0);
-      const netoAcumulado = sumaIngresos - sumaEgresos;
+      
+      // 👇 TRUNCAMOS EL ACUMULADO A 2 DECIMALES DESDE EL CÁLCULO 👇
+      const netoAcumulado = parseFloat((sumaIngresos - sumaEgresos).toFixed(2));
 
       labels.push('ACUMULADO');
       netos.push(netoAcumulado);
 
-      if (netoAcumulado < sumaMetas) {
+      // 👇 AHORA EVALUAMOS CONTRA LA ÚLTIMA META CONOCIDA (No la suma) 👇
+      if (netoAcumulado < metaFijaValue) {
         colores.push('rgba(244, 67, 54, 1)'); 
-      } else if (netoAcumulado === sumaMetas) {
+      } else if (netoAcumulado === metaFijaValue) {
         colores.push('rgba(255, 193, 7, 1)'); 
       } else {
         colores.push('rgba(76, 175, 80, 1)'); 
@@ -166,7 +169,7 @@ export class EstadisticasComponent implements OnInit {
             borderColor: colores.map(c => c.replace('0.8', '1')), 
             borderWidth: 2, 
             barThickness: 'flex',
-            maxBarThickness: 50
+            maxBarThickness: 90 // 👈 LO SUBIMOS A 90 PARA QUE SE VEAN MÁS JUNTAS Y LLENEN EL ESPACIO
           }]
         },
         options: {
@@ -179,16 +182,15 @@ export class EstadisticasComponent implements OnInit {
                 lineaMeta: {
                   type: 'line', yMin: metaFijaValue, yMax: metaFijaValue,
                   borderColor: '#333', borderWidth: 3, borderDash: [6, 6],
-                  label: { content: `META SEMANAL: $${metaFijaValue}`, display: true, position: 'start', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
+                  label: { content: `META: $${metaFijaValue}`, display: true, position: 'start', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
                 }
               }
             }
           }
         },
-        plugins: [this.textOnTopPlugin] // 👈 ACTIVAMOS EL PLUGIN AQUÍ
+        plugins: [this.textOnTopPlugin] 
       });
     });
-
     // ==========================================
     // 2. GRÁFICO DE PRODUCTIVIDAD
     // ==========================================
@@ -221,7 +223,7 @@ export class EstadisticasComponent implements OnInit {
             borderColor: coloresProd.map(c => c.replace('0.8', '1')),
             borderWidth: 1,
             barThickness: 'flex',
-            maxBarThickness: 50
+            maxBarThickness: 90
           }]
         },
         options: {
@@ -276,7 +278,7 @@ export class EstadisticasComponent implements OnInit {
             borderColor: colores.map(c => c.replace('0.8', '1')),
             borderWidth: 1,
             barThickness: 'flex',
-            maxBarThickness: 50
+            maxBarThickness: 90
           }]
         },
         options: {
