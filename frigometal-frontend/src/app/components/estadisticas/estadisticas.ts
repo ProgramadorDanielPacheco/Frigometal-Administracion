@@ -26,7 +26,6 @@ export class EstadisticasComponent implements OnInit {
 
   anioActual: number = new Date().getFullYear();
   
-  // 👇 Separamos las semanas para que cada tarjeta sea independiente
   semanaIngresos: number = 0;
   semanaProductividad: number = 0;
   semanaVentas: number = 0;
@@ -39,7 +38,6 @@ export class EstadisticasComponent implements OnInit {
   graficoProductividad: any;
   graficoVentas: any;
 
-  // 👇 Guardamos el historial en memoria para el autocompletado
   historialIngresos: any[] = [];
   historialProductividad: any[] = [];
   historialVentas: any[] = []
@@ -61,14 +59,14 @@ export class EstadisticasComponent implements OnInit {
   }
 
   // ==========================================
-  // 👇 NUEVA MAGIA: AUTOCOMPLETADO 👇
+  // AUTOCOMPLETADO
   // ==========================================
   buscarIngresosPorSemana(): void {
     const dataSemana = this.historialIngresos.find(d => d.semana === this.semanaIngresos);
     if (dataSemana) {
       this.formIngresos = { meta: dataSemana.meta, ingresos: dataSemana.ingresos, egresos: dataSemana.egresos };
     } else {
-      this.formIngresos = { meta: 0, ingresos: 0, egresos: 0 }; // Limpiar si la semana no existe
+      this.formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
     }
   }
 
@@ -77,7 +75,7 @@ export class EstadisticasComponent implements OnInit {
     if (dataSemana) {
       this.formProductividad = { meta_planchas: dataSemana.meta_planchas, planchas_usadas: dataSemana.planchas_usadas };
     } else {
-      this.formProductividad = { meta_planchas: 0, planchas_usadas: 0 }; // Limpiar si la semana no existe
+      this.formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
     }
   }
 
@@ -86,27 +84,50 @@ export class EstadisticasComponent implements OnInit {
     if (dataSemana) {
       this.formVentas = { meta: dataSemana.meta, ingresos: dataSemana.ingresos };
     } else {
-      this.formVentas = { meta: 0, ingresos: 0 }; // Limpiar si la semana no existe
+      this.formVentas = { meta: 0, ingresos: 0 };
     }
   }
 
   cargarGraficos(): void {
-    // 1. GRÁFICO DE INGRESOS
+    // ==========================================
+    // 1. GRÁFICO DE INGRESOS (CON ACUMULADO)
+    // ==========================================
     this.kpiService.getIngresos().subscribe(datos => {
-      this.historialIngresos = datos; // Guardamos en memoria
-      this.buscarIngresosPorSemana(); // Forzamos el autocompletado inicial
+      this.historialIngresos = datos;
+      this.buscarIngresosPorSemana();
 
       if (datos.length === 0) return;
 
+      // 1. Preparamos los datos normales por semana
       const labels = datos.map(d => `Sem ${d.semana}`);
-      const netos = datos.map(d => d.neto);
+      const netos = datos.map(d => Number(d.neto));
       const metaFijaValue = datos[datos.length - 1].meta;
 
-      const colores = datos.map(d => {
+      const colores: string[] = datos.map(d => {
         if (Number(d.neto) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
         if (Number(d.neto) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
         return 'rgba(76, 175, 80, 0.8)'; 
       });
+
+      // 👇 2. MAGIA DEL ACUMULADO (Suma total de ingresos y egresos) 👇
+      const sumaIngresos = datos.reduce((acc, curr) => acc + Number(curr.ingresos), 0);
+      const sumaEgresos = datos.reduce((acc, curr) => acc + Number(curr.egresos), 0);
+      const sumaMetas = datos.reduce((acc, curr) => acc + Number(curr.meta), 0);
+      const netoAcumulado = sumaIngresos - sumaEgresos;
+
+      // Agregamos la columna final de "Acumulado" a los arrays
+      labels.push('ACUMULADO');
+      netos.push(netoAcumulado);
+
+      // Evaluamos el color del acumulado comparando contra la suma de todas las metas
+      if (netoAcumulado < sumaMetas) {
+        colores.push("rgba(244, 67, 54, 1)"); 
+      } else if (netoAcumulado === sumaMetas) {
+        colores.push('rgba(255, 193, 7, 1)'); 
+      } else {
+        colores.push('rgba(76, 175, 80, 1)'); 
+      }
+      // 👆 FIN DE LA MAGIA DEL ACUMULADO 👆
 
       if (this.graficoIngresos) { this.graficoIngresos.destroy(); }
 
@@ -118,9 +139,10 @@ export class EstadisticasComponent implements OnInit {
             label: 'Ingreso Neto ($)', 
             data: netos, 
             backgroundColor: colores,
-            borderColor: colores.map(c => c.replace('0.8', '1')),
-            borderWidth: 1,
-            barThickness: 'flex'
+            borderColor: colores.map(c => c.replace('0.8', '1')), // Hace que los bordes sean sólidos
+            borderWidth: 2, // Borde un poco más grueso para que resalte
+            barThickness: 'flex',
+            maxBarThickness: 50
           }]
         },
         options: {
@@ -133,7 +155,7 @@ export class EstadisticasComponent implements OnInit {
                 lineaMeta: {
                   type: 'line', yMin: metaFijaValue, yMax: metaFijaValue,
                   borderColor: '#333', borderWidth: 3, borderDash: [6, 6],
-                  label: { content: `META: $${metaFijaValue}`, display: true, position: 'end', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
+                  label: { content: `META SEMANAL: $${metaFijaValue}`, display: true, position: 'start', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
                 }
               }
             }
@@ -142,10 +164,12 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
+    // ==========================================
     // 2. GRÁFICO DE PRODUCTIVIDAD
+    // ==========================================
     this.kpiService.getProductividad().subscribe(datos => {
-      this.historialProductividad = datos; // Guardamos en memoria
-      this.buscarProductividadPorSemana(); // Forzamos el autocompletado inicial
+      this.historialProductividad = datos;
+      this.buscarProductividadPorSemana();
 
       if (datos.length === 0) return;
 
@@ -171,7 +195,8 @@ export class EstadisticasComponent implements OnInit {
             backgroundColor: coloresProd,
             borderColor: coloresProd.map(c => c.replace('0.8', '1')),
             borderWidth: 1,
-            barThickness: 'flex'
+            barThickness: 'flex',
+            maxBarThickness: 50
           }]
         },
         options: {
@@ -193,9 +218,12 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
+    // ==========================================
+    // 3. GRÁFICO DE VENTAS
+    // ==========================================
     this.kpiService.getVentas().subscribe(datos => {
-      this.historialVentas = datos; // Guardamos en memoria
-      this.buscarVentasPorSemana(); // Forzamos el autocompletado inicial
+      this.historialVentas = datos;
+      this.buscarVentasPorSemana();
 
       if (datos.length === 0) return;
 
@@ -216,12 +244,13 @@ export class EstadisticasComponent implements OnInit {
         data: {
           labels: labels,
           datasets: [{ 
-            label: 'Ingreso Neto ($)', 
+            label: 'Ingreso Ventas ($)', 
             data: ingresos, 
             backgroundColor: colores,
             borderColor: colores.map(c => c.replace('0.8', '1')),
             borderWidth: 1,
-            barThickness: 'flex'
+            barThickness: 'flex',
+            maxBarThickness: 50
           }]
         },
         options: {
@@ -244,6 +273,9 @@ export class EstadisticasComponent implements OnInit {
     });
   }
 
+  // ==========================================
+  // MÉTODOS DE GUARDADO
+  // ==========================================
   guardarIngresos(): void {
     const payload = { semana: this.semanaIngresos, anio: this.anioActual, ...this.formIngresos };
     this.kpiService.guardarIngresos(payload).subscribe(() => {
