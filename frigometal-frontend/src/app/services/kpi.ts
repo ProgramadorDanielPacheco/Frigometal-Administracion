@@ -13,4 +13,7 @@ export class KpiService {
 
   getProductividad(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}productividad`); }
   guardarProductividad(data: any): Observable<any> { return this.http.post(`${this.apiUrl}productividad`, data); }
+
+  getVentas(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}ventas`); }
+  guardarVentas(data: any): Observable<any> { return this.http.post(`${this.apiUrl}ventas`, data); }
 }

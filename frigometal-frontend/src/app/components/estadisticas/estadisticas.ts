@@ -29,16 +29,20 @@ export class EstadisticasComponent implements OnInit {
   // 👇 Separamos las semanas para que cada tarjeta sea independiente
   semanaIngresos: number = 0;
   semanaProductividad: number = 0;
+  semanaVentas: number = 0;
   
   formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
   formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
+  formVentas = { meta: 0, ingresos: 0, egresos: 0 };
 
   graficoIngresos: any;
   graficoProductividad: any;
+  graficoVentas: any;
 
   // 👇 Guardamos el historial en memoria para el autocompletado
   historialIngresos: any[] = [];
   historialProductividad: any[] = [];
+  historialVentas: any[] = []
 
   constructor(private kpiService: KpiService, private snackBar: MatSnackBar) {}
 
@@ -46,6 +50,7 @@ export class EstadisticasComponent implements OnInit {
     const semActual = this.calcularSemanaDelAno(new Date());
     this.semanaIngresos = semActual;
     this.semanaProductividad = semActual;
+    this.semanaVentas= semActual;
     this.cargarGraficos();
   }
 
@@ -73,6 +78,15 @@ export class EstadisticasComponent implements OnInit {
       this.formProductividad = { meta_planchas: dataSemana.meta_planchas, planchas_usadas: dataSemana.planchas_usadas };
     } else {
       this.formProductividad = { meta_planchas: 0, planchas_usadas: 0 }; // Limpiar si la semana no existe
+    }
+  }
+
+  buscarVentasPorSemana(): void {
+    const dataSemana = this.historialVentas.find(d => d.semana === this.semanaVentas);
+    if (dataSemana) {
+      this.formVentas = { meta: dataSemana.meta, ingresos: dataSemana.ingresos, egresos: dataSemana.egresos };
+    } else {
+      this.formVentas = { meta: 0, ingresos: 0, egresos: 0 }; // Limpiar si la semana no existe
     }
   }
 
@@ -178,6 +192,56 @@ export class EstadisticasComponent implements OnInit {
         }
       });
     });
+
+    this.kpiService.getVentas().subscribe(datos => {
+      this.historialVentas = datos; // Guardamos en memoria
+      this.buscarVentasPorSemana(); // Forzamos el autocompletado inicial
+
+      if (datos.length === 0) return;
+
+      const labels = datos.map(d => `Sem ${d.semana}`);
+      const netos = datos.map(d => d.neto);
+      const metaFijaValue = datos[datos.length - 1].meta;
+
+      const colores = datos.map(d => {
+        if (Number(d.neto) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
+        if (Number(d.neto) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
+        return 'rgba(76, 175, 80, 0.8)'; 
+      });
+
+      if (this.graficoVentas) { this.graficoVentas.destroy(); }
+
+      this.graficoVentas = new Chart('canvasVentas', {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ 
+            label: 'Ingreso Neto ($)', 
+            data: netos, 
+            backgroundColor: colores,
+            borderColor: colores.map(c => c.replace('0.8', '1')),
+            borderWidth: 1,
+            barThickness: 'flex'
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, grid: { color: '#e0e0e0' } }, x: { grid: { display: false } } },
+          plugins: {
+            legend: { display: false },
+            annotation: {
+              annotations: {
+                lineaMeta: {
+                  type: 'line', yMin: metaFijaValue, yMax: metaFijaValue,
+                  borderColor: '#333', borderWidth: 3, borderDash: [6, 6],
+                  label: { content: `META: $${metaFijaValue}`, display: true, position: 'end', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
+                }
+              }
+            }
+          }
+        }
+      });
+    });
   }
 
   guardarIngresos(): void {
@@ -192,6 +256,14 @@ export class EstadisticasComponent implements OnInit {
     const payload = { semana: this.semanaProductividad, anio: this.anioActual, ...this.formProductividad };
     this.kpiService.guardarProductividad(payload).subscribe(() => {
       this.snackBar.open(`✅ Productividad Sem. ${this.semanaProductividad} registrada con éxito`, 'OK', { duration: 3000 });
+      this.cargarGraficos();
+    });
+  }
+
+  guardarVentas(): void {
+    const payload = { semana: this.semanaVentas, anio: this.anioActual, ...this.formVentas };
+    this.kpiService.guardarVentas(payload).subscribe(() => {
+      this.snackBar.open(`✅ Ventas Sem. ${this.semanaVentas} registrados con éxito`, 'OK', { duration: 3000 });
       this.cargarGraficos();
     });
   }
