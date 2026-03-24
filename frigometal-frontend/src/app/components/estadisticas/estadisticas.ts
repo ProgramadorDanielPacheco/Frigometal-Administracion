@@ -6,14 +6,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { KpiService } from '../../services/kpi';
+import { KpiService } from '../../services/kpi'; // Ajusta la ruta si es necesario
 
-// 👇 1. Importaciones NATIVAS de Chart.js y NUEVO PLUGIN 👇
 import { Chart, registerables } from 'chart.js';
-// Importamos la anotación para la línea de meta fija
 import annotationPlugin from 'chartjs-plugin-annotation';
 
-Chart.register(...registerables, annotationPlugin); // Registramos el plugin
+Chart.register(...registerables, annotationPlugin);
 
 @Component({
   selector: 'app-estadisticas',
@@ -26,9 +24,11 @@ Chart.register(...registerables, annotationPlugin); // Registramos el plugin
 })
 export class EstadisticasComponent implements OnInit {
 
-  semanaActual: number = 0;
   anioActual: number = new Date().getFullYear();
-  semanaSeleccionada: number = 0;
+  
+  // 👇 Separamos las semanas para que cada tarjeta sea independiente
+  semanaIngresos: number = 0;
+  semanaProductividad: number = 0;
   
   formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
   formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
@@ -36,13 +36,16 @@ export class EstadisticasComponent implements OnInit {
   graficoIngresos: any;
   graficoProductividad: any;
 
-  // 👇 ELIMINAMOS EL PLUGIN DE TEXTO ENCIMA PARA LIMPIAR LA GRÁFICA 👇
-  // (Si quieres volver a verlo, usa el código del turn anterior)
+  // 👇 Guardamos el historial en memoria para el autocompletado
+  historialIngresos: any[] = [];
+  historialProductividad: any[] = [];
 
   constructor(private kpiService: KpiService, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
-    this.semanaActual = this.calcularSemanaDelAno(new Date());
+    const semActual = this.calcularSemanaDelAno(new Date());
+    this.semanaIngresos = semActual;
+    this.semanaProductividad = semActual;
     this.cargarGraficos();
   }
 
@@ -52,22 +55,43 @@ export class EstadisticasComponent implements OnInit {
     return Math.ceil((fecha.getDay() + 1 + dias) / 7);
   }
 
+  // ==========================================
+  // 👇 NUEVA MAGIA: AUTOCOMPLETADO 👇
+  // ==========================================
+  buscarIngresosPorSemana(): void {
+    const dataSemana = this.historialIngresos.find(d => d.semana === this.semanaIngresos);
+    if (dataSemana) {
+      this.formIngresos = { meta: dataSemana.meta, ingresos: dataSemana.ingresos, egresos: dataSemana.egresos };
+    } else {
+      this.formIngresos = { meta: 0, ingresos: 0, egresos: 0 }; // Limpiar si la semana no existe
+    }
+  }
+
+  buscarProductividadPorSemana(): void {
+    const dataSemana = this.historialProductividad.find(d => d.semana === this.semanaProductividad);
+    if (dataSemana) {
+      this.formProductividad = { meta_planchas: dataSemana.meta_planchas, planchas_usadas: dataSemana.planchas_usadas };
+    } else {
+      this.formProductividad = { meta_planchas: 0, planchas_usadas: 0 }; // Limpiar si la semana no existe
+    }
+  }
+
   cargarGraficos(): void {
-    // ==========================================
-    // 1. GRÁFICO DE INGRESOS (Finanzas)
-    // ==========================================
+    // 1. GRÁFICO DE INGRESOS
     this.kpiService.getIngresos().subscribe(datos => {
+      this.historialIngresos = datos; // Guardamos en memoria
+      this.buscarIngresosPorSemana(); // Forzamos el autocompletado inicial
+
       if (datos.length === 0) return;
 
       const labels = datos.map(d => `Sem ${d.semana}`);
       const netos = datos.map(d => d.neto);
       const metaFijaValue = datos[datos.length - 1].meta;
 
-      // 👇 LÓGICA DE COLORES DINÁMICA 👇
       const colores = datos.map(d => {
-        if (Number(d.neto) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)';   // Rojo (Bajo meta)
-        if (Number(d.neto) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; // Amarillo (Igual a meta)
-        return 'rgba(76, 175, 80, 0.8)';                                      // Verde (Supera meta)
+        if (Number(d.neto) < Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
+        if (Number(d.neto) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
+        return 'rgba(76, 175, 80, 0.8)'; 
       });
 
       if (this.graficoIngresos) { this.graficoIngresos.destroy(); }
@@ -79,38 +103,23 @@ export class EstadisticasComponent implements OnInit {
           datasets: [{ 
             label: 'Ingreso Neto ($)', 
             data: netos, 
-            backgroundColor: colores, // Aplicamos el array de colores
-            borderColor: colores.map(c => c.replace('0.8', '1')), // Bordes más sólidos
+            backgroundColor: colores,
+            borderColor: colores.map(c => c.replace('0.8', '1')),
             borderWidth: 1,
             barThickness: 'flex'
           }]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, grid: { color: '#e0e0e0' } },
-            x: { grid: { display: false } }
-          },
+          responsive: true, maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, grid: { color: '#e0e0e0' } }, x: { grid: { display: false } } },
           plugins: {
             legend: { display: false },
             annotation: {
               annotations: {
                 lineaMeta: {
-                  type: 'line',
-                  yMin: metaFijaValue,
-                  yMax: metaFijaValue,
-                  borderColor: '#333', // Negro/Gris oscuro para que resalte sobre cualquier color
-                  borderWidth: 3,
-                  borderDash: [6, 6], // Punteada para que parezca de gestión
-                  label: {
-                    content: `META: $${metaFijaValue}`,
-                    display: true,
-                    position: 'end',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    color: 'white',
-                    font: { weight: 'bold' }
-                  }
+                  type: 'line', yMin: metaFijaValue, yMax: metaFijaValue,
+                  borderColor: '#333', borderWidth: 3, borderDash: [6, 6],
+                  label: { content: `META: $${metaFijaValue}`, display: true, position: 'end', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
                 }
               }
             }
@@ -119,17 +128,17 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
-    // ==========================================
-    // 2. GRÁFICO DE PRODUCTIVIDAD (Materiales)
-    // ==========================================
+    // 2. GRÁFICO DE PRODUCTIVIDAD
     this.kpiService.getProductividad().subscribe(datos => {
+      this.historialProductividad = datos; // Guardamos en memoria
+      this.buscarProductividadPorSemana(); // Forzamos el autocompletado inicial
+
       if (datos.length === 0) return;
 
       const labels = datos.map(d => `Sem ${d.semana}`);
       const usadas = datos.map(d => d.planchas_usadas);
       const metaFijaValue = datos[datos.length - 1].meta_planchas;
 
-      // 👇 LÓGICA DE COLORES DINÁMICA 👇
       const coloresProd = datos.map(d => {
         if (Number(d.planchas_usadas) < Number(d.meta_planchas)) return 'rgba(244, 67, 54, 0.8)'; 
         if (Number(d.planchas_usadas) === Number(d.meta_planchas)) return 'rgba(255, 193, 7, 0.8)'; 
@@ -152,31 +161,16 @@ export class EstadisticasComponent implements OnInit {
           }]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, grid: { color: '#e0e0e0' } },
-            x: { grid: { display: false } }
-          },
+          responsive: true, maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, grid: { color: '#e0e0e0' } }, x: { grid: { display: false } } },
           plugins: {
             legend: { display: false },
             annotation: {
               annotations: {
                 lineaMeta: {
-                  type: 'line',
-                  yMin: metaFijaValue,
-                  yMax: metaFijaValue,
-                  borderColor: '#333',
-                  borderWidth: 3,
-                  borderDash: [6, 6],
-                  label: {
-                    content: `META: ${metaFijaValue} Planchas`,
-                    display: true,
-                    position: 'end',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    color: 'white',
-                    font: { weight: 'bold' }
-                  }
+                  type: 'line', yMin: metaFijaValue, yMax: metaFijaValue,
+                  borderColor: '#333', borderWidth: 3, borderDash: [6, 6],
+                  label: { content: `META: ${metaFijaValue} Planchas`, display: true, position: 'end', backgroundColor: 'rgba(0, 0, 0, 0.7)', color: 'white', font: { weight: 'bold' } }
                 }
               }
             }
@@ -186,26 +180,18 @@ export class EstadisticasComponent implements OnInit {
     });
   }
 
-  // Las funciones de guardar se mantienen exactamente igual
   guardarIngresos(): void {
-    const payload = { 
-      semana: this.semanaSeleccionada, // 👈 Usamos la variable del input
-      anio: this.anioActual, 
-      ...this.formIngresos 
-    };
+    const payload = { semana: this.semanaIngresos, anio: this.anioActual, ...this.formIngresos };
     this.kpiService.guardarIngresos(payload).subscribe(() => {
-      this.snackBar.open(`✅ Ingresos de la Semana ${this.semanaSeleccionada} registrados`, 'OK', { duration: 3000 });
+      this.snackBar.open(`✅ Ingresos Sem. ${this.semanaIngresos} registrados con éxito`, 'OK', { duration: 3000 });
       this.cargarGraficos();
     });
   }
+
   guardarProductividad(): void {
-    const payload = { 
-      semana: this.semanaSeleccionada, // 👈 Usamos la variable del input
-      anio: this.anioActual, 
-      ...this.formProductividad 
-    };
+    const payload = { semana: this.semanaProductividad, anio: this.anioActual, ...this.formProductividad };
     this.kpiService.guardarProductividad(payload).subscribe(() => {
-      this.snackBar.open(`✅ Productividad de la Semana ${this.semanaSeleccionada} registrada`, 'OK', { duration: 3000 });
+      this.snackBar.open(`✅ Productividad Sem. ${this.semanaProductividad} registrada con éxito`, 'OK', { duration: 3000 });
       this.cargarGraficos();
     });
   }
