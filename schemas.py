@@ -427,10 +427,10 @@ class KpiVentasBase(BaseModel):
     ingresos: float
 
 
-class KpiVentasCreate(KpiIngresoBase):
+class KpiVentasCreate(KpiVentasBase):
     pass
 
-class KpiVentasResponse(KpiIngresoBase):
+class KpiVentasResponse(KpiVentasBase):
     id: int
     class Config:
         from_attributes = True
