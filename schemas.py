@@ -409,8 +409,8 @@ class KpiIngresoResponse(KpiIngresoBase):
 class KpiProductividadBase(BaseModel):
     semana: int
     anio: int
-    meta_planchas: int
-    planchas_usadas: int
+    meta_planchas: float
+    planchas_usadas: float
 
 class KpiProductividadCreate(KpiProductividadBase):
     pass
