@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { KpiService } from '../../services/kpi'; // Ajusta la ruta si es necesario
+import { KpiService } from '../../services/kpi'; 
 
 import { Chart, registerables } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
@@ -40,7 +40,32 @@ export class EstadisticasComponent implements OnInit {
 
   historialIngresos: any[] = [];
   historialProductividad: any[] = [];
-  historialVentas: any[] = []
+  historialVentas: any[] = [];
+
+  // 👇 1. PLUGIN MEJORADO PARA DIBUJAR NÚMEROS (Incluso negativos y acumulados) 👇
+  textOnTopPlugin = {
+    id: 'textOnTop',
+    afterDatasetsDraw(chart: any) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((dataset: any, i: number) => {
+        const meta = chart.getDatasetMeta(i);
+        meta.data.forEach((bar: any, index: number) => {
+          const data = dataset.data[index];
+          ctx.fillStyle = '#333';
+          ctx.font = 'bold 12px Roboto';
+          ctx.textAlign = 'center';
+          
+          // Si el valor es negativo (pérdida), dibujamos el número abajo. Si es positivo, arriba.
+          const yPos = data < 0 ? bar.y + 15 : bar.y - 8;
+          
+          // Si es dinero, le agregamos el signo de dólar para que se vea más pro
+          const texto = dataset.label.includes('$') ? `$${data}` : data;
+          
+          ctx.fillText(texto, bar.x, yPos);
+        });
+      });
+    }
+  };
 
   constructor(private kpiService: KpiService, private snackBar: MatSnackBar) {}
 
@@ -59,14 +84,16 @@ export class EstadisticasComponent implements OnInit {
   }
 
   // ==========================================
-  // AUTOCOMPLETADO
+  // 👇 2. MEMORIA INTELIGENTE DE METAS 👇
   // ==========================================
   buscarIngresosPorSemana(): void {
     const dataSemana = this.historialIngresos.find(d => d.semana === this.semanaIngresos);
     if (dataSemana) {
       this.formIngresos = { meta: dataSemana.meta, ingresos: dataSemana.ingresos, egresos: dataSemana.egresos };
     } else {
-      this.formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
+      // Si la semana no existe, jalamos la última meta conocida del historial
+      const ultimaMeta = this.historialIngresos.length > 0 ? this.historialIngresos[this.historialIngresos.length - 1].meta : 0;
+      this.formIngresos = { meta: ultimaMeta, ingresos: 0, egresos: 0 }; 
     }
   }
 
@@ -75,7 +102,8 @@ export class EstadisticasComponent implements OnInit {
     if (dataSemana) {
       this.formProductividad = { meta_planchas: dataSemana.meta_planchas, planchas_usadas: dataSemana.planchas_usadas };
     } else {
-      this.formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
+      const ultimaMeta = this.historialProductividad.length > 0 ? this.historialProductividad[this.historialProductividad.length - 1].meta_planchas : 0;
+      this.formProductividad = { meta_planchas: ultimaMeta, planchas_usadas: 0 }; 
     }
   }
 
@@ -84,7 +112,8 @@ export class EstadisticasComponent implements OnInit {
     if (dataSemana) {
       this.formVentas = { meta: dataSemana.meta, ingresos: dataSemana.ingresos };
     } else {
-      this.formVentas = { meta: 0, ingresos: 0 };
+      const ultimaMeta = this.historialVentas.length > 0 ? this.historialVentas[this.historialVentas.length - 1].meta : 0;
+      this.formVentas = { meta: ultimaMeta, ingresos: 0 }; 
     }
   }
 
@@ -98,7 +127,6 @@ export class EstadisticasComponent implements OnInit {
 
       if (datos.length === 0) return;
 
-      // 1. Preparamos los datos normales por semana
       const labels = datos.map(d => `Sem ${d.semana}`);
       const netos = datos.map(d => Number(d.neto));
       const metaFijaValue = datos[datos.length - 1].meta;
@@ -109,25 +137,21 @@ export class EstadisticasComponent implements OnInit {
         return 'rgba(76, 175, 80, 0.8)'; 
       });
 
-      // 👇 2. MAGIA DEL ACUMULADO (Suma total de ingresos y egresos) 👇
       const sumaIngresos = datos.reduce((acc, curr) => acc + Number(curr.ingresos), 0);
       const sumaEgresos = datos.reduce((acc, curr) => acc + Number(curr.egresos), 0);
       const sumaMetas = datos.reduce((acc, curr) => acc + Number(curr.meta), 0);
       const netoAcumulado = sumaIngresos - sumaEgresos;
 
-      // Agregamos la columna final de "Acumulado" a los arrays
       labels.push('ACUMULADO');
       netos.push(netoAcumulado);
 
-      // Evaluamos el color del acumulado comparando contra la suma de todas las metas
       if (netoAcumulado < sumaMetas) {
-        colores.push("rgba(244, 67, 54, 1)"); 
+        colores.push('rgba(244, 67, 54, 1)'); 
       } else if (netoAcumulado === sumaMetas) {
         colores.push('rgba(255, 193, 7, 1)'); 
       } else {
         colores.push('rgba(76, 175, 80, 1)'); 
       }
-      // 👆 FIN DE LA MAGIA DEL ACUMULADO 👆
 
       if (this.graficoIngresos) { this.graficoIngresos.destroy(); }
 
@@ -139,8 +163,8 @@ export class EstadisticasComponent implements OnInit {
             label: 'Ingreso Neto ($)', 
             data: netos, 
             backgroundColor: colores,
-            borderColor: colores.map(c => c.replace('0.8', '1')), // Hace que los bordes sean sólidos
-            borderWidth: 2, // Borde un poco más grueso para que resalte
+            borderColor: colores.map(c => c.replace('0.8', '1')), 
+            borderWidth: 2, 
             barThickness: 'flex',
             maxBarThickness: 50
           }]
@@ -160,7 +184,8 @@ export class EstadisticasComponent implements OnInit {
               }
             }
           }
-        }
+        },
+        plugins: [this.textOnTopPlugin] // 👈 ACTIVAMOS EL PLUGIN AQUÍ
       });
     });
 
@@ -214,7 +239,8 @@ export class EstadisticasComponent implements OnInit {
               }
             }
           }
-        }
+        },
+        plugins: [this.textOnTopPlugin] // 👈 ACTIVAMOS EL PLUGIN AQUÍ
       });
     });
 
@@ -268,7 +294,8 @@ export class EstadisticasComponent implements OnInit {
               }
             }
           }
-        }
+        },
+        plugins: [this.textOnTopPlugin] // 👈 ACTIVAMOS EL PLUGIN AQUÍ
       });
     });
   }
