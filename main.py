@@ -385,7 +385,9 @@ async def importar_clientes_excel(file: UploadFile = File(...), db: Session = De
     try:
         # 2. Leer el archivo directamente desde la memoria
         contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
+        
+        # 👇 ARREGLO CRÍTICO: dtype=str fuerza a que NO se borren los ceros a la izquierda de las cédulas
+        df = pd.read_excel(io.BytesIO(contents), dtype=str)
         
         # Llenar los espacios vacíos con texto en blanco para evitar errores 'NaN'
         df = df.fillna("")
@@ -393,19 +395,21 @@ async def importar_clientes_excel(file: UploadFile = File(...), db: Session = De
         clientes_agregados = 0
         errores = []
 
-        
-
         # 3. Recorrer fila por fila el Excel
         for index, row in df.iterrows():
             # Buscamos las columnas por su nombre exacto en el encabezado del Excel
-            # Agregamos .strip() para limpiar espacios invisibles
             cedula = str(row.get('cedula_cliente', '')).strip()
             
-            # (Truco: Si Excel lee la cédula como número, le pondrá ".0" al final. Aquí se lo quitamos)
+            # (Truco por si acaso Excel forzó algún ".0" al final, aunque dtype=str suele evitarlo)
             if cedula.endswith(".0"): 
                 cedula = cedula[:-2]
             
             nombre = str(row.get('nombre', '')).strip()
+            
+            # 👇 AÑADIMOS LOS NUEVOS CAMPOS DE TU MODELO 👇
+            nombre_comercial = str(row.get('nombre_comercial', '')).strip()
+            ciudad = str(row.get('ciudad', '')).strip()
+            
             telefono = str(row.get('telefono', '')).strip()
             correo = str(row.get('correo', '')).strip()
             direccion = str(row.get('direccion', '')).strip()
@@ -430,9 +434,11 @@ async def importar_clientes_excel(file: UploadFile = File(...), db: Session = De
             nuevo_cliente = models.Cliente(
                 id_cliente=cedula,
                 nombre=nombre,
+                nombre_comercial=nombre_comercial, # 👈 INYECTADO AQUÍ
                 telefono=telefono,
                 correo=correo,
-                direccion=direccion
+                direccion=direccion,
+                ciudad=ciudad # 👈 INYECTADO AQUÍ
             )
             db.add(nuevo_cliente)
             clientes_agregados += 1
