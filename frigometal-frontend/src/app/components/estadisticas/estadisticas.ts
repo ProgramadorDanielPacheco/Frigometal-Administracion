@@ -79,20 +79,55 @@ export class EstadisticasComponent implements OnInit {
   historialVentas: any[] = [];
   historialGastos: any[] = []; // 👈 NUEVO
 
+  // ==========================================
+  // 👇 PLUGIN CORREGIDO: DIBUJO INTELIGENTE DE NÚMEROS 👇
+  // ==========================================
   textOnTopPlugin = {
     id: 'textOnTop',
     afterDatasetsDraw(chart: any) {
-      const { ctx } = chart;
+      // Accedemos a ctx (contexto de dibujo) y chartArea (bordes del gráfico)
+      const { ctx, chartArea } = chart; 
+      
       chart.data.datasets.forEach((dataset: any, i: number) => {
         const meta = chart.getDatasetMeta(i);
         meta.data.forEach((bar: any, index: number) => {
           let data = dataset.data[index];
-          ctx.fillStyle = '#333';
+          if (data === null || data === undefined) return; // Seguridad
+
+          // Configuramos la fuente básica
           ctx.font = 'bold 12px Roboto';
           ctx.textAlign = 'center';
-          const yPos = data < 0 ? bar.y + 15 : bar.y - 8;
+          
+          // 📏 CÁLCULO DE ESPACIO INTELIGENTE 📏
+          
+          // 'bar.y' es la coordenada Y del tope de la barra (0 es arriba del todo)
+          // 'chartArea.top' es el borde superior donde empieza a dibujarse la gráfica
+          const espacioDisponibleSobreBarra = bar.y - chartArea.top;
+          
+          // Necesitamos al menos 20px (12px de fuente + 8px de margen) para que no se corte
+          const margenNecesario = 20; 
+
+          let yPos;
+          
+          if (data < 0) {
+            // 1. Barras negativas (Abonos): Texto siempre ADENTRO (abajo del tope)
+            yPos = bar.y + 15;
+            ctx.fillStyle = '#fff'; // Color Blanco para contraste
+          } else if (espacioDisponibleSobreBarra < margenNecesario) {
+            // 2. Barras positivas MUY ALTAS (Caso de tu error): Texto ADENTRO (abajo del tope)
+            yPos = bar.y + 15;
+            ctx.fillStyle = '#fff'; // Color Blanco para contraste
+          } else {
+            // 3. Barras positivas normales: Texto AFUERA (arriba del tope) como siempre
+            yPos = bar.y - 8;
+            ctx.fillStyle = '#333'; // Color Negro/Gris oscuro
+          }
+
+          // Formateo del texto (se mantiene igual)
           let valorRedondeado = Number(data) % 1 === 0 ? data : Number(data).toFixed(2);
           const texto = dataset.label.includes('$') ? `$${valorRedondeado}` : valorRedondeado;
+          
+          // Dibujamos el texto en la posición y color calculados
           ctx.fillText(texto, bar.x, yPos);
         });
       });
