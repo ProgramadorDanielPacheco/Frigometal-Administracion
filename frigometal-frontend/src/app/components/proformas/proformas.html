@@ -1,0 +1,87 @@
+<div style="padding: 40px; max-width: 1200px; margin: auto;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h2 style="margin: 0; color: #333;">Cotizaciones y Proformas</h2>
+      <p style="color: gray; margin-top: 5px;">Crea proformas. Al guardar, se enviará un borrador automático a Producción.</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="toggleFormulario()">
+      <mat-icon>{{ mostrarFormulario ? 'close' : 'add' }}</mat-icon> {{ mostrarFormulario ? 'Cancelar' : 'Nueva Proforma' }}
+    </button>
+  </div>
+
+  @if (mostrarFormulario) {
+    <mat-card style="padding: 30px; margin-bottom: 30px; border-top: 5px solid #ff9800;">
+      <h3 style="color: #e65100;">Nueva Proforma</h3>
+      
+      <div style="display: flex; gap: 15px;">
+        <mat-form-field appearance="outline" style="flex: 1;"><mat-label>Nº Proforma</mat-label><input matInput [(ngModel)]="nuevaProforma.numero_proforma"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Cliente</mat-label><input matInput [(ngModel)]="nuevaProforma.cliente_nombre"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1;">
+          <mat-label>Fecha de Emisión</mat-label>
+          <input matInput [matDatepicker]="picker" [(ngModel)]="nuevaProforma.fecha_emision">
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1"><mat-label>Ciudad</mat-label><input matInput [(ngModel)]="nuevaProforma.ciudad"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2"><mat-label>Responsable</mat-label><input matInput [(ngModel)]="nuevaProforma.responsable"></mat-form-field>
+      </div>
+
+      <div style="display: flex; gap: 15px;">
+        <mat-form-field appearance="outline" style="flex: 1;"><mat-label>Dirección</mat-label><input matInput [(ngModel)]="nuevaProforma.cliente_direccion"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Trabajo a realizar</mat-label><input matInput [(ngModel)]="nuevaProforma.trabajo"></mat-form-field>
+      </div>
+
+      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h4 style="margin-top: 0;">Detalle de Equipos</h4>
+        
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <mat-form-field appearance="outline" style="width: 80px; margin-bottom: -1em;"><mat-label>Cant.</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.cantidad" (ngModelChange)="calcularTotalLinea()"></mat-form-field>
+          <mat-form-field appearance="outline" style="flex: 2; margin-bottom: -1em;"><mat-label>Descripción</mat-label><input matInput [(ngModel)]="nuevoDetalle.descripcion"></mat-form-field>
+          <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1em;"><mat-label>V. Unit ($)</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()"></mat-form-field>
+          <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1em;"><mat-label>V. Total ($)</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" readonly></mat-form-field>
+          <button mat-raised-button color="accent" (click)="agregarDetalle()"><mat-icon>add</mat-icon></button>
+        </div>
+
+        <div style="margin-top: 15px;">
+          @for (d of nuevaProforma.detalles; track d; let i = $index) {
+            <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-bottom: 1px solid #ddd;">
+              <span><b>{{d.cantidad}}x</b> - {{d.descripcion}}</span>
+              <span><b>${{d.precio_total | number:'1.2-2'}}</b> <button mat-icon-button color="warn" (click)="eliminarDetalle(i)"><mat-icon>delete</mat-icon></button></span>
+            </div>
+          }
+        </div>
+        <h2 style="text-align: right; color: #2e7d32; margin-top: 10px;">TOTAL: ${{ nuevaProforma.precio_total | number:'1.2-2' }}</h2>
+      </div>
+
+      <div style="display: flex; gap: 15px;">
+        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Garantía</mat-label><input matInput [(ngModel)]="nuevaProforma.garantia"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Forma de Pago</mat-label><input matInput [(ngModel)]="nuevaProforma.forma_pago"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1;"><mat-label>Validez</mat-label><input matInput [(ngModel)]="nuevaProforma.validez"></mat-form-field>
+      </div>
+
+      <button mat-raised-button color="primary" style="width: 100%; height: 50px;" (click)="guardarProforma()">
+        {{ modoEdicion ? 'Actualizar Proforma y Sincronizar OP' : 'Guardar Proforma y Generar OP' }}
+      </button>
+    </mat-card>
+  }
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+    <ng-container matColumnDef="numero_proforma"><th mat-header-cell *matHeaderCellDef>Nº</th><td mat-cell *matCellDef="let p"><b>{{p.numero_proforma}}</b></td></ng-container>
+    <ng-container matColumnDef="cliente"><th mat-header-cell *matHeaderCellDef>Cliente</th><td mat-cell *matCellDef="let p">{{p.cliente_nombre}}</td></ng-container>
+    <ng-container matColumnDef="fecha"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let p">{{p.fecha_emision}}</td></ng-container>
+    <ng-container matColumnDef="precio_total"><th mat-header-cell *matHeaderCellDef>Total</th><td mat-cell *matCellDef="let p">${{p.precio_total | number:'1.2-2'}}</td></ng-container>
+    
+    
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef style="text-align: right;">Acciones</th>
+      <td mat-cell *matCellDef="let p" style="text-align: right;">
+        <button mat-icon-button color="primary" (click)="editarProforma(p)" title="Editar Proforma">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+  </table>
+</div>

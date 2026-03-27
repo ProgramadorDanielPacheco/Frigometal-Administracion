@@ -7,7 +7,12 @@
   <div style="display: flex; flex-direction: column; gap: 40px;">
     
     <mat-card style="width: 100%; padding: 25px; border-top: 5px solid #4caf50;">
-      <h3 style="color: #2e7d32; margin-top: 0; font-size: 1.3rem;">Ingresos vs Egresos (Finanzas)</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #2e7d32; margin: 0; font-size: 1.3rem;">Ingresos vs Egresos (Finanzas)</h3>
+        <button mat-stroked-button color="primary" (click)="imprimirGrafico('canvasIngresos', 'Reporte de Ingresos vs Egresos')">
+          <mat-icon>print</mat-icon> Imprimir
+        </button>
+      </div>
       
       <div style="display: flex; gap: 20px; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
         
@@ -42,7 +47,12 @@
     </mat-card>
 
     <mat-card style="width: 100%; padding: 25px; border-top: 5px solid #9c27b0;">
-      <h3 style="color: #7b1fa2; margin-top: 0; font-size: 1.3rem;">Uso de Material (Productividad)</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #7b1fa2; margin: 0; font-size: 1.3rem;">Uso de Material (Productividad)</h3>
+        <button mat-stroked-button color="primary" (click)="imprimirGrafico('canvasProductividad', 'Reporte de Uso de Material (Planchas)')">
+          <mat-icon>print</mat-icon> Imprimir
+        </button>
+      </div>
       
       <div style="display: flex; gap: 20px; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
         
@@ -72,7 +82,12 @@
     </mat-card>
 
     <mat-card style="width: 100%; padding: 25px; border-top: 5px solid #4caf50;">
-      <h3 style="color: #2e7d32; margin-top: 0; font-size: 1.3rem;">Ventas</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #2e7d32; margin: 0; font-size: 1.3rem;">Ventas</h3>
+        <button mat-stroked-button color="primary" (click)="imprimirGrafico('canvasVentas', 'Reporte de Ventas')">
+          <mat-icon>print</mat-icon> Imprimir
+        </button>
+      </div>
       
       <div style="display: flex; gap: 20px; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
         
@@ -98,6 +113,90 @@
 
       <div style="position: relative; height: 350px; width: 100%;">
         <canvas id="canvasVentas"></canvas>
+      </div>
+    </mat-card>
+
+    <mat-card style="width: 100%; padding: 25px; border-top: 5px solid #d32f2f;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #c62828; margin: 0; font-size: 1.3rem;">Control de Gastos</h3>
+        <button mat-stroked-button color="primary" (click)="imprimirGrafico('canvasGastos', 'Reporte de Control de Gastos')">
+          <mat-icon>print</mat-icon> Imprimir
+        </button>
+      </div>
+      
+      <div style="display: flex; gap: 20px; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+        
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 100px; margin-bottom: -1.25em;">
+          <mat-label>Semana</mat-label>
+          <input matInput type="number" min="1" max="52" [(ngModel)]="semanaGastos" (ngModelChange)="buscarGastosPorSemana()">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
+          <mat-label>Límite Meta ($)</mat-label>
+          <input matInput type="number" [(ngModel)]="formGastos.meta">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
+          <mat-label>Gastos Reales ($)</mat-label>
+          <input matInput type="number" [(ngModel)]="formGastos.gastos">
+        </mat-form-field>
+
+        <button mat-raised-button color="warn" (click)="guardarGastos()" style="height: 52px; flex: 1; min-width: 150px; font-weight: bold;">
+          Guardar Sem. {{semanaGastos}}
+        </button>
+      </div>
+
+      <div style="position: relative; height: 350px; width: 100%; background-color: white;">
+        <canvas id="canvasGastos"></canvas>
+      </div>
+    </mat-card>
+
+    <mat-card style="width: 100%; padding: 25px; border-top: 5px solid #ff9800;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #e65100; margin: 0; font-size: 1.3rem;">Cuentas por Cobrar</h3>
+        <button mat-stroked-button color="primary" (click)="imprimirGrafico('canvasCuentas', 'Reporte de Cuentas por Cobrar (Cartera Viva)')">
+          <mat-icon>print</mat-icon> Imprimir
+        </button>
+      </div>
+      
+      
+      <div style="display: flex; gap: 20px; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+        
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 80px; margin-bottom: -1.25em;">
+          <mat-label>Semana</mat-label>
+          <input matInput type="number" min="1" max="52" [(ngModel)]="semanaCuentas" (ngModelChange)="buscarCuentasPorSemana()">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
+          <mat-label>Límite Meta ($)</mat-label>
+          <input matInput type="number" [(ngModel)]="formCuentas.meta">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
+          <mat-label>Tipo</mat-label>
+          <mat-select [(ngModel)]="formCuentas.tipo_movimiento">
+            <mat-option value="Deuda">Deuda (+)</mat-option>
+            <mat-option value="Abono">Abono (-)</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
+          <mat-label>Nombre del Cliente</mat-label>
+          <input matInput type="text" [(ngModel)]="formCuentas.nombre_persona" placeholder="Ej: Juan Pérez">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
+          <mat-label>Monto ($)</mat-label>
+          <input matInput type="number" [(ngModel)]="formCuentas.monto">
+        </mat-form-field>
+
+        <button mat-raised-button color="accent" (click)="guardarCuentas()" style="height: 52px; flex: 1; min-width: 120px; font-weight: bold;">
+          Registrar
+        </button>
+      </div>
+      
+      <div style="position: relative; height: 350px; width: 100%; background-color: white;">
+        <canvas id="canvasCuentas"></canvas>
       </div>
     </mat-card>
 

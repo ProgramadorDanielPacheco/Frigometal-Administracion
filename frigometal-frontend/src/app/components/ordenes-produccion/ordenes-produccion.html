@@ -25,11 +25,11 @@
 
       <mat-card-content>
         <div style="display: flex; gap: 15px; margin-bottom: 10px;">
-          <mat-form-field appearance="outline" style="flex: 1;">
-            <mat-label>Orden de Producción (OP)</mat-label>
-            <input matInput [(ngModel)]="nuevaOrden.numero_op" placeholder="Ej. OP-001" [readonly]="modoEdicion">
+          
+          <mat-form-field appearance="outline" style="flex: 1; ">
+              <mat-label>Orden de Producción (OP)</mat-label>
+              <input matInput [(ngModel)]="nuevaOrden.numero_op" placeholder="Ej. OP-001" >
           </mat-form-field>
-
           <mat-form-field appearance="outline" style="flex: 1;">
             <mat-label>Número de Pedido</mat-label>
             <input matInput [(ngModel)]="nuevaOrden.numero_pedido">
@@ -107,8 +107,12 @@
           <div style="margin-bottom: 15px;">
             @for (equipo of nuevaOrden.equipos; track equipo; let i = $index) {
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; margin-bottom: 5px; border-radius: 4px; border-left: 4px solid #1976d2;">
-                <span><b>{{equipo.cantidad}}x</b> - {{equipo.descripcion}}</span>
-                <button mat-icon-button color="warn" (click)="eliminarEquipo(i)"><mat-icon>delete</mat-icon></button>
+                <span><b>{{equipo.cantidad}}x</b> - {{equipo.descripcion}} - <b>OP: {{equipo.orden_produccion}}</b></span>
+                
+                <div style="display: flex; gap: 5px;">
+                  <button mat-icon-button color="primary" (click)="editarEquipo(i)" title="Editar Equipo"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button color="warn" (click)="eliminarEquipo(i)" title="Eliminar Equipo"><mat-icon>delete</mat-icon></button>
+                </div>
               </div>
             }
             @if (nuevaOrden.equipos.length === 0) {
@@ -126,9 +130,15 @@
               <mat-label>Descripción del Equipo</mat-label>
               <input matInput [(ngModel)]="nuevoEquipo.descripcion" (keyup.enter)="agregarEquipo()">
             </mat-form-field>
+
+            <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em">
+              <mat-label>Nº de Máquina (OP)</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoEquipo.orden_produccion" placeholder="Ej. 66" >
+            </mat-form-field>
             
-            <button mat-raised-button color="primary" (click)="agregarEquipo()" style="height: 50px;">
-              <mat-icon>add</mat-icon> Añadir
+            <button mat-raised-button [color]="indexEditandoEquipo !== null ? 'accent' : 'primary'" (click)="agregarEquipo()" style="height: 50px; min-width: 120px;">
+              <mat-icon>{{ indexEditandoEquipo !== null ? 'save' : 'add' }}</mat-icon> 
+              {{ indexEditandoEquipo !== null ? 'Actualizar' : 'Añadir' }}
             </button>
           </div>
         </div>

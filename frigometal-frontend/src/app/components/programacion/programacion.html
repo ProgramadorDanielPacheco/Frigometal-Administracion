@@ -114,11 +114,20 @@
 
       </mat-card-content>
 
-      <mat-card-actions align="end" style="padding: 16px; background-color: #f8f9fa;">
+      
+      <mat-card-actions style="padding: 16px; background-color: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
         <button mat-button (click)="cerrarHojaTrabajo()" style="margin-right: 10px;">Cerrar</button>
-        <button mat-raised-button color="primary" (click)="guardarHojaTrabajo()">
-          <mat-icon>save</mat-icon> Guardar Progreso OP
+        <button mat-stroked-button color="accent" (click)="imprimirHojaTrabajo()" style="border-color: #ff9800; color: #e65100; font-weight: bold;">
+          <mat-icon>print</mat-icon> Imprimir Formato Físico
         </button>
+
+        <div>
+          <button mat-button (click)="cerrarHojaTrabajo()" style="margin-right: 10px;">Cerrar</button>
+          <button mat-raised-button color="primary" (click)="guardarHojaTrabajo()">
+            <mat-icon>save</mat-icon> Guardar Progreso OP
+          </button>
+        </div>
+
       </mat-card-actions>
     </mat-card>
   }

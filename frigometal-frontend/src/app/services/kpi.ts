@@ -16,4 +16,11 @@ export class KpiService {
 
   getVentas(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}ventas`); }
   guardarVentas(data: any): Observable<any> { return this.http.post(`${this.apiUrl}ventas`, data); }
+
+  getGastos(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}gastos`); }
+  guardarGastos(data: any): Observable<any> { return this.http.post(`${this.apiUrl}gastos`, data); }
+
+  getCuentasCobrar(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}cuentas-cobrar`); }
+  guardarCuentasCobrar(data: any): Observable<any> { return this.http.post(`${this.apiUrl}cuentas-cobrar`, data); }
+
 }

@@ -1308,26 +1308,31 @@ def obtener_materiales(skip: int = 0, limit: int = 100, db: Session = Depends(ge
 # ==========================================
 # RUTAS PARA EL DASHBOARD (KPIs)
 # ==========================================
+# 1. ACTUALIZA TU ENDPOINT EXISTENTE
 @app.get("/dashboard/resumen/")
 def obtener_resumen_dashboard(db: Session = Depends(get_db)):
-    # 1. Contar cuántos pedidos no están entregados
     pedidos_activos = db.query(models.Pedido).filter(models.Pedido.estado != 'ENTREGADO').count()
-    
-    # 2. Contar cuántos materiales están en alerta roja o amarilla
     alertas_inventario = db.query(models.Material).filter(models.Material.stock_actual <= models.Material.stock_minimo_alerta).count()
-    
-    # 3. Contar presupuestos en borrador
     compras_pendientes = db.query(models.OrdenCompra).filter(models.OrdenCompra.estado.in_(['BORRADOR']) ).count()
     
-    # 4. Contar cuántas tareas están agendadas
-    
+    # 👇 NUEVA LÓGICA: Contar órdenes de producción nuevas 👇
+    # (Ajusta 'models.OrdenProduccion' al nombre real de tu modelo)
+    ordenes_nuevas = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.vista_en_dashboard == False).count()
 
     return {
         "pedidos_activos": pedidos_activos,
         "alertas_inventario": alertas_inventario,
         "compras_pendientes": compras_pendientes,
-       
+        "ordenes_nuevas": ordenes_nuevas # 👈 LO ENVIAMOS A ANGULAR
     }
+
+# 2. 👇 AGREGA ESTE NUEVO ENDPOINT 👇
+@app.put("/dashboard/limpiar-notificacion-ordenes/")
+def limpiar_notificacion_ordenes(db: Session = Depends(get_db)):
+    # Buscamos todas las nuevas y las marcamos como vistas
+    db.query(models.OrdenProduccion).filter(models.OrdenProduccion.vista_en_dashboard == False).update({"vista_en_dashboard": True})
+    db.commit()
+    return {"mensaje": "Notificaciones limpiadas"}
 # ==========================================
 # RUTAS DE REUNIONES
 # ==========================================
@@ -1494,3 +1499,126 @@ def crear_kpi_ventas(kpi: schemas.KpiVentasCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(db_kpi)
     return db_kpi
+
+@app.get("/kpis/gastos", response_model=List[schemas.KpiGastosResponse])
+def get_kpi_gastos(db: Session = Depends(get_db)):
+    return db.query(models.KpiGastos).order_by(models.KpiGastos.anio.asc(), models.KpiGastos.semana.asc()).all()
+
+@app.post("/kpis/gastos", response_model=schemas.KpiGastosResponse)
+def crear_kpi_gastos(kpi: schemas.KpiGastosCreate, db: Session = Depends(get_db)):
+    db_kpi = db.query(models.KpiGastos).filter(models.KpiGastos.semana == kpi.semana, models.KpiGastos.anio == kpi.anio).first()
+    
+    if db_kpi:
+        db_kpi.meta = kpi.meta
+        db_kpi.gastos = kpi.gastos
+    else:
+        db_kpi = models.KpiGastos(**kpi.model_dump())
+        db.add(db_kpi)
+    
+    db.commit()
+    db.refresh(db_kpi)
+    return db_kpi
+
+@app.get("/kpis/cuentas-cobrar", response_model=List[schemas.KpiCuentasCobrarResponse])
+def get_kpi_cuentas_cobrar(db: Session = Depends(get_db)):
+    # Los ordenamos por año, semana y luego por ID para que salgan en orden de ingreso
+    return db.query(models.KpiCuentasCobrar).order_by(models.KpiCuentasCobrar.anio.asc(), models.KpiCuentasCobrar.semana.asc(), models.KpiCuentasCobrar.id.asc()).all()
+
+@app.post("/kpis/cuentas-cobrar", response_model=schemas.KpiCuentasCobrarResponse)
+def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = Depends(get_db)):
+    db_kpi = db.query(models.KpiCuentasCobrar).filter(
+        models.KpiCuentasCobrar.semana == kpi.semana, 
+        models.KpiCuentasCobrar.anio == kpi.anio,
+        models.KpiCuentasCobrar.nombre_persona == kpi.nombre_persona,
+        models.KpiCuentasCobrar.tipo_movimiento == kpi.tipo_movimiento 
+    ).first()
+    
+    if db_kpi:
+        db_kpi.meta = kpi.meta
+        # 👇 CORRECCIÓN AQUÍ: Convertimos a float para que Python nos deje sumarlos 👇
+        db_kpi.monto = float(db_kpi.monto) + kpi.monto 
+    else:
+        db_kpi = models.KpiCuentasCobrar(**kpi.model_dump())
+        db.add(db_kpi)
+    
+    db.commit()
+    db.refresh(db_kpi)
+    return db_kpi
+
+@app.get("/proformas/", response_model=List[schemas.ProformaResponse])
+def obtener_proformas(db: Session = Depends(get_db)):
+    return db.query(models.Proforma).order_by(models.Proforma.id_proforma.desc()).all()
+
+@app.post("/proformas/", response_model=schemas.ProformaResponse)
+def crear_proforma(proforma: schemas.ProformaCreate, db: Session = Depends(get_db)):
+    nueva_proforma = models.Proforma(**proforma.model_dump())
+    db.add(nueva_proforma)
+    
+    # 👇 AJUSTE: Le agregamos "orden_produccion": 0 para evitar errores con el nuevo esquema 👇
+    equipos_para_op = [{"cantidad": d.cantidad, "descripcion": d.descripcion, "orden_produccion": 0} for d in proforma.detalles]
+    
+    import time
+    numero_borrador = f"DRAFT-{proforma.numero_proforma}-{int(time.time())}"
+
+    orden_borrador = models.OrdenProduccion(
+        numero_op=numero_borrador,
+        cliente_nombre=proforma.cliente_nombre,
+        cliente_direccion=proforma.cliente_direccion,
+        fecha_pedido=proforma.fecha_emision,
+        descripcion_pedido=proforma.trabajo,
+        equipos=equipos_para_op,
+        precio_total=proforma.precio_total,
+        forma_pago=None, 
+        saldo=proforma.precio_total,
+        vista_en_dashboard=False 
+    )
+    db.add(orden_borrador)
+    
+    try:
+        db.commit()
+        db.refresh(nueva_proforma)
+        return nueva_proforma
+    except Exception as e:
+        db.rollback()
+        print(f"🚨 ERROR FATAL EN BD: {str(e)}") 
+        raise HTTPException(status_code=400, detail=f"Error interno: {str(e)}")
+
+
+# 👇 NUEVA FUNCIÓN PARA ACTUALIZAR PROFORMA Y SINCRONIZAR OP 👇
+@app.put("/proformas/{id_proforma}", response_model=schemas.ProformaResponse)
+def actualizar_proforma(id_proforma: int, proforma_update: schemas.ProformaUpdate, db: Session = Depends(get_db)):
+    proforma_db = db.query(models.Proforma).filter(models.Proforma.id_proforma == id_proforma).first()
+    if not proforma_db:
+        raise HTTPException(status_code=404, detail="Proforma no encontrada")
+
+    # 1. Actualizamos los datos de la Proforma
+    update_data = proforma_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(proforma_db, key, value)
+
+    # 2. Buscamos el borrador de OP generado por esta proforma
+    # Usamos LIKE porque el borrador tiene formato: DRAFT-PR001-17154...
+    orden_borrador = db.query(models.OrdenProduccion).filter(
+        models.OrdenProduccion.numero_op.like(f"DRAFT-{proforma_db.numero_proforma}-%")
+    ).first()
+
+    # Si existe el borrador, le inyectamos los nuevos datos
+    if orden_borrador:
+        if "cliente_nombre" in update_data: orden_borrador.cliente_nombre = update_data["cliente_nombre"]
+        if "cliente_direccion" in update_data: orden_borrador.cliente_direccion = update_data["cliente_direccion"]
+        if "fecha_emision" in update_data: orden_borrador.fecha_pedido = update_data["fecha_emision"]
+        if "trabajo" in update_data: orden_borrador.descripcion_pedido = update_data["trabajo"]
+        if "precio_total" in update_data: 
+            orden_borrador.precio_total = update_data["precio_total"]
+            orden_borrador.saldo = update_data["precio_total"]
+        if "detalles" in update_data:
+            orden_borrador.equipos = [{"cantidad": d["cantidad"], "descripcion": d["descripcion"], "orden_produccion": 0} for d in update_data["detalles"]]
+
+    try:
+        db.commit()
+        db.refresh(proforma_db)
+        return proforma_db
+    except Exception as e:
+        db.rollback()
+        print(f"🚨 ERROR ACTUALIZANDO BD: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error interno: {str(e)}")

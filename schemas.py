@@ -341,6 +341,7 @@ class MantenimientoResponse(MantenimientoBase):
 class EquipoDetalle(BaseModel):
     cantidad: int
     descripcion: str
+    orden_produccion: Optional[int] = 0
 
 class OrdenProduccionBase(BaseModel):
     numero_op: str
@@ -435,3 +436,74 @@ class KpiVentasResponse(KpiVentasBase):
     class Config:
         from_attributes = True
 
+class KpiGastosBase(BaseModel):
+    semana: int
+    anio: int
+    meta: float
+    gastos: float
+
+class KpiGastosCreate(KpiGastosBase):
+    pass
+
+class KpiGastosResponse(KpiGastosBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class KpiCuentasCobrarBase(BaseModel):
+    semana: int
+    anio: int
+    meta: float
+    nombre_persona: str
+    monto: float
+    tipo_movimiento: str = "Deuda" # 👈 NUEVO
+
+class KpiCuentasCobrarCreate(KpiCuentasCobrarBase):
+    pass
+
+class KpiCuentasCobrarResponse(KpiCuentasCobrarBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class ProformaDetalle(BaseModel):
+    cantidad: int
+    descripcion: str
+    precio_unitario: float
+    precio_total: float
+
+class ProformaBase(BaseModel):
+    numero_proforma: str
+    cliente_nombre: str
+    cliente_direccion: Optional[str] = None
+    ciudad: Optional[str]= None
+    responsable: Optional[str]=None
+    fecha_emision: Optional[date] = None
+    trabajo: Optional[str] = None
+    detalles: Optional[List[ProformaDetalle]] = []
+    precio_total: Optional[float] = 0.0
+    garantia: Optional[str] = "1 año a partir de la entrega del equipo (La garantia NO cubre daño eléctrico)."
+    forma_pago: Optional[str] = "Abono 60% antes de iniciar la obra y 40% antes de la entrega."
+    validez: Optional[str] = "15 dias"
+
+class ProformaCreate(ProformaBase):
+    pass
+
+class ProformaResponse(ProformaBase):
+    id_proforma: int
+    class Config:
+        from_attributes = True
+
+class ProformaUpdate(BaseModel):
+    numero_proforma: Optional[str] = None
+    cliente_nombre: Optional[str] = None
+    cliente_direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+    responsable: Optional[str] = None
+    fecha_emision: Optional[date] = None
+    trabajo: Optional[str] = None
+    detalles: Optional[List[ProformaDetalle]] = None
+    precio_total: Optional[float] = None
+    garantia: Optional[str] = None
+    forma_pago: Optional[str] = None
+    validez: Optional[str] = None

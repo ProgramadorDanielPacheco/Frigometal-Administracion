@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'http://127.0.0.1:8000/login/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/login/';
 
   constructor(private http: HttpClient, private router: Router) { }
 

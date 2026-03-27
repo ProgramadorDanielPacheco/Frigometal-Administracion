@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button'; // <-- Agregamos el módulo para tu botón
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,13 +25,15 @@ export class DashboardComponent implements OnInit {
     pedidos_activos: 0,
     alertas_inventario: 0,
     compras_pendientes: 0,
+    ordenes_nuevas: 0
     
   };
 
   constructor(
     private dashboardService: DashboardService,
     private cdr: ChangeDetectorRef, // <-- Herramienta para "despertar" a la pantalla
-    private manteService: MantenimientoService
+    private manteService: MantenimientoService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -70,5 +73,17 @@ export class DashboardComponent implements OnInit {
     
     // Si faltan entre 0 y 3 días, es urgente
     return diff <= 3 && diff >= 0; 
+  }
+
+  atenderNuevasOrdenes(): void {
+    // Apagamos la notificación en la base de datos
+    this.dashboardService.marcarOrdenesComoVistas().subscribe(() => {
+      // La ponemos en 0 visualmente
+      this.resumen.ordenes_nuevas = 0;
+      this.cdr.detectChanges();
+      
+      // Viajamos a la pantalla de órdenes
+      this.router.navigate(['/ordenes-produccion']);
+    });
   }
 }

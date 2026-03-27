@@ -15,6 +15,7 @@ import { MantenimientosComponent } from './components/mantenimientos/mantenimien
 import { ReunionesComponent } from './components/reuniones/reuniones'; 
 import { OrdenesProduccionComponent } from './components/ordenes-produccion/ordenes-produccion';
 import { EstadisticasComponent } from './components/estadisticas/estadisticas';
+import { ProformasComponent } from './components/proformas/proformas';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -34,6 +35,7 @@ export const routes: Routes = [
   { path: 'mantenimientos', component: MantenimientosComponent, canActivate: [authGuard] },
   { path: 'ordenes-produccion', component: OrdenesProduccionComponent, canActivate: [authGuard] },
   { path: 'estadisticas', component: EstadisticasComponent, canActivate: [authGuard] },
+  { path: 'proformas', component: ProformasComponent, canActivate:[authGuard]},
   // Redirect por defecto a login
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   // Si pone una URL que no existe, mándalo al login

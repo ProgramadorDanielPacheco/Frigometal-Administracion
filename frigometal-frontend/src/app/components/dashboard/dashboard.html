@@ -61,6 +61,30 @@
       </div>
     </mat-card>
 
+    @if (resumen.ordenes_nuevas > 0) {
+    <mat-card class="mat-elevation-z6" style="background-color: #e3f2fd; border-left: 6px solid #1976d2; margin-bottom: 30px; border-radius: 8px;">
+      <mat-card-content style="display: flex; align-items: center; justify-content: space-between; padding: 20px; flex-wrap: wrap; gap: 15px;">
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <mat-icon style="color: #1976d2; font-size: 48px; width: 48px; height: 48px; animation: pulse 2s infinite;">factory</mat-icon>
+          <div>
+            <h2 style="margin: 0; color: #1565c0; font-weight: bold; font-size: 1.5rem;">
+              Tienes {{ resumen.ordenes_nuevas }} nueva(s) Orden(es) de Producción
+            </h2>
+            <p style="margin: 5px 0 0 0; color: #555; font-size: 1.1rem;">
+              Se ha generado una nueva orden que requiere revisión en planta.
+            </p>
+          </div>
+        </div>
+
+        <button mat-raised-button color="primary" style="padding: 5px 20px; font-size: 1.1rem;" (click)="atenderNuevasOrdenes()">
+          Ver y Atender <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
+
+      </mat-card-content>
+    </mat-card>
+  }
+
     
 
   </div>

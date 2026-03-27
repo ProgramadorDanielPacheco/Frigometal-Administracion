@@ -191,6 +191,8 @@ class OrdenProduccion(Base):
     valor_abono = Column(Numeric(10, 2), default=0.0)
     saldo = Column(Numeric(10, 2), default=0.0)
 
+    vista_en_dashboard = Column(Boolean, default=False) # 👈 NUEVA LÍNEA
+
 class KpiIngreso(Base):
     __tablename__ = "kpi_ingresos"
     id = Column(Integer, primary_key=True, index=True)
@@ -217,3 +219,36 @@ class KpiVentas(Base):
     meta = Column(Numeric(10, 2), nullable=False)
     ingresos = Column(Numeric(10, 2), nullable=False)
 
+class KpiGastos(Base):
+    __tablename__ = "kpi_gastos"
+    id = Column(Integer, primary_key=True, index=True)
+    semana = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    meta = Column(Numeric(10, 2), nullable=False)
+    gastos = Column(Numeric(10, 2), nullable=False)
+
+class KpiCuentasCobrar(Base):
+    __tablename__ = "kpi_cuentas_cobrar"
+    id = Column(Integer, primary_key=True, index=True)
+    semana = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    meta = Column(Numeric(10, 2), nullable=False)
+    nombre_persona = Column(String(255), nullable=False)
+    monto = Column(Numeric(10, 2), nullable=False)
+    tipo_movimiento = Column(String(50), default="Deuda") # 👈 NUEVO
+
+class Proforma(Base):
+    __tablename__ = "proformas"
+    id_proforma = Column(Integer, primary_key=True, index=True)
+    numero_proforma = Column(String(50), unique=True, nullable=False)
+    cliente_nombre = Column(String(200), nullable=False)
+    cliente_direccion = Column(String(255))
+    ciudad = Column(String(255))
+    responsable = Column(String(255))
+    fecha_emision = Column(Date)
+    trabajo = Column(String(255))
+    detalles = Column(JSON, default=[]) 
+    precio_total = Column(Numeric(10, 2), default=0.0)
+    garantia = Column(String(255))
+    forma_pago = Column(String(255))
+    validez = Column(String(50))

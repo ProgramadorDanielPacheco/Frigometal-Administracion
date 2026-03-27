@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table'; // 👈 IMPORTANTE AÑADIR ESTO
+import { MatTableModule, MatTableDataSource } from '@angular/material/table'; 
 import { OrdenProduccionService } from '../../services/orden-produccion';
 
 @Component({
@@ -20,24 +20,25 @@ import { OrdenProduccionService } from '../../services/orden-produccion';
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, 
     MatDatepickerModule, MatNativeDateModule, MatSnackBarModule,
-    MatTableModule // 👈 AÑADIDO A LOS IMPORTS
+    MatTableModule 
   ],
   templateUrl: './ordenes-produccion.html',
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
 })
 export class OrdenesProduccionComponent implements OnInit {
   
-  // Variables de la tabla
   dataSource = new MatTableDataSource<any>([]);
   columnasMostradas: string[] = ['numero_op', 'cliente', 'fecha_entrega', 'precio', 'saldo', 'acciones'];
   
-  // Variables del estado de la vista
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false;
   idEditando: number | null = null;
 
+  // 👇 NUEVA VARIABLE PARA SABER SI ESTAMOS EDITANDO UN EQUIPO 👇
+  indexEditandoEquipo: number | null = null;
+
   nuevaOrden: any = this.obtenerModeloVacio();
-  nuevoEquipo: any = { cantidad: 1, descripcion: '' };
+  nuevoEquipo: any = { cantidad: 1, descripcion: '', orden_produccion: 1 };
   formasDePago: string[] = ['Efectivo', 'Transferencia Bancaria', 'Tarjeta de Crédito', 'Cheque'];
 
   constructor(
@@ -71,18 +72,46 @@ export class OrdenesProduccionComponent implements OnInit {
     };
   }
 
+  // 👇 LÓGICA DEL CONSECUTIVO AUTOMÁTICO 👇
+  calcularSiguienteOP(): number {
+    let maxOP = 0;
+
+    // 1. Buscamos el mayor número en las órdenes que ya están en la base de datos
+    this.dataSource.data.forEach(orden => {
+      if (orden.equipos) {
+        orden.equipos.forEach((e: any) => {
+          const op = Number(e.orden_produccion) || 0;
+          if (op > maxOP) maxOP = op;
+        });
+      }
+    });
+
+    // 2. Buscamos en los equipos que se están agregando ahorita a esta nueva orden
+    this.nuevaOrden.equipos.forEach((e: any) => {
+      const op = Number(e.orden_produccion) || 0;
+      if (op > maxOP) maxOP = op;
+    });
+
+    // Si no hay nada, empieza en 1, si no, le suma 1 al mayor encontrado
+    return maxOP === 0 ? 1 : maxOP + 1;
+  }
+
   toggleFormulario(): void {
     this.mostrarFormulario = !this.mostrarFormulario;
     if (!this.mostrarFormulario) {
       this.cancelarEdicion();
+    } else {
+      // Al abrir el formulario, jalamos el siguiente OP automático
+      this.nuevoEquipo.orden_produccion = this.calcularSiguienteOP();
     }
   }
 
   cancelarEdicion(): void {
     this.modoEdicion = false;
     this.idEditando = null;
+    this.indexEditandoEquipo = null;
     this.nuevaOrden = this.obtenerModeloVacio();
-    this.nuevoEquipo = { cantidad: 1, descripcion: '' };
+    this.nuevoEquipo = { cantidad: 1, descripcion: '', orden_produccion: 1 };
   }
 
   editarOrden(orden: any): void {
@@ -90,9 +119,11 @@ export class OrdenesProduccionComponent implements OnInit {
     this.idEditando = orden.id_orden;
     this.mostrarFormulario = true;
     
-    // Clonamos la orden para no afectar la tabla en tiempo real
     this.nuevaOrden = { ...orden };
     if (!this.nuevaOrden.equipos) this.nuevaOrden.equipos = [];
+    
+    // Sugerimos el siguiente OP por si quiere agregarle un equipo más a esta orden vieja
+    this.nuevoEquipo.orden_produccion = this.calcularSiguienteOP();
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -103,17 +134,43 @@ export class OrdenesProduccionComponent implements OnInit {
     this.nuevaOrden.saldo = precio - abono;
   }
 
+  // 👇 NUEVAS FUNCIONES PARA LOS EQUIPOS 👇
   agregarEquipo(): void {
     if (this.nuevoEquipo.descripcion.trim() === '') {
       this.snackBar.open('⚠️ Escribe la descripción del equipo', 'Cerrar', { duration: 3000 });
       return;
     }
-    this.nuevaOrden.equipos.push({ ...this.nuevoEquipo });
-    this.nuevoEquipo = { cantidad: 1, descripcion: '' }; 
+
+    if (this.indexEditandoEquipo !== null) {
+      // Modo Actualizar Equipo Existente
+      this.nuevaOrden.equipos[this.indexEditandoEquipo] = { ...this.nuevoEquipo };
+      this.indexEditandoEquipo = null;
+    } else {
+      // Modo Añadir Nuevo Equipo
+      this.nuevaOrden.equipos.push({ ...this.nuevoEquipo });
+    }
+
+    // Limpiamos y preparamos automáticamente el siguiente número consecutivo
+    this.nuevoEquipo = { 
+      cantidad: 1, 
+      descripcion: '', 
+      orden_produccion: this.calcularSiguienteOP() 
+    }; 
+  }
+
+  editarEquipo(index: number): void {
+    this.indexEditandoEquipo = index;
+    // Copiamos el equipo al formulario
+    this.nuevoEquipo = { ...this.nuevaOrden.equipos[index] };
   }
 
   eliminarEquipo(index: number): void {
     this.nuevaOrden.equipos.splice(index, 1);
+    // Si eliminó el equipo que justo estaba editando, limpiamos la edición
+    if (this.indexEditandoEquipo === index) {
+      this.indexEditandoEquipo = null;
+      this.nuevoEquipo = { cantidad: 1, descripcion: '', orden_produccion: this.calcularSiguienteOP() };
+    }
   }
 
   guardarOrden(): void {
@@ -131,7 +188,6 @@ export class OrdenesProduccionComponent implements OnInit {
     if (payload.fecha_abono) payload.fecha_abono = new Date(payload.fecha_abono).toISOString().split('T')[0];
 
     if (this.modoEdicion && this.idEditando) {
-      // MODO ACTUALIZAR
       this.ordenService.actualizarOrden(this.idEditando, payload).subscribe({
         next: () => {
           this.snackBar.open('✅ Orden actualizada con éxito', 'Excelente', { duration: 4000 });
@@ -145,7 +201,6 @@ export class OrdenesProduccionComponent implements OnInit {
         }
       });
     } else {
-      // MODO CREAR
       this.ordenService.crearOrden(payload).subscribe({
         next: () => {
           this.snackBar.open('✅ Orden de Producción creada con éxito', 'Excelente', { duration: 4000 });

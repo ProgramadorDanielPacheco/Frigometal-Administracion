@@ -123,4 +123,140 @@ export class ProgramacionComponent implements OnInit {
       default: return '#e65100'; // Naranja para EN COLA
     }
   }
+
+  // ==========================================
+  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
+  // ==========================================
+  imprimirHojaTrabajo(): void {
+    if (!this.opEditando) return;
+
+    const productoNombre = this.obtenerNombreProducto(this.opEditando.id_producto);
+    const orden = this.opEditando;
+    const procesos = this.listaProcesos;
+
+    // Construimos las filas de los procesos dinámicamente
+    let filasProcesos = '';
+    procesos.forEach(proc => {
+      const procData = orden.seguimiento_procesos?.[proc] || { fecha: '', hora_inicio: '', hora_fin: '', responsable: '' };
+      filasProcesos += `
+        <tr>
+          <td colspan="2" class="col-proceso">${proc}</td>
+          <td>${procData.fecha || ''}</td>
+          <td>${procData.hora_inicio || ''}</td>
+          <td>${procData.hora_fin || ''}</td>
+          <td colspan="2">${procData.responsable || ''}</td>
+        </tr>
+      `;
+    });
+
+    const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
+    if (ventanaImpresion) {
+      ventanaImpresion.document.write(`
+        <html>
+          <head>
+            <title>Hoja de Taller - OP ${orden.numero_op}</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                padding: 20px; 
+                background: white; 
+                color: black;
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                border: 2px solid black; 
+              }
+              th, td { 
+                border: 1px solid black; 
+                padding: 8px 10px; 
+                font-size: 14px; 
+              }
+              .header-cell { 
+                background-color: #f0f0f0; 
+                font-weight: bold; 
+                font-size: 13px;
+              }
+              .col-proceso {
+                font-weight: bold;
+                color: #555;
+              }
+              .yellow-box { 
+                background-color: #ffeb3b !important; 
+                -webkit-print-color-adjust: exact; /* Fuerza a la impresora a imprimir el color amarillo */
+                print-color-adjust: exact;
+              }
+              .logo { 
+                max-height: 35px; 
+                float: right; 
+              }
+              /* Ajustes específicos para imprimir */
+              @media print {
+                @page { size: portrait; margin: 1cm; }
+                body { padding: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            <table>
+              <tr>
+                <td colspan="2" class="header-cell" style="width: 25%;">Cliente</td>
+                <td colspan="3">${orden.cliente_nombre || ''}</td>
+                <td colspan="2"><img src="/logo.png" class="logo" alt="FRIGO METAL"></td>
+              </tr>
+              
+              <tr>
+                <td class="header-cell" style="width: 10%;">OP</td>
+                <td style="width: 15%;">${orden.numero_op || ''}</td>
+                <td class="header-cell" style="width: 15%;">Producto</td>
+                <td colspan="4">${productoNombre}</td>
+              </tr>
+
+              <tr>
+                <td class="header-cell">Cant.</td>
+                <td>${orden.cantidad || ''}</td>
+                <td class="header-cell">Fecha entrega</td>
+                <td style="width: 15%;">${orden.fecha_entrega_prevista || ''}</td>
+                <td colspan="3" class="yellow-box"></td>
+              </tr>
+
+              <tr>
+                <td colspan="2" style="border-right: 1px solid white;"></td>
+                <td class="header-cell">FECHA INI</td>
+                <td>${orden.fecha_inicio_produccion || ''}</td>
+                <td class="header-cell">FECHA FIN</td>
+                <td colspan="2">${orden.fecha_fin_produccion || ''}</td>
+              </tr>
+
+              <tr class="header-cell">
+                <td colspan="2">Proceso</td>
+                <td>fecha</td>
+                <td>Hora Inicio</td>
+                <td>Hora Fin</td>
+                <td colspan="2">Responsable</td>
+              </tr>
+
+              ${filasProcesos}
+
+              <tr>
+                <td colspan="2" class="header-cell">Observaciones</td>
+                <td colspan="5" style="height: 50px; vertical-align: top;">${orden.observaciones_taller || ''}</td>
+              </tr>
+            </table>
+
+            <script>
+              // Autoejecuta la impresión cuando cargue el logo
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  window.close();
+                }, 300);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      ventanaImpresion.document.close();
+    }
+  }
 }
