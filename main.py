@@ -345,8 +345,9 @@ def crear_cliente(cliente: schemas.ClienteCreate, db: Session = Depends(get_db))
     return nuevo_cliente
 
 @app.get("/clientes/", response_model=List[schemas.ClienteResponse])
-def obtener_clientes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    clientes = db.query(models.Cliente).offset(skip).limit(limit).all()
+def obtener_clientes(skip: int = 0, limit: int = 5000, db: Session = Depends(get_db)):
+    # Aumentamos el límite a 5000 y los ordenamos alfabéticamente de la A a la Z
+    clientes = db.query(models.Cliente).order_by(models.Cliente.nombre.asc()).offset(skip).limit(limit).all()
     return clientes
 
 @app.put("/clientes/{id_cliente}", response_model=schemas.ClienteResponse)
