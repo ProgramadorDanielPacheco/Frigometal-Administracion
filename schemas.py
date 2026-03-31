@@ -264,6 +264,7 @@ class OrdenPlantaCreate(OrdenPlantaBase):
 
 class OrdenPlantaUpdate(BaseModel):
     # Todo opcional para actualizar cosas sueltas
+    numero_op: Optional[str] = None
     fecha_inicio_produccion: Optional[date] = None
     fecha_fin_produccion: Optional[date] = None
     seguimiento_procesos: Optional[dict] = None

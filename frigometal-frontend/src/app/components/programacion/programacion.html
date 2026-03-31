@@ -117,8 +117,8 @@
           <div style="flex: 1; min-width: 200px; background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 1px solid #90caf9; display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <span style="color: #1565c0; font-weight: bold; font-size: 0.9rem; text-align: center;">TIEMPO TOTAL DE TRABAJO</span>
             <div style="font-size: 2.5rem; font-weight: bold; color: #0d47a1; margin-top: 5px;">
-              {{ calcularTiempoTotal() }}
-            </div>
+           {{ calcularTiempoTotalOrden(opEditando) }}
+         </div>
           </div>
 
         </div>
@@ -164,6 +164,14 @@
         <td mat-cell *matCellDef="let orden"> <span style="background-color: #eee; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{orden.cantidad}}</span> </td>
       </ng-container>
 
+      <ng-container matColumnDef="tiempo_total">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Tiempo Invertido </th>
+        <td mat-cell *matCellDef="let orden" style="text-align: center; color: #1565c0; font-weight: bold;">
+          <mat-icon style="vertical-align: text-bottom; font-size: 18px; width: 18px; height: 18px; margin-right: 3px;">schedule</mat-icon>
+          {{ calcularTiempoTotalOrden(orden) }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef> Estado Taller </th>
         <td mat-cell *matCellDef="let orden"> 
@@ -186,7 +194,7 @@
       <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" colspan="6" style="text-align: center; padding: 30px; color: gray;">
+        <td class="mat-cell" colspan="7" style="text-align: center; padding: 30px; color: gray;">
           <mat-icon style="font-size: 40px; width: 40px; height: 40px; color: #ccc;">precision_manufacturing</mat-icon><br>
           No hay órdenes de producción en planta. Inicia un pedido en la pestaña "Pedidos" para verlas aquí.
         </td>

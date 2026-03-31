@@ -32,7 +32,7 @@ export class ProgramacionComponent implements OnInit {
   trabajadores: Usuario[] = [];
   productos: any[] = [];
   dataSource = new MatTableDataSource<OrdenPlanta>([]);
-  columnasMostradas: string[] = ['numero_op', 'cliente', 'producto', 'cantidad', 'estado', 'acciones'];
+  columnasMostradas: string[] = ['numero_op', 'cliente', 'producto', 'cantidad', 'tiempo_total', 'estado', 'acciones'];
   
   mostrarFormulario: boolean = false;
   opEditando: OrdenPlanta | null = null;
@@ -127,36 +127,37 @@ export class ProgramacionComponent implements OnInit {
   // ==========================================
   // 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
   // ==========================================
-  calcularTiempoTotal(): string {
-    if (!this.opEditando || !this.opEditando.seguimiento_procesos) return '0h 0m';
+  // ==========================================
+// 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
+// ==========================================
+calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
+  if (!orden || !orden.seguimiento_procesos) return '0h 0m';
 
-    let totalMinutos = 0;
+  let totalMinutos = 0;
 
-    this.listaProcesos.forEach(proceso => {
-      const data = this.opEditando!.seguimiento_procesos[proceso];
-      
-      // Solo calculamos si ambas horas (Inicio y Fin) están llenas en esa fila
-      if (data && data.hora_inicio && data.hora_fin) {
-        const [hInicio, mInicio] = data.hora_inicio.split(':').map(Number);
-        const [hFin, mFin] = data.hora_fin.split(':').map(Number);
+  this.listaProcesos.forEach(proceso => {
+    const data = orden.seguimiento_procesos[proceso];
 
-        const minInicio = (hInicio * 60) + mInicio;
-        const minFin = (hFin * 60) + mFin;
+    if (data && data.hora_inicio && data.hora_fin) {
+      const [hInicio, mInicio] = data.hora_inicio.split(':').map(Number);
+      const [hFin, mFin] = data.hora_fin.split(':').map(Number);
 
-        if (minFin >= minInicio) {
-          totalMinutos += (minFin - minInicio);
-        } else {
-          // Lógica por si empiezan antes de medianoche y terminan después (ej. 23:00 a 02:00)
-          totalMinutos += ((24 * 60) - minInicio + minFin);
-        }
+      const minInicio = (hInicio * 60) + mInicio;
+      const minFin = (hFin * 60) + mFin;
+
+      if (minFin >= minInicio) {
+        totalMinutos += (minFin - minInicio);
+      } else {
+        totalMinutos += ((24 * 60) - minInicio + minFin);
       }
-    });
+    }
+  });
 
-    const horas = Math.floor(totalMinutos / 60);
-    const minutos = totalMinutos % 60;
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
 
-    return `${horas}h ${minutos}m`;
-  }
+  return `${horas}h ${minutos}m`;
+}
 
   // ==========================================
   // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
