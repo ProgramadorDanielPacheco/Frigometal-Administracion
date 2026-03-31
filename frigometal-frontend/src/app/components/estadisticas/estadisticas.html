@@ -172,14 +172,14 @@
           <input matInput type="number" [(ngModel)]="formCuentas.meta">
         </mat-form-field>
 
-        <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 140px; margin-bottom: -1.25em;">
           <mat-label>Tipo</mat-label>
           <mat-select [(ngModel)]="formCuentas.tipo_movimiento">
             <mat-option value="Deuda">Deuda (+)</mat-option>
             <mat-option value="Abono">Abono (-)</mat-option>
+            <mat-option value="Correccion" style="color: #d32f2f; font-weight: bold;">Corregir Total (=)</mat-option>
           </mat-select>
         </mat-form-field>
-
         <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
           <mat-label>Nombre del Cliente</mat-label>
           <input matInput type="text" [(ngModel)]="formCuentas.nombre_persona" placeholder="Ej: Juan Pérez">
@@ -197,6 +197,27 @@
       
       <div style="position: relative; height: 350px; width: 100%; background-color: white;">
         <canvas id="canvasCuentas"></canvas>
+        <div style="position: relative; height: 350px; width: 100%; background-color: white;">
+        <canvas id="canvasCuentas"></canvas>
+      </div>
+
+      <div style="margin-top: 40px; border-top: 2px dashed #ccc; padding-top: 25px;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h4 style="color: #2e7d32; margin: 0; font-size: 1.1rem;">
+            <mat-icon style="vertical-align: middle; margin-right: 5px;">payments</mat-icon>
+            Historial de Abonos Recibidos
+          </h4>
+          <button mat-stroked-button color="primary" (click)="imprimirGrafico('canvasAbonos', 'Reporte de Abonos Recibidos')">
+            <mat-icon>print</mat-icon> Imprimir Abonos
+          </button>
+        </div>
+
+        <div style="position: relative; height: 350px; width: 100%; background-color: white;">
+          <canvas id="canvasAbonos"></canvas>
+        </div>
+
+      </div>
       </div>
     </mat-card>
 

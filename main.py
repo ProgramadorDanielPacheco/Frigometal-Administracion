@@ -468,7 +468,7 @@ def crear_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_d
     return nuevo_producto
 
 @app.get("/productos/", response_model=List[schemas.ProductoResponse])
-def obtener_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def obtener_productos(skip: int = 0, limit: int = 5000, db: Session = Depends(get_db)):
     productos = db.query(models.Producto).offset(skip).limit(limit).all()
     return productos
 # Ejemplo para Materiales
@@ -1533,6 +1533,26 @@ def get_kpi_cuentas_cobrar(db: Session = Depends(get_db)):
 
 @app.post("/kpis/cuentas-cobrar", response_model=schemas.KpiCuentasCobrarResponse)
 def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = Depends(get_db)):
+    
+    # 👇 NUEVA LÓGICA: SOBREESCRITURA TOTAL (EL BOTÓN DE DIOS) 👇
+    if kpi.tipo_movimiento == "Correccion":
+        # 1. Eliminamos todo el historial (errores, abonos, deudas) de esa persona en ESA semana
+        db.query(models.KpiCuentasCobrar).filter(
+            models.KpiCuentasCobrar.semana == kpi.semana, 
+            models.KpiCuentasCobrar.anio == kpi.anio,
+            models.KpiCuentasCobrar.nombre_persona == kpi.nombre_persona
+        ).delete(synchronize_session=False)
+        db.commit()
+        
+        # 2. Insertamos el valor que escribiste como una "Deuda" limpia y absoluta
+        kpi.tipo_movimiento = "Deuda"
+        db_kpi = models.KpiCuentasCobrar(**kpi.model_dump())
+        db.add(db_kpi)
+        db.commit()
+        db.refresh(db_kpi)
+        return db_kpi
+
+    # 👇 LÓGICA NORMAL (SUMAR DEUDAS Y ABONOS) 👇
     db_kpi = db.query(models.KpiCuentasCobrar).filter(
         models.KpiCuentasCobrar.semana == kpi.semana, 
         models.KpiCuentasCobrar.anio == kpi.anio,
@@ -1542,7 +1562,6 @@ def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = 
     
     if db_kpi:
         db_kpi.meta = kpi.meta
-        # 👇 CORRECCIÓN AQUÍ: Convertimos a float para que Python nos deje sumarlos 👇
         db_kpi.monto = float(db_kpi.monto) + kpi.monto 
     else:
         db_kpi = models.KpiCuentasCobrar(**kpi.model_dump())

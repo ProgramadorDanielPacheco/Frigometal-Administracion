@@ -107,22 +107,31 @@
           </tbody>
         </table>
 
-        <mat-form-field appearance="outline" style="width: 100%; margin-top: 20px;">
-          <mat-label>Observaciones del Taller</mat-label>
-          <textarea matInput rows="3" [(ngModel)]="opEditando.observaciones_taller" placeholder="Novedades durante la fabricación..."></textarea>
-        </mat-form-field>
+        <div style="display: flex; gap: 20px; margin-top: 20px; align-items: stretch; flex-wrap: wrap;">
+          
+          <mat-form-field appearance="outline" style="flex: 3; min-width: 300px;">
+            <mat-label>Observaciones del Taller</mat-label>
+            <textarea matInput rows="3" [(ngModel)]="opEditando.observaciones_taller" placeholder="Novedades durante la fabricación..."></textarea>
+          </mat-form-field>
 
-      </mat-card-content>
+          <div style="flex: 1; min-width: 200px; background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 1px solid #90caf9; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <span style="color: #1565c0; font-weight: bold; font-size: 0.9rem; text-align: center;">TIEMPO TOTAL DE TRABAJO</span>
+            <div style="font-size: 2.5rem; font-weight: bold; color: #0d47a1; margin-top: 5px;">
+              {{ calcularTiempoTotal() }}
+            </div>
+          </div>
 
-      
+        </div>
+        </mat-card-content>
+
       <mat-card-actions style="padding: 16px; background-color: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
-        <button mat-button (click)="cerrarHojaTrabajo()" style="margin-right: 10px;">Cerrar</button>
+        
         <button mat-stroked-button color="accent" (click)="imprimirHojaTrabajo()" style="border-color: #ff9800; color: #e65100; font-weight: bold;">
           <mat-icon>print</mat-icon> Imprimir Formato Físico
         </button>
 
         <div>
-          <button mat-button (click)="cerrarHojaTrabajo()" style="margin-right: 10px;">Cerrar</button>
+          <button mat-button (click)="cerrarHojaTrabajo()" style="margin-right: 15px;">Cerrar</button>
           <button mat-raised-button color="primary" (click)="guardarHojaTrabajo()">
             <mat-icon>save</mat-icon> Guardar Progreso OP
           </button>
