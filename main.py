@@ -374,6 +374,22 @@ def actualizar_cliente(id_cliente: str, cliente_update: schemas.ClienteUpdate, d
     db.refresh(cliente_db)
     return cliente_db
 
+
+@app.delete("/clientes/{id_cliente}")
+def eliminar_cliente(id_cliente: str, db: Session = Depends(get_db)):
+    cliente_db = db.query(models.Cliente).filter(models.Cliente.id_cliente == id_cliente).first()
+    
+    if not cliente_db:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        
+    try:
+        db.delete(cliente_db)
+        db.commit()
+        return {"mensaje": "Cliente eliminado con éxito"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="No se puede eliminar el cliente porque tiene registros vinculados (Proformas u Órdenes).")
+
 # ==========================================
 # IMPORTACIÓN MASIVA DE CLIENTES (EXCEL)
 # ==========================================
@@ -1306,10 +1322,28 @@ def crear_material(material: schemas.MaterialCreate, db: Session = Depends(get_d
     return nuevo_material
 
 # 👇 ESTE ES EL CÓDIGO NUEVO QUE DEBES AGREGAR 👇
+# 👇 GET ACTUALIZADO: Ordenado alfabéticamente y límite ampliado 👇
 @app.get("/materiales/", response_model=List[schemas.MaterialResponse])
-def obtener_materiales(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    materiales = db.query(models.Material).offset(skip).limit(limit).all()
+def obtener_materiales(skip: int = 0, limit: int = 5000, db: Session = Depends(get_db)):
+    materiales = db.query(models.Material).order_by(models.Material.nombre.asc()).offset(skip).limit(limit).all()
     return materiales
+
+# 👇 NUEVO MÉTODO PARA ELIMINAR MATERIALES 👇
+@app.delete("/materiales/{id_material}")
+def eliminar_material(id_material: int, db: Session = Depends(get_db)):
+    material_db = db.query(models.Material).filter(models.Material.id_material == id_material).first()
+    
+    if not material_db:
+        raise HTTPException(status_code=404, detail="Material no encontrado")
+        
+    try:
+        db.delete(material_db)
+        db.commit()
+        return {"mensaje": "Material eliminado con éxito"}
+    except Exception as e:
+        db.rollback()
+        # Si da error, es porque probablemente ese material ya está usado en alguna Receta
+        raise HTTPException(status_code=400, detail="No se puede eliminar el material porque ya está siendo usado en una receta de producto.")
 # 👆 HASTA AQUÍ 👆
 
 # ==========================================

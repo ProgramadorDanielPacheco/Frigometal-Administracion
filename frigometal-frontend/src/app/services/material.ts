@@ -32,6 +32,11 @@ export class MaterialService {
     return this.http.put<Material>(`${this.apiUrl}${id}`, material);
   }
 
+  // 👇 NUEVA FUNCIÓN PARA ELIMINAR MATERIAL 👇
+  eliminarMaterial(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}${id}`);
+  }
+
    importarMaterilesExcel(archivo: File): Observable<any> {
     const formData = new FormData();
     // 'file' debe llamarse exactamente igual que el parámetro en tu función de Python

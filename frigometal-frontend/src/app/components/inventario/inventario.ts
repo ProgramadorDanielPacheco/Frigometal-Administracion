@@ -132,6 +132,24 @@ export class Inventario implements OnInit {
     }
   }
 
+  // 👇 NUEVA FUNCIÓN PARA ELIMINAR MATERIALES DUPLICADOS/BARRIDOS 👇
+  eliminarMaterial(material: Material): void {
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar el material "${material.nombre}"?\nEsta acción no se puede deshacer.`);
+    
+    if (confirmacion && material.id_material) {
+      this.materialService.eliminarMaterial(material.id_material).subscribe({
+        next: () => {
+          this.snackBar.open(`🗑️ Material eliminado correctamente`, 'OK', { duration: 4000 });
+          this.cargarInventario(); // Refrescamos la tabla instantáneamente
+        },
+        error: (err) => {
+          const mensajeError = err.error?.detail || 'Error al eliminar. Verifica que no esté en una receta.';
+          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 5000 });
+        }
+      });
+    }
+  }
+
   finalizarGuardado(): void {
     this.cargarInventario(); 
     this.mostrarFormulario = false; 

@@ -130,6 +130,24 @@ export class ClientesComponent implements OnInit {
     }
   }
 
+  // 👇 NUEVA FUNCIÓN PARA ELIMINAR CLIENTES DUPLICADOS 👇
+  eliminarCliente(cliente: Cliente): void {
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar al cliente "${cliente.nombre}"?\nEsta acción no se puede deshacer.`);
+    
+    if (confirmacion) {
+      this.clienteService.eliminarCliente(cliente.id_cliente).subscribe({
+        next: () => {
+          this.snackBar.open(`🗑️ Cliente eliminado correctamente`, 'OK', { duration: 4000 });
+          this.cargarClientes(); // Refrescamos la tabla para que desaparezca
+        },
+        error: (err) => {
+          const mensajeError = err.error?.detail || 'Error al eliminar el cliente. Verifica que no tenga órdenes vinculadas.';
+          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 5000 });
+        }
+      });
+    }
+  }
+
   onArchivoSeleccionado(event: any): void {
     const archivo: File = event.target.files[0];
     if (archivo) {
