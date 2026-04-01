@@ -74,23 +74,38 @@ export class ProgramacionComponent implements OnInit {
   }
 
   abrirHojaTrabajo(orden: OrdenPlanta): void {
-    // Clonamos profundamente para no afectar la tabla hasta guardar
     this.opEditando = JSON.parse(JSON.stringify(orden));
-    
-    // Aseguramos que el "Cerebro" (JSON) exista
-    if (!this.opEditando!.seguimiento_procesos) {
-      this.opEditando!.seguimiento_procesos = {};
-    }
+    if (!this.opEditando!.seguimiento_procesos) this.opEditando!.seguimiento_procesos = {};
 
-    // Inyectamos las filas vacías para los procesos que aún no se han llenado
     this.listaProcesos.forEach(proceso => {
-      if (!this.opEditando!.seguimiento_procesos[proceso]) {
-        this.opEditando!.seguimiento_procesos[proceso] = { fecha: '', hora_inicio: '', hora_fin: '', responsable: '' };
+      const procAnterior = this.opEditando!.seguimiento_procesos[proceso];
+      if (!procAnterior) {
+        this.opEditando!.seguimiento_procesos[proceso] = { 
+          fecha_inicio_1: '', hora_inicio_1: '', fecha_fin_1: '', hora_fin_1: '',
+          fecha_inicio_2: '', hora_inicio_2: '', fecha_fin_2: '', hora_fin_2: '',
+          responsable: '' 
+        };
+      } else {
+        // Migración de datos viejos al Turno 1 para no perder nada
+        if (procAnterior.fecha_inicio && !procAnterior.fecha_inicio_1) {
+          procAnterior.fecha_inicio_1 = procAnterior.fecha_inicio;
+          procAnterior.hora_inicio_1 = procAnterior.hora_inicio;
+          procAnterior.fecha_fin_1 = procAnterior.fecha_fin;
+          procAnterior.hora_fin_1 = procAnterior.hora_fin;
+        }
       }
     });
 
     this.mostrarFormulario = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private calcularMinutos(fIni?: string, hIni?: string, fFin?: string, hFin?: string): number {
+    if (!fIni || !hIni || !fFin || !hFin) return 0;
+    const inicio = new Date(`${fIni}T${hIni}`);
+    const fin = new Date(`${fFin}T${hFin}`);
+    if (fin >= inicio) return (fin.getTime() - inicio.getTime()) / 60000;
+    return 0;
   }
 
   cerrarHojaTrabajo(): void {
@@ -130,35 +145,29 @@ export class ProgramacionComponent implements OnInit {
   // ==========================================
 // 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
 // ==========================================
-calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
-  if (!orden || !orden.seguimiento_procesos) return '0h 0m';
+// ==========================================
+  // 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
+  // ==========================================
+  calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
+    if (!orden || !orden.seguimiento_procesos) return '0h 0m';
+    let totalMinutos = 0;
 
-  let totalMinutos = 0;
-
-  this.listaProcesos.forEach(proceso => {
-    const data = orden.seguimiento_procesos[proceso];
-
-    if (data && data.hora_inicio && data.hora_fin) {
-      const [hInicio, mInicio] = data.hora_inicio.split(':').map(Number);
-      const [hFin, mFin] = data.hora_fin.split(':').map(Number);
-
-      const minInicio = (hInicio * 60) + mInicio;
-      const minFin = (hFin * 60) + mFin;
-
-      if (minFin >= minInicio) {
-        totalMinutos += (minFin - minInicio);
-      } else {
-        totalMinutos += ((24 * 60) - minInicio + minFin);
+    this.listaProcesos.forEach(proceso => {
+      const data = orden.seguimiento_procesos[proceso];
+      if (data) {
+        totalMinutos += this.calcularMinutos(data.fecha_inicio_1, data.hora_inicio_1, data.fecha_fin_1, data.hora_fin_1);
+        totalMinutos += this.calcularMinutos(data.fecha_inicio_2, data.hora_inicio_2, data.fecha_fin_2, data.hora_fin_2);
       }
-    }
-  });
+    });
 
-  const horas = Math.floor(totalMinutos / 60);
-  const minutos = totalMinutos % 60;
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+    return `${horas}h ${minutos}m`;
+  }
 
-  return `${horas}h ${minutos}m`;
-}
-
+  // ==========================================
+  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
+  // ==========================================
   // ==========================================
   // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
   // ==========================================
@@ -167,126 +176,94 @@ calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
 
     const productoNombre = this.obtenerNombreProducto(this.opEditando.id_producto);
     const orden = this.opEditando;
-    const procesos = this.listaProcesos;
-
-    // Construimos las filas de los procesos dinámicamente
+    
     let filasProcesos = '';
-    procesos.forEach(proc => {
-      const procData = orden.seguimiento_procesos?.[proc] || { fecha: '', hora_inicio: '', hora_fin: '', responsable: '' };
+    this.listaProcesos.forEach(proc => {
+      const p = orden.seguimiento_procesos?.[proc] || {};
+      
+      // Creamos la fila doble usando rowspan="2" para el nombre del proceso y el responsable
       filasProcesos += `
         <tr>
-          <td colspan="2" class="col-proceso">${proc}</td>
-          <td>${procData.fecha || ''}</td>
-          <td>${procData.hora_inicio || ''}</td>
-          <td>${procData.hora_fin || ''}</td>
-          <td colspan="2">${procData.responsable || ''}</td>
+          <td rowspan="2" class="col-proceso" style="vertical-align: middle;">${proc}</td>
+          <td style="color: #666; font-size: 11px;">T1</td>
+          <td>${p.fecha_inicio_1 || ''}</td>
+          <td>${p.hora_inicio_1 || ''}</td>
+          <td>${p.fecha_fin_1 || ''}</td>
+          <td>${p.hora_fin_1 || ''}</td>
+          <td rowspan="2" style="vertical-align: middle;">${p.responsable || ''}</td>
+        </tr>
+        <tr>
+          <td style="color: #666; font-size: 11px; background-color: #fcfcfc;">T2</td>
+          <td style="background-color: #fcfcfc;">${p.fecha_inicio_2 || ''}</td>
+          <td style="background-color: #fcfcfc;">${p.hora_inicio_2 || ''}</td>
+          <td style="background-color: #fcfcfc;">${p.fecha_fin_2 || ''}</td>
+          <td style="background-color: #fcfcfc;">${p.hora_fin_2 || ''}</td>
         </tr>
       `;
     });
 
-    const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
+    const ventanaImpresion = window.open('', '_blank', 'width=1000,height=700');
     if (ventanaImpresion) {
       ventanaImpresion.document.write(`
         <html>
           <head>
             <title>Hoja de Taller - OP ${orden.numero_op}</title>
             <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                padding: 20px; 
-                background: white; 
-                color: black;
-              }
-              table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                border: 2px solid black; 
-              }
-              th, td { 
-                border: 1px solid black; 
-                padding: 8px 10px; 
-                font-size: 14px; 
-              }
-              .header-cell { 
-                background-color: #f0f0f0; 
-                font-weight: bold; 
-                font-size: 13px;
-              }
-              .col-proceso {
-                font-weight: bold;
-                color: #555;
-              }
-              .yellow-box { 
-                background-color: #ffeb3b !important; 
-                -webkit-print-color-adjust: exact; /* Fuerza a la impresora a imprimir el color amarillo */
-                print-color-adjust: exact;
-              }
-              .logo { 
-                max-height: 35px; 
-                float: right; 
-              }
-              /* Ajustes específicos para imprimir */
-              @media print {
-                @page { size: portrait; margin: 1cm; }
-                body { padding: 0; }
-              }
+              body { font-family: Arial, sans-serif; padding: 20px; background: white; color: black; }
+              table { width: 100%; border-collapse: collapse; border: 2px solid black; }
+              th, td { border: 1px solid black; padding: 6px 4px; font-size: 12px; text-align: center; }
+              .header-cell { background-color: #f0f0f0; font-weight: bold; font-size: 12px; }
+              .col-proceso { font-weight: bold; color: #555; text-align: left; }
+              .yellow-box { background-color: #ffeb3b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .logo { max-height: 35px; float: right; }
+              @media print { @page { size: portrait; margin: 1cm; } body { padding: 0; } }
             </style>
           </head>
           <body>
             <table>
               <tr>
-                <td colspan="2" class="header-cell" style="width: 25%;">Cliente</td>
-                <td colspan="3">${orden.cliente_nombre || ''}</td>
+                <td colspan="2" class="header-cell" style="width: 20%; text-align: left;">Cliente</td>
+                <td colspan="3" style="text-align: left;">${orden.cliente_nombre || ''}</td>
                 <td colspan="2"><img src="/logo.png" class="logo" alt="FRIGO METAL"></td>
               </tr>
-              
               <tr>
-                <td class="header-cell" style="width: 10%;">OP</td>
-                <td style="width: 15%;">${orden.numero_op || ''}</td>
-                <td class="header-cell" style="width: 15%;">Producto</td>
-                <td colspan="4">${productoNombre}</td>
+                <td colspan="2" class="header-cell" style="text-align: left;">OP</td>
+                <td style="text-align: left;">${orden.numero_op || ''}</td>
+                <td class="header-cell" style="text-align: left;">Producto</td>
+                <td colspan="3" style="text-align: left;">${productoNombre}</td>
               </tr>
-
               <tr>
-                <td class="header-cell">Cant.</td>
-                <td>${orden.cantidad || ''}</td>
-                <td class="header-cell">Fecha entrega</td>
-                <td style="width: 15%;">${orden.fecha_entrega_prevista || ''}</td>
-                <td colspan="3" class="yellow-box"></td>
+                <td colspan="2" class="header-cell" style="text-align: left;">Cant.</td>
+                <td style="text-align: left;">${orden.cantidad || ''}</td>
+                <td class="header-cell" style="text-align: left;">Fecha entrega</td>
+                <td style="text-align: left;">${orden.fecha_entrega_prevista || ''}</td>
+                <td colspan="2" class="yellow-box"></td>
               </tr>
-
               <tr>
-                <td colspan="2" style="border-right: 1px solid white;"></td>
-                <td class="header-cell">FECHA INI</td>
-                <td>${orden.fecha_inicio_produccion || ''}</td>
-                <td class="header-cell">FECHA FIN</td>
-                <td colspan="2">${orden.fecha_fin_produccion || ''}</td>
+                <td colspan="3" style="border-right: 1px solid white;"></td>
+                <td class="header-cell" style="text-align: left;">FECHA INI</td>
+                <td style="text-align: left;">${orden.fecha_inicio_produccion || ''}</td>
+                <td class="header-cell" style="text-align: left;">FECHA FIN</td>
+                <td style="text-align: left;">${orden.fecha_fin_produccion || ''}</td>
               </tr>
 
               <tr class="header-cell">
-                <td colspan="2">Proceso</td>
-                <td>fecha</td>
+                <td style="text-align: left;">Proceso</td>
+                <td style="width: 3%;">#</td>
+                <td>F. Inicio</td>
                 <td>Hora Inicio</td>
+                <td>F. Fin</td>
                 <td>Hora Fin</td>
-                <td colspan="2">Responsable</td>
+                <td>Responsable</td>
               </tr>
-
               ${filasProcesos}
-
               <tr>
-                <td colspan="2" class="header-cell">Observaciones</td>
-                <td colspan="5" style="height: 50px; vertical-align: top;">${orden.observaciones_taller || ''}</td>
+                <td colspan="2" class="header-cell" style="text-align: left;">Observaciones</td>
+                <td colspan="5" style="height: 50px; vertical-align: top; text-align: left;">${orden.observaciones_taller || ''}</td>
               </tr>
             </table>
-
             <script>
-              // Autoejecuta la impresión cuando cargue el logo
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  window.close();
-                }, 300);
-              };
+              window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 300); };
             </script>
           </body>
         </html>

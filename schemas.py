@@ -240,11 +240,25 @@ class OrdenEdicion(BaseModel):
 # ==========================
 # 👇 schemas.py 👇
 class ProcesoTaller(BaseModel):
-    proceso: str # Ej: 'Corte Laser', 'Plegado'
-    fecha: date
-    hora_inicio: str
-    hora_fin: str
-    responsable: str
+    proceso: Optional[str] = None
+    # TURNO 1
+    fecha_inicio_1: Optional[str] = None
+    hora_inicio_1: Optional[str] = None
+    fecha_fin_1: Optional[str] = None
+    hora_fin_1: Optional[str] = None
+    # TURNO 2
+    fecha_inicio_2: Optional[str] = None
+    hora_inicio_2: Optional[str] = None
+    fecha_fin_2: Optional[str] = None
+    hora_fin_2: Optional[str] = None
+    responsable: Optional[str] = None
+    
+    # Campos viejos (Los dejamos por si tienes OPs guardadas con el formato anterior)
+    fecha: Optional[str] = None
+    fecha_inicio: Optional[str] = None
+    fecha_fin: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fin: Optional[str] = None
 
 class OrdenPlantaBase(BaseModel):
     numero_op: str

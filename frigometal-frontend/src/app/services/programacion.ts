@@ -3,12 +3,25 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface ProcesoTaller {
-  fecha: string;
-  hora_inicio: string;
-  hora_fin: string;
-  responsable: string;
-}
+  fecha_inicio_1?: string;
+  hora_inicio_1?: string;
+  fecha_fin_1?: string;
+  hora_fin_1?: string;
+  
+  fecha_inicio_2?: string;
+  hora_inicio_2?: string;
+  fecha_fin_2?: string;
+  hora_fin_2?: string;
+  
+  responsable?: string;
 
+  // Heredados
+  fecha?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  hora_inicio?: string;
+  hora_fin?: string;
+}
 export interface OrdenPlanta {
   id_op?: number;
   numero_op: string;
