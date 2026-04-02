@@ -21,7 +21,7 @@ export interface Reunion {
 
 @Injectable({ providedIn: 'root' })
 export class ReunionService {
-  private apiUrl = 'http://127.0.0.1:8000/reuniones/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/reuniones/';
 
   constructor(private http: HttpClient) { }
 

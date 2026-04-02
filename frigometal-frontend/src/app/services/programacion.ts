@@ -39,7 +39,7 @@ export interface OrdenPlanta {
 
 @Injectable({ providedIn: 'root' })
 export class ProgramacionService {
-  private apiUrl = 'http://127.0.0.1:8000/planta/'; // 👈 Apunta a la nueva ruta
+  private apiUrl = 'https://frigometal-administracion.vercel.app/planta/'; // 👈 Apunta a la nueva ruta
   
   constructor(private http: HttpClient) { }
 

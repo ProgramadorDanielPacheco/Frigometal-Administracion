@@ -13,7 +13,7 @@ export interface Mantenimiento {
 
 @Injectable({ providedIn: 'root' })
 export class MantenimientoService {
-  private apiUrl = 'http://127.0.0.1:8000/mantenimientos';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/mantenimientos';
 
   constructor(private http: HttpClient) { }
 

@@ -11,7 +11,7 @@ export interface ResumenDashboard {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
-  private apiUrl = 'http://127.0.0.1:8000/resumen/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/dashboard/resumen/';
 
   constructor(private http: HttpClient) { }
 
@@ -21,6 +21,6 @@ export class DashboardService {
 
   // 👇 NUEVA FUNCIÓN PARA APAGAR LA NOTIFICACIÓN 👇
   marcarOrdenesComoVistas(): Observable<any> {
-    return this.http.put('http://127.0.0.1:8000/dashboard/limpiar-notificacion-ordenes/', {});
+    return this.http.put('https://frigometal-administracion.vercel.app/dashboard/limpiar-notificacion-ordenes/', {});
   }
 }

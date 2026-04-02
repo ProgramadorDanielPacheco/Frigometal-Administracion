@@ -13,7 +13,7 @@ export interface Material {
 
 @Injectable({ providedIn: 'root' })
 export class MaterialService {
-  private apiUrl = 'http://127.0.0.1:8000/materiales/';
+  private apiUrl = 'https://frigometal-administracion.vercel.app/materiales/';
 
   constructor(private http: HttpClient) { }
 
