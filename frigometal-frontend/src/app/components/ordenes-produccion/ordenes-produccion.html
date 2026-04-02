@@ -101,47 +101,117 @@
           <textarea matInput rows="3" [(ngModel)]="nuevaOrden.descripcion_pedido"></textarea>
         </mat-form-field>
 
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px dashed #ccc;">
-          <h4 style="margin-top: 0; color: #1976d2;">Equipos Solicitados</h4>
+       <div style="border: 1px dashed #ccc; padding: 20px; border-radius: 8px; margin-bottom: 20px; background-color: #fcfcfc;">
+          <h4 style="margin-top: 0; color: #1976d2; display: flex; align-items: center; gap: 10px;">
+            <mat-icon>precision_manufacturing</mat-icon> Equipos Solicitados para Producción
+          </h4>
           
-          <div style="margin-bottom: 15px;">
-            @for (equipo of nuevaOrden.equipos; track equipo; let i = $index) {
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; margin-bottom: 5px; border-radius: 4px; border-left: 4px solid #1976d2;">
-                <span><b>{{equipo.cantidad}}x</b> - {{equipo.descripcion}} - <b>OP: {{equipo.orden_produccion}}</b></span>
-                
+          <div style="margin-bottom: 20px;">
+            @for (equipo of nuevaOrden.equipos; track equipo.orden_produccion; let i = $index) {
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; border-left: 3px solid #1976d2; margin-bottom: 5px; background: white;">
+                <div>
+                  <strong>{{equipo.cantidad}}x</strong> - {{equipo.nombre_producto || equipo.descripcion}} - <strong>OP: {{equipo.orden_produccion}}</strong>
+                  <div *ngIf="equipo.costo_total_equipo > 0" style="color: #2e7d32; font-size: 0.85em; margin-top: 4px;">
+                    <mat-icon style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;">account_balance_wallet</mat-icon> Costo Producción: ${{equipo.costo_total_equipo | number:'1.2-2'}}
+                  </div>
+                </div>
                 <div style="display: flex; gap: 5px;">
-                  <button mat-icon-button color="primary" (click)="editarEquipo(i)" title="Editar Equipo"><mat-icon>edit</mat-icon></button>
-                  <button mat-icon-button color="warn" (click)="eliminarEquipo(i)" title="Eliminar Equipo"><mat-icon>delete</mat-icon></button>
+                  
+                  <!-- BOTÓN PARA VER Y EDITAR COSTOS DE RECETA -->
+                  <button mat-icon-button style="color: #2e7d32;" (click)="verRecetaEquipo(i)" title="Ajustar Costos Reales" *ngIf="equipo.receta_historica && equipo.receta_historica.length > 0">
+                    <mat-icon>request_quote</mat-icon>
+                  </button>
+
+                  <button mat-icon-button color="primary" (click)="editarEquipo(i)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="eliminarEquipo(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
                 </div>
               </div>
             }
-            @if (nuevaOrden.equipos.length === 0) {
-              <span style="color: gray; font-style: italic; font-size: 0.9em;">No has agregado equipos a esta orden.</span>
-            }
           </div>
 
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1.25em;">
-              <mat-label>Cant.</mat-label>
-              <input matInput type="number" [(ngModel)]="nuevoEquipo.cantidad" min="1">
-            </mat-form-field>
+          <!-- FORMULARIO PARA AÑADIR NUEVO EQUIPO -->
+          <div *ngIf="!nuevaOrden.finalizada" style="display: flex; gap: 15px; align-items: center; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
             
-            <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
-              <mat-label>Descripción del Equipo</mat-label>
-              <input matInput [(ngModel)]="nuevoEquipo.descripcion" (keyup.enter)="agregarEquipo()">
+            <mat-form-field appearance="outline" style="width: 80px; margin-bottom: -1.25em;">
+              <mat-label>Cant.</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoEquipo.cantidad" min="1" (change)="recalcularCostoNuevoEquipo()">
             </mat-form-field>
 
-            <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em">
-              <mat-label>Nº de Máquina (OP)</mat-label>
-              <input matInput type="number" [(ngModel)]="nuevoEquipo.orden_produccion" placeholder="Ej. 66" >
+            <!-- 👇 AQUÍ AHORA ES UN SELECTOR DE PRODUCTOS 👇 -->
+            <mat-form-field appearance="outline" style="flex: 3; min-width: 250px; margin-bottom: -1.25em;">
+              <mat-label>Seleccionar Producto del Catálogo</mat-label>
+              <mat-select [(ngModel)]="nuevoEquipo.id_producto" (selectionChange)="seleccionarProductoCatalogo($event.value)">
+                <mat-option *ngFor="let prod of productosCatalogo" [value]="prod.id_producto">
+                  {{prod.nombre}}
+                </mat-option>
+              </mat-select>
             </mat-form-field>
-            
-            <button mat-raised-button [color]="indexEditandoEquipo !== null ? 'accent' : 'primary'" (click)="agregarEquipo()" style="height: 50px; min-width: 120px;">
-              <mat-icon>{{ indexEditandoEquipo !== null ? 'save' : 'add' }}</mat-icon> 
-              {{ indexEditandoEquipo !== null ? 'Actualizar' : 'Añadir' }}
+
+            <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
+              <mat-label>N° OP Máquina</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoEquipo.orden_produccion">
+            </mat-form-field>
+
+            <button mat-stroked-button color="primary" (click)="agregarEquipo()" style="height: 52px;">
+              <mat-icon>add</mat-icon> Añadir
             </button>
           </div>
         </div>
+
+        <!-- ========================================================= -->
+        <!-- PANEL FLOTANTE PARA EDITAR COSTOS REALES (FOTO HISTÓRICA) -->
+        <!-- ========================================================= -->
+        @if (recetaViendo) {
+          <div style="background-color: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #aed581; padding-bottom: 10px; margin-bottom: 15px;">
+              <div>
+                <h3 style="margin: 0; color: #33691e;">Ajuste de Costos Reales de Producción</h3>
+                <span style="color: #558b2f; font-size: 0.9em;">Equipo: <strong>{{recetaViendo.nombre_producto}}</strong> (OP: {{recetaViendo.orden_produccion}})</span>
+              </div>
+              <div style="text-align: right; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #aed581;">
+                <span style="font-size: 0.8em; color: gray; display: block;">COSTO TOTAL</span>
+                <strong style="color: #2e7d32; font-size: 1.3em;">${{recetaViendo.costo_total_equipo | number:'1.2-2'}}</strong>
+              </div>
+            </div>
+
+           <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+              <tr style="background: #dcedc8; color: #33691e; text-align: left;">
+                <th style="padding: 10px;">Material Requerido</th>
+                <th style="padding: 10px; text-align: center;">Cant. Receta</th>
+                <th style="padding: 10px; text-align: center;">Cant. REAL Usada</th>
+                <th style="padding: 10px; text-align: right;">Costo Unitario ($)</th>
+                <th style="padding: 10px; text-align: right;">Subtotal</th>
+              </tr>
+              <tr *ngFor="let mat of recetaViendo.receta_historica" style="border-bottom: 1px solid #c5e1a5;">
+                <td style="padding: 10px; font-weight: bold;">{{mat.nombre_material}}</td>
+                <td style="padding: 10px; text-align: center; color: gray;">{{mat.cantidad_requerida}}</td>
+                <td style="padding: 10px; text-align: center;">
+                  <!-- 👇 INPUT EDITABLE PARA LA CANTIDAD REALMENTE CONSUMIDA 👇 -->
+                  <input type="number" [(ngModel)]="mat.cantidad_real" (ngModelChange)="recalcularCostoHistorico(indexEquipoViendoReceta)" 
+                         [disabled]="nuevaOrden.finalizada"
+                         style="width: 70px; padding: 5px; border: 1px solid #1976d2; border-radius: 4px; text-align: center; font-weight: bold; color: #1976d2;"
+                         [ngStyle]="{'background-color': nuevaOrden.finalizada ? '#f0f0f0' : 'white', 'border-color': nuevaOrden.finalizada ? '#ccc' : '#1976d2'}">
+                </td>
+                <td style="padding: 10px; text-align: right;">
+                  ${{mat.precio_unitario | number:'1.2-2'}}
+                </td>
+                <td style="padding: 10px; text-align: right; color: #2e7d32; font-weight: bold;">
+                  ${{mat.subtotal | number:'1.2-2'}}
+                </td>
+              </tr>
+            </table>
+
+            <div style="text-align: right; margin-top: 15px;">
+              <button mat-raised-button color="accent" (click)="cerrarRecetaEquipo()">
+                <mat-icon>check_circle</mat-icon> Aceptar y Ocultar
+              </button>
+            </div>
+          </div>
+        }
 
         <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Finanzas y Pagos</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -205,10 +275,57 @@
       <td mat-cell *matCellDef="let orden"> {{orden.fecha_entrega || 'N/A'}} </td>
     </ng-container>
 
+    <ng-container matColumnDef="costo_teorico">
+        <th mat-header-cell *matHeaderCellDef> Desglose Teórico </th>
+        <td mat-cell *matCellDef="let orden" style="color: gray; font-size: 0.85em; padding: 10px 5px;">
+          <!-- Lista de productos -->
+          <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
+            {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="color: #555;">${{ calcularCostoTeoricoEquipo(eq) | number:'1.2-2' }}</strong>
+          </div>
+         
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="costo_real">
+        <th mat-header-cell *matHeaderCellDef> Desglose Real </th>
+        <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px;">
+          <!-- Lista de productos con color dinámico -->
+          <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;"
+               [ngStyle]="{'color': calcularCostoRealEquipo(eq) > calcularCostoTeoricoEquipo(eq) ? '#d32f2f' : '#2e7d32'}">
+            {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="font-weight: 800;">${{ calcularCostoRealEquipo(eq) | number:'1.2-2' }}</strong>
+          </div>
+         
+      </ng-container>
+
+    
+
     <ng-container matColumnDef="precio">
       <th mat-header-cell *matHeaderCellDef> Precio Total </th>
       <td mat-cell *matCellDef="let orden"> ${{orden.precio_total | number:'1.2-2'}} </td>
     </ng-container>
+
+    <ng-container matColumnDef="tiempo_taller">
+        <th mat-header-cell *matHeaderCellDef> Tiempo Invertido </th>
+        <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px; color: #1565c0; background-color: #f5f9ff;">
+          
+          <!-- Lista de tiempos desglosados por equipo -->
+          <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
+            {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: 
+            <strong>
+              <mat-icon style="vertical-align: middle; font-size: 14px; width: 14px; height: 14px;">schedule</mat-icon> 
+              {{ calcularTiempoEquipo(eq) }}
+            </strong>
+          </div>
+          
+          <!-- Gran Total de tiempo de toda la OP -->
+          <div style="border-top: 1px solid #90caf9; margin-top: 6px; padding-top: 6px; font-size: 1.1em; font-weight: bold;">
+            Total OP: 
+            <mat-icon style="vertical-align: middle; font-size: 16px; width: 16px; height: 16px;">schedule</mat-icon> 
+            {{ calcularTiempoTotalOP(orden) }}
+          </div>
+          
+        </td>
+      </ng-container>
 
     <ng-container matColumnDef="saldo">
       <th mat-header-cell *matHeaderCellDef> Saldo Pendiente </th>
@@ -220,13 +337,23 @@
     </ng-container>
 
     <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
-      <td mat-cell *matCellDef="let orden" style="text-align: right;">
-        <button mat-icon-button color="primary" (click)="editarOrden(orden)" title="Editar Orden">
-          <mat-icon>edit</mat-icon>
-        </button>
-      </td>
-    </ng-container>
+        <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
+        <td mat-cell *matCellDef="let orden" style="text-align: right;">
+          
+          <button mat-icon-button color="primary" (click)="editarOrden(orden)" title="Editar Orden">
+            <mat-icon>edit</mat-icon>
+          </button>
+          
+          <!-- Si NO está finalizada, mostramos el botón para finalizarla -->
+          <button mat-icon-button color="warn" *ngIf="!orden.finalizada" (click)="finalizarOrden(orden)" title="Finalizar OP y Bloquear Productos">
+            <mat-icon>gavel</mat-icon>
+          </button>
+          
+          <!-- Si YA está finalizada, mostramos un candado verde de seguridad -->
+          <mat-icon *ngIf="orden.finalizada" style="color: #2e7d32; margin-left: 10px; vertical-align: middle;" title="Productos Bloqueados">lock</mat-icon>
+          
+        </td>
+      </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
     <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>

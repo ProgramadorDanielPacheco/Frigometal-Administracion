@@ -13,7 +13,7 @@ export interface OrdenCompra {
   providedIn: 'root'
 })
 export class CompraService {
-  private apiUrl = 'https://frigometal-administracion.vercel.app/ordenes-compra/';
+  private apiUrl = 'http://127.0.0.1:8000/ordenes-compra/';
 
   constructor(private http: HttpClient) { }
 
@@ -34,7 +34,7 @@ export class CompraService {
 
   // Para llenar el selector de proveedores
   getProveedores(): Observable<any[]> {
-    return this.http.get<any[]>('https://frigometal-administracion.vercel.app/proveedores/');
+    return this.http.get<any[]>('http://127.0.0.1:8000/proveedores/');
   }
 
   // Para guardar los cambios del borrador

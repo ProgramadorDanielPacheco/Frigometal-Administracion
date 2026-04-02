@@ -262,7 +262,7 @@ class ProcesoTaller(BaseModel):
 
 class OrdenPlantaBase(BaseModel):
     numero_op: str
-    id_pedido: int
+    id_pedido: Optional[int] = None  # 👈 EL CAMBIO ESTÁ AQUÍ
     id_producto: int
     cantidad: int
     cliente_nombre: str
@@ -353,10 +353,24 @@ class MantenimientoResponse(MantenimientoBase):
     class Config:
         from_attributes = True
 
+class MaterialOP(BaseModel):
+    id_material: int
+    nombre_material: str
+    cantidad_requerida: float  # Lo que decía la receta original
+    cantidad_real: float       # 👈 NUEVO: Lo que realmente se usó
+    precio_unitario: float     # 👈 Renombrado: El costo del material
+    subtotal: float
+
 class EquipoDetalle(BaseModel):
     cantidad: int
-    descripcion: str
+    descripcion: str # Lo mantenemos por compatibilidad con tus OPs viejas
     orden_produccion: Optional[int] = 0
+    
+    # 👇 NUEVOS CAMPOS PARA EL CATÁLOGO Y RECETA 👇
+    id_producto: Optional[int] = None
+    nombre_producto: Optional[str] = None
+    receta_historica: Optional[List[MaterialOP]] = []
+    costo_total_equipo: Optional[float] = 0.0
 
 class OrdenProduccionBase(BaseModel):
     numero_op: str
@@ -377,6 +391,7 @@ class OrdenProduccionBase(BaseModel):
     fecha_abono: Optional[date] = None
     valor_abono: Optional[float] = 0.0
     saldo: Optional[float] = 0.0
+    finalizada: Optional[bool] = False
 
 class OrdenProduccionCreate(OrdenProduccionBase):
     pass
@@ -401,6 +416,7 @@ class OrdenProduccionUpdate(BaseModel):
     fecha_abono: Optional[date] = None
     valor_abono: Optional[float] = None
     saldo: Optional[float] = None
+    finalizada: Optional[bool] = None
 
 class OrdenProduccionResponse(OrdenProduccionBase):
     id_orden: int
@@ -483,6 +499,7 @@ class KpiCuentasCobrarResponse(KpiCuentasCobrarBase):
 
 class ProformaDetalle(BaseModel):
     cantidad: int
+    id_producto: Optional[int] = None  # 👈 NUEVO: Enlazado al catálogo
     descripcion: str
     precio_unitario: float
     precio_total: float

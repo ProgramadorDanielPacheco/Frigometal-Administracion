@@ -7,10 +7,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
+import { MatNativeDateModule, MAT_DATE_LOCALE, MatOptionModule } from '@angular/material/core';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { ProformaService } from '../../services/proforma';
+import { ProductoService } from '../../services/producto';
+import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-proformas',
@@ -18,7 +20,7 @@ import { ProformaService } from '../../services/proforma';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatButtonModule, MatIconModule, MatDatepickerModule, 
-    MatNativeDateModule, MatSnackBarModule, MatTableModule
+    MatNativeDateModule, MatSnackBarModule, MatTableModule, MatOptionModule, MatSelectModule
   ],
   templateUrl: './proformas.html',
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }]
@@ -33,11 +35,20 @@ export class ProformasComponent implements OnInit {
   idEditando: number | null = null; // 👈 NUEVO
 
   nuevaProforma: any = this.obtenerModeloVacio();
-  nuevoDetalle: any = { cantidad: 1, descripcion: '', precio_unitario: 0, precio_total: 0 };
+  productosCatalogo: any[] = [];
+  
+  // Asegúrate de incluir id_producto en tu modelo vacío
+  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, precio_total: 0 };
+  
 
-  constructor(private proformaService: ProformaService, private snackBar: MatSnackBar) {}
+  constructor(
+    private proformaService: ProformaService,
+    private productoService: ProductoService, 
+    private snackBar: MatSnackBar) {}
 
-  ngOnInit(): void { this.cargarProformas(); }
+  ngOnInit(): void { this.cargarProformas(); 
+    this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
+  }
 
   cargarProformas(): void {
     this.proformaService.getProformas().subscribe(res => this.dataSource.data = res);
@@ -63,7 +74,7 @@ export class ProformasComponent implements OnInit {
     this.modoEdicion = false;
     this.idEditando = null;
     this.nuevaProforma = this.obtenerModeloVacio();
-    this.nuevoDetalle = { cantidad: 1, descripcion: '', precio_unitario: 0, precio_total: 0 };
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, precio_total: 0 };
   }
 
   // 👇 NUEVA FUNCIÓN PARA ACTIVAR MODO EDICIÓN 👇
@@ -134,6 +145,16 @@ export class ProformasComponent implements OnInit {
           this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 8000 });
         }
       });
+    }
+  }
+
+  seleccionarProductoCatalogo(idProducto: number): void {
+    const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
+    if (prod) {
+      this.nuevoDetalle.descripcion = prod.nombre;
+      // Nota: Si tus productos tienen un campo de precio_venta, podrías auto-completarlo aquí también:
+      // this.nuevoDetalle.precio_unitario = prod.precio_venta; 
+      // this.calcularTotalLinea();
     }
   }
 }

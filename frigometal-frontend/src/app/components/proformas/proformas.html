@@ -36,7 +36,14 @@
         
         <div style="display: flex; gap: 10px; align-items: center;">
           <mat-form-field appearance="outline" style="width: 80px; margin-bottom: -1em;"><mat-label>Cant.</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.cantidad" (ngModelChange)="calcularTotalLinea()"></mat-form-field>
-          <mat-form-field appearance="outline" style="flex: 2; margin-bottom: -1em;"><mat-label>Descripción</mat-label><input matInput [(ngModel)]="nuevoDetalle.descripcion"></mat-form-field>
+          <mat-form-field appearance="outline" style="flex: 2; margin-bottom: -1em;">
+            <mat-label>Seleccionar Producto</mat-label>
+            <mat-select [(ngModel)]="nuevoDetalle.id_producto" (ngModelChange)="seleccionarProductoCatalogo($event)">
+              <mat-option *ngFor="let prod of productosCatalogo" [value]="prod.id_producto">
+                {{prod.nombre}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
           <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1em;"><mat-label>V. Unit ($)</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()"></mat-form-field>
           <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1em;"><mat-label>V. Total ($)</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" readonly></mat-form-field>
           <button mat-raised-button color="accent" (click)="agregarDetalle()"><mat-icon>add</mat-icon></button>

@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 # (Recuerda poner tu URL real aquí abajo para probar)
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://neondb_owner:npg_XRqUD83KNJHk@ep-small-thunder-adi2s720-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    "postgresql://postgres:odoo@localhost:5432/frigometal_erp"
 
 )
 # ⚠️ NOTA: Si la URL de Neon empieza con 'postgres://', 

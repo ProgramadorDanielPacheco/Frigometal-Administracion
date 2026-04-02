@@ -949,43 +949,15 @@ def actualizar_estado_pedido(id_pedido: int, estado_update: schemas.EstadoUpdate
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
         
-    # 1. Guardamos el nuevo estado (ej: EN PRODUCCIÓN o ENTREGADO)
+    # 1. Guardamos el nuevo estado
     pedido.estado = estado_update.estado
     db.commit()
     
-    # 2. 👇 LLAMAMOS A LA FUNCIÓN INTELIGENTE DE INVENTARIO 👇
-    # Sincroniza el inventario solo si está en producción o si lo acaban de terminar
+    # 2. Sincroniza el inventario solo si está en producción o si lo acaban de terminar
     if estado_update.estado in ['EN PRODUCCIÓN', 'ENTREGADO', 'ENTREGADO CON ATRASO']:
         sincronizar_inventario_pedido(id_pedido, db)
         
-    # 3. 👇 NUEVA MAGIA: AUTOCREACIÓN DE ÓRDENES DE PLANTA 👇
-    if estado_update.estado == 'EN PRODUCCIÓN':
-        # Verificamos si ya existen órdenes de planta para este pedido (evita duplicados si le dan al botón "Sincronizar" en Angular)
-        ops_existentes = db.query(models.OrdenPlanta).filter(models.OrdenPlanta.id_pedido == id_pedido).count()
-        
-        if ops_existentes == 0:
-            detalles_del_pedido = db.query(models.DetallePedido).filter(models.DetallePedido.id_pedido == id_pedido).all()
-            
-            # Obtenemos el nombre del cliente para copiarlo a la OP
-            cliente = db.query(models.Cliente).filter(models.Cliente.id_cliente == pedido.id_cliente).first()
-            cliente_nombre = cliente.nombre if cliente else "Cliente Desconocido"
-            
-            for detalle in detalles_del_pedido:
-                # Generamos un número temporal fácil de identificar. Ej: OP-P15-PROD3
-                numero_op_generado = f"OP-P{id_pedido}-PROD{detalle.id_producto}"
-                
-                nueva_op = models.OrdenPlanta(
-                    numero_op=numero_op_generado,
-                    id_pedido=id_pedido,
-                    id_producto=detalle.id_producto,
-                    cantidad=detalle.cantidad,
-                    cliente_nombre=cliente_nombre,
-                    fecha_entrega_prevista=pedido.fecha_entrega,
-                    estado='EN COLA'
-                )
-                db.add(nueva_op)
-                
-            db.commit() # Guardamos todas las nuevas OPs generadas en la base de datos
+    # ❌ La creación de órdenes de planta se eliminó de aquí y pasó a Órdenes de Producción ❌
     
     db.refresh(pedido)
     return {"mensaje": f"Estado actualizado a {estado_update.estado}"}
@@ -1454,15 +1426,49 @@ def obtener_ordenes(db: Session = Depends(get_db)):
 
 @app.post("/ordenes-produccion/", response_model=schemas.OrdenProduccionResponse)
 def crear_orden(orden: schemas.OrdenProduccionCreate, db: Session = Depends(get_db)):
+    # 1. Crear la OP global
     nueva_orden = models.OrdenProduccion(**orden.model_dump())
     db.add(nueva_orden)
     try:
         db.commit()
         db.refresh(nueva_orden)
-        return nueva_orden
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail="Error al crear. Verifica que el Número de OP no esté duplicado.")
+
+    # 2. 👇 FASE 2: AUTO-CREACIÓN DE ÓRDENES DE PLANTA 👇
+    equipos = orden.equipos or []
+    for equipo in equipos:
+        # Pydantic puede mandar objetos o diccionarios, nos aseguramos de leerlo bien
+        eq_data = equipo.model_dump() if hasattr(equipo, "model_dump") else equipo
+        
+        num_op_maquina = str(eq_data.get("orden_produccion", ""))
+        id_prod = eq_data.get("id_producto")
+        
+        # Solo lo creamos si el usuario le asignó un número de OP de máquina y un producto del catálogo
+        if num_op_maquina and id_prod:
+            existe_planta = db.query(models.OrdenPlanta).filter(models.OrdenPlanta.numero_op == num_op_maquina).first()
+            if not existe_planta:
+                nueva_planta = models.OrdenPlanta(
+                    numero_op=num_op_maquina,
+                    id_pedido=None, # Ya es independiente del pedido web
+                    id_producto=id_prod,
+                    cantidad=eq_data.get("cantidad", 1),
+                    cliente_nombre=nueva_orden.cliente_nombre,
+                    fecha_entrega_prevista=nueva_orden.fecha_entrega,
+                    estado="EN COLA"
+                )
+                db.add(nueva_planta)
+    
+    # Guardamos todos los tickets de planta
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Error al generar hojas de planta en POST:", e)
+
+    return nueva_orden
+
 
 @app.put("/ordenes-produccion/{id_orden}", response_model=schemas.OrdenProduccionResponse)
 def actualizar_orden(id_orden: int, orden_update: schemas.OrdenProduccionUpdate, db: Session = Depends(get_db)):
@@ -1476,6 +1482,40 @@ def actualizar_orden(id_orden: int, orden_update: schemas.OrdenProduccionUpdate,
 
     db.commit()
     db.refresh(orden_db)
+
+    # 👇 FASE 2: SINCRONIZAR ÓRDENES DE PLANTA (Si agregan/editan equipos) 👇
+    if "equipos" in update_data:
+        for equipo in update_data["equipos"]:
+            eq_data = equipo if isinstance(equipo, dict) else equipo.model_dump() if hasattr(equipo, "model_dump") else {}
+            
+            num_op_maquina = str(eq_data.get("orden_produccion", ""))
+            id_prod = eq_data.get("id_producto")
+            
+            if num_op_maquina and id_prod:
+                existe_planta = db.query(models.OrdenPlanta).filter(models.OrdenPlanta.numero_op == num_op_maquina).first()
+                if not existe_planta:
+                    # Si añadieron una máquina nueva desde "Editar Orden", le creamos su hoja
+                    nueva_planta = models.OrdenPlanta(
+                        numero_op=num_op_maquina,
+                        id_pedido=None,
+                        id_producto=id_prod,
+                        cantidad=eq_data.get("cantidad", 1),
+                        cliente_nombre=orden_db.cliente_nombre,
+                        fecha_entrega_prevista=orden_db.fecha_entrega,
+                        estado="EN COLA"
+                    )
+                    db.add(nueva_planta)
+                else:
+                    # Si ya existía, solo actualizamos datos generales, ¡NUNCA EL ESTADO O LOS TIEMPOS!
+                    existe_planta.cliente_nombre = orden_db.cliente_nombre
+                    existe_planta.fecha_entrega_prevista = orden_db.fecha_entrega
+        
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print("Error al sincronizar hojas de planta en PUT:", e)
+
     return orden_db
 
 @app.get("/kpis/ingresos", response_model=List[schemas.KpiIngresoResponse])
@@ -1626,7 +1666,8 @@ def crear_proforma(proforma: schemas.ProformaCreate, db: Session = Depends(get_d
         cliente_direccion=proforma.cliente_direccion,
         fecha_pedido=proforma.fecha_emision,
         descripcion_pedido=proforma.trabajo,
-        equipos=equipos_para_op,
+        # 👇 Añadimos el id_producto al diccionario del borrador
+        equipos_para_op = [{"cantidad": d.cantidad, "descripcion": d.descripcion, "id_producto": d.id_producto, "orden_produccion": 0} for d in proforma.detalles],
         precio_total=proforma.precio_total,
         forma_pago=None, 
         saldo=proforma.precio_total,
@@ -1672,7 +1713,7 @@ def actualizar_proforma(id_proforma: int, proforma_update: schemas.ProformaUpdat
             orden_borrador.precio_total = update_data["precio_total"]
             orden_borrador.saldo = update_data["precio_total"]
         if "detalles" in update_data:
-            orden_borrador.equipos = [{"cantidad": d["cantidad"], "descripcion": d["descripcion"], "orden_produccion": 0} for d in update_data["detalles"]]
+            orden_borrador.equipos = [{"cantidad": d.get("cantidad", 1), "descripcion": d.get("descripcion", ""), "id_producto": d.get("id_producto"), "orden_produccion": 0} for d in update_data["detalles"]]
 
     try:
         db.commit()

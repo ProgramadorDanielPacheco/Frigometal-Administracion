@@ -192,6 +192,7 @@ class OrdenProduccion(Base):
     saldo = Column(Numeric(10, 2), default=0.0)
 
     vista_en_dashboard = Column(Boolean, default=False) # 👈 NUEVA LÍNEA
+    finalizada = Column(Boolean, default=False) # 👈 NUEVA LÍNEA
 
 class KpiIngreso(Base):
     __tablename__ = "kpi_ingresos"

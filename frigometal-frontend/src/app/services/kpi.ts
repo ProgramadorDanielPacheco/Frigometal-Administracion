@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class KpiService {
-  private apiUrl = 'https://frigometal-administracion.vercel.app/kpis/';
+  private apiUrl = 'http://127.0.0.1:8000/kpis/';
 
   constructor(private http: HttpClient) { }
 

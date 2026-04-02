@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class OrdenProduccionService {
-  private apiUrl = 'https://frigometal-administracion.vercel.app/ordenes-produccion/'; 
+  private apiUrl = 'http://127.0.0.1:8000/ordenes-produccion/'; 
 
   constructor(private http: HttpClient) { }
 
