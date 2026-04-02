@@ -15,7 +15,39 @@
       
       <div style="display: flex; gap: 15px;">
         <mat-form-field appearance="outline" style="flex: 1;"><mat-label>Nº Proforma</mat-label><input matInput [(ngModel)]="nuevaProforma.numero_proforma"></mat-form-field>
-        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Cliente</mat-label><input matInput [(ngModel)]="nuevaProforma.cliente_nombre"></mat-form-field>
+       <!-- 👇 NUEVO CAMPO DE CLIENTE CON BUSCADOR Y REFRESCAR 👇 -->
+        <div style="flex: 2; display: flex; gap: 5px; align-items: flex-start;">
+          <mat-form-field appearance="outline" style="flex: 1;">
+            <mat-label>Seleccionar Cliente</mat-label>
+            <mat-select [(ngModel)]="nuevaProforma.cliente_nombre" (ngModelChange)="seleccionarCliente($event)">
+              
+              <!-- Buscador interno -->
+              <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                  <mat-label>Buscar por nombre o cédula...</mat-label>
+                  <input matInput [(ngModel)]="filtroClientes" autocomplete="off">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+              </div>
+
+              <!-- Lista iterada -->
+              @for (c of clientesFiltrados; track c.id_cliente) {
+                <mat-option [value]="c.nombre">
+                  {{ c.nombre }} <span style="color: gray; font-size: 0.8em;">({{ c.id_cliente }})</span>
+                </mat-option>
+              }
+
+              @if (clientesFiltrados.length === 0) {
+                <mat-option disabled>No se encontraron clientes</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Botón para refrescar la lista si añadieron uno en otra pestaña -->
+          <button mat-icon-button color="primary" (click)="cargarClientesDirectorio()" matTooltip="Refrescar lista de clientes" style="margin-top: 10px;">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
         <mat-form-field appearance="outline" style="flex: 1;">
           <mat-label>Fecha de Emisión</mat-label>
           <input matInput [matDatepicker]="picker" [(ngModel)]="nuevaProforma.fecha_emision">

@@ -83,7 +83,8 @@ export class ProgramacionComponent implements OnInit {
         this.opEditando!.seguimiento_procesos[proceso] = { 
           fecha_inicio_1: '', hora_inicio_1: '', fecha_fin_1: '', hora_fin_1: '',
           fecha_inicio_2: '', hora_inicio_2: '', fecha_fin_2: '', hora_fin_2: '',
-          responsable: '' 
+          responsable: '',
+          turnos_extra: [] // 👈 NUEVO
         };
       } else {
         // Migración de datos viejos al Turno 1 para no perder nada
@@ -92,6 +93,9 @@ export class ProgramacionComponent implements OnInit {
           procAnterior.hora_inicio_1 = procAnterior.hora_inicio;
           procAnterior.fecha_fin_1 = procAnterior.fecha_fin;
           procAnterior.hora_fin_1 = procAnterior.hora_fin;
+        }
+        if (!procAnterior.turnos_extra) {
+          procAnterior.turnos_extra = [];
         }
       }
     });
@@ -111,6 +115,36 @@ export class ProgramacionComponent implements OnInit {
   cerrarHojaTrabajo(): void {
     this.mostrarFormulario = false;
     this.opEditando = null;
+  }
+
+  // ==========================================
+  // 👇 GESTIÓN DE TURNOS DINÁMICOS 👇
+  // ==========================================
+  // ==========================================
+  // 👇 GESTIÓN DE TURNOS DINÁMICOS (CORREGIDO) 👇
+  // ==========================================
+  agregarTurnoExtra(proceso: string): void {
+    if (this.opEditando && this.opEditando.seguimiento_procesos) {
+      const proc = this.opEditando.seguimiento_procesos[proceso];
+      if (proc) {
+        // Si no existe la lista, la creamos vacía primero
+        if (!proc.turnos_extra) proc.turnos_extra = []; 
+        
+        proc.turnos_extra.push({
+          fecha_inicio: '', hora_inicio: '', fecha_fin: '', hora_fin: ''
+        });
+      }
+    }
+  }
+
+  eliminarTurnoExtra(proceso: string, index: number): void {
+    if (this.opEditando && this.opEditando.seguimiento_procesos) {
+      const proc = this.opEditando.seguimiento_procesos[proceso];
+      // Verificamos que proc y turnos_extra existan antes de cortar
+      if (proc && proc.turnos_extra) { 
+        proc.turnos_extra.splice(index, 1);
+      }
+    }
   }
 
   guardarHojaTrabajo(): void {
@@ -148,23 +182,29 @@ export class ProgramacionComponent implements OnInit {
 // ==========================================
   // 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
   // ==========================================
-  calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
+ calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
     if (!orden || !orden.seguimiento_procesos) return '0h 0m';
     let totalMinutos = 0;
 
     this.listaProcesos.forEach(proceso => {
-      const data = orden.seguimiento_procesos[proceso];
+      const data = orden.seguimiento_procesos![proceso]; // 👈 Ojo con el '!'
       if (data) {
         totalMinutos += this.calcularMinutos(data.fecha_inicio_1, data.hora_inicio_1, data.fecha_fin_1, data.hora_fin_1);
         totalMinutos += this.calcularMinutos(data.fecha_inicio_2, data.hora_inicio_2, data.fecha_fin_2, data.hora_fin_2);
+        
+        // 👇 Sumamos los turnos extra dinámicos 👇
+        if (data.turnos_extra && data.turnos_extra.length > 0) {
+          data.turnos_extra.forEach((turno: any) => {
+            totalMinutos += this.calcularMinutos(turno.fecha_inicio, turno.hora_inicio, turno.fecha_fin, turno.hora_fin);
+          });
+        }
       }
     });
 
     const horas = Math.floor(totalMinutos / 60);
-    const minutos = totalMinutos % 60;
+    const minutos = Math.round(totalMinutos % 60);
     return `${horas}h ${minutos}m`;
   }
-
   // ==========================================
   // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
   // ==========================================
@@ -181,16 +221,35 @@ export class ProgramacionComponent implements OnInit {
     this.listaProcesos.forEach(proc => {
       const p = orden.seguimiento_procesos?.[proc] || {};
       
-      // Creamos la fila doble usando rowspan="2" para el nombre del proceso y el responsable
+      let filasExtras = '';
+      let extrasCount = p.turnos_extra ? p.turnos_extra.length : 0;
+      
+      // Armamos las filas extra
+      if (extrasCount > 0) {
+        p.turnos_extra?.forEach((t: any, index: number) => {
+          filasExtras += `
+            <tr>
+              <td style="color: #666; font-size: 11px; background-color: #fcfcfc;">T${index + 3}</td>
+              <td style="background-color: #fcfcfc;">${t.fecha_inicio || ''}</td>
+              <td style="background-color: #fcfcfc;">${t.hora_inicio || ''}</td>
+              <td style="background-color: #fcfcfc;">${t.fecha_fin || ''}</td>
+              <td style="background-color: #fcfcfc;">${t.hora_fin || ''}</td>
+            </tr>`;
+        });
+      }
+
+      // El rowspan base es 2 (T1 y T2). Le sumamos los extras que existan.
+      const rowspan = 2 + extrasCount;
+
       filasProcesos += `
         <tr>
-          <td rowspan="2" class="col-proceso" style="vertical-align: middle;">${proc}</td>
+          <td rowspan="${rowspan}" class="col-proceso" style="vertical-align: middle;">${proc}</td>
           <td style="color: #666; font-size: 11px;">T1</td>
           <td>${p.fecha_inicio_1 || ''}</td>
           <td>${p.hora_inicio_1 || ''}</td>
           <td>${p.fecha_fin_1 || ''}</td>
           <td>${p.hora_fin_1 || ''}</td>
-          <td rowspan="2" style="vertical-align: middle;">${p.responsable || ''}</td>
+          <td rowspan="${rowspan}" style="vertical-align: middle;">${p.responsable || ''}</td>
         </tr>
         <tr>
           <td style="color: #666; font-size: 11px; background-color: #fcfcfc;">T2</td>
@@ -199,6 +258,7 @@ export class ProgramacionComponent implements OnInit {
           <td style="background-color: #fcfcfc;">${p.fecha_fin_2 || ''}</td>
           <td style="background-color: #fcfcfc;">${p.hora_fin_2 || ''}</td>
         </tr>
+        ${filasExtras}
       `;
     });
 

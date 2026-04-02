@@ -21,6 +21,8 @@ export interface ProcesoTaller {
   fecha_fin?: string;
   hora_inicio?: string;
   hora_fin?: string;
+
+  turnos_extra?: any[];
 }
 export interface OrdenPlanta {
   id_op?: number;

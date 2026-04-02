@@ -70,6 +70,7 @@ export class ListaProductos implements OnInit {
     this.cargarProductos();
     // Cargamos los materiales de la bodega una sola vez para el menú desplegable
     this.materialService.getMateriales().subscribe(datos => this.materialesBodega = datos);
+    this.cargarMaterialesBodega();
   }
 
   cargarProductos(): void {
@@ -78,6 +79,14 @@ export class ListaProductos implements OnInit {
 
   toggleFormulario(): void { this.mostrarFormulario = !this.mostrarFormulario; }
 
+  cargarMaterialesBodega(): void {
+    this.materialService.getMateriales().subscribe({
+      next: (datos) => {
+        this.materialesBodega = datos;
+      },
+      error: (err) => console.error('Error al cargar materiales', err)
+    });
+  }
 
   editarProducto(prod: Producto): void {
     this.modoEdicion = true;
@@ -151,6 +160,7 @@ export class ListaProductos implements OnInit {
 
   abrirReceta(prod: Producto): void {
     this.productoSeleccionado = prod;
+    this.cargarMaterialesBodega(); // 👈 NUEVO: Refresca el catálogo al abrir el panel
     this.cargarRecetaDelProducto();
     // Hacemos scroll hacia abajo para que el usuario vea el panel
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);

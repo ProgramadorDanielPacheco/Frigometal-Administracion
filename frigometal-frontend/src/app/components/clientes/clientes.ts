@@ -201,4 +201,13 @@ export class ClientesComponent implements OnInit {
       this.reportesService.exportarPDF(datosLimpios, columnas, 'Directorio de Clientes', 'Clientes_Frigometal');
     }
   }
+
+  // ==========================================
+  // 👇 NUEVA FUNCIÓN PARA EL BUSCADOR 👇
+  // ==========================================
+  aplicarFiltro(event: Event) {
+    const valorFiltro = (event.target as HTMLInputElement).value;
+    // Angular Material aplica el filtro en minúsculas y sin espacios a los lados
+    this.dataSource.filter = valorFiltro.trim().toLowerCase();
+  }
 }

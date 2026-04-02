@@ -13,6 +13,7 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { ProformaService } from '../../services/proforma';
 import { ProductoService } from '../../services/producto';
 import { MatSelectModule } from '@angular/material/select';
+import { ClienteService } from '../../services/cliente';
 
 @Component({
   selector: 'app-proformas',
@@ -34,6 +35,8 @@ export class ProformasComponent implements OnInit {
   modoEdicion: boolean = false; // 👈 NUEVO
   idEditando: number | null = null; // 👈 NUEVO
 
+  clientesDirectorio: any[] = [];
+  filtroClientes: string = '';
   nuevaProforma: any = this.obtenerModeloVacio();
   productosCatalogo: any[] = [];
   
@@ -44,10 +47,39 @@ export class ProformasComponent implements OnInit {
   constructor(
     private proformaService: ProformaService,
     private productoService: ProductoService, 
+    private clienteService: ClienteService,
     private snackBar: MatSnackBar) {}
 
   ngOnInit(): void { this.cargarProformas(); 
     this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
+    this.cargarClientesDirectorio();
+  }
+
+  cargarClientesDirectorio(): void {
+    this.clienteService.getClientes().subscribe({
+      next: (datos) => this.clientesDirectorio = datos,
+      error: (err) => console.error('Error al cargar directorio', err)
+    });
+  }
+
+  get clientesFiltrados(): any[] {
+    if (!this.filtroClientes) return this.clientesDirectorio;
+    const filtro = this.filtroClientes.toLowerCase();
+    return this.clientesDirectorio.filter(c => 
+      c.nombre.toLowerCase().includes(filtro) || 
+      c.id_cliente.includes(filtro) ||
+      (c.nombre_comercial && c.nombre_comercial.toLowerCase().includes(filtro))
+    );
+  }
+
+  seleccionarCliente(nombreCliente: string): void {
+    // Buscamos el cliente completo en base al nombre seleccionado
+    const cliente = this.clientesDirectorio.find(c => c.nombre === nombreCliente);
+    if (cliente) {
+      // ¡Magia! Autocompletamos los demás campos de la proforma
+      this.nuevaProforma.cliente_direccion = cliente.direccion || '';
+      this.nuevaProforma.ciudad = cliente.ciudad || '';
+    }
   }
 
   cargarProformas(): void {

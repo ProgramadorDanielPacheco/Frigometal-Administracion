@@ -43,10 +43,42 @@
 
         <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Datos del Cliente</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <mat-form-field appearance="outline" style="flex: 2; min-width: 250px;">
+          <!-- 👇 NUEVO CAMPO DE CLIENTE CON BUSCADOR 👇 -->
+        <div style="flex: 2; display: flex; gap: 5px; align-items: flex-start; min-width: 250px;">
+          <mat-form-field appearance="outline" style="flex: 1;">
             <mat-label>Nombre / Razón Social</mat-label>
-            <input matInput [(ngModel)]="nuevaOrden.cliente_nombre">
+            <mat-select [(ngModel)]="nuevaOrden.cliente_nombre" (ngModelChange)="seleccionarCliente($event)">
+              
+              <!-- Buscador interno -->
+              <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                  <mat-label>Buscar por nombre, comercial o RUC...</mat-label>
+                  <input matInput [(ngModel)]="filtroClientes" autocomplete="off">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+              </div>
+
+              <!-- Lista iterada -->
+              @for (c of clientesFiltrados; track c.id_cliente) {
+                <mat-option [value]="c.nombre">
+                  {{ c.nombre }} 
+                  <!-- Mostramos el nombre comercial en azul para que sea fácil identificarlo -->
+                  <span *ngIf="c.nombre_comercial" style="color: #1976d2; font-size: 0.85em;"> | {{c.nombre_comercial}}</span>
+                  <span style="color: gray; font-size: 0.8em;"> ({{ c.id_cliente }})</span>
+                </mat-option>
+              }
+
+              @if (clientesFiltrados.length === 0) {
+                <mat-option disabled>No se encontraron clientes</mat-option>
+              }
+            </mat-select>
           </mat-form-field>
+
+          <!-- Botón para refrescar la lista -->
+          <button mat-icon-button color="primary" (click)="cargarClientesDirectorio()" matTooltip="Refrescar lista de clientes" style="margin-top: 10px;">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
 
           <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
             <mat-label>Cédula / RUC</mat-label>

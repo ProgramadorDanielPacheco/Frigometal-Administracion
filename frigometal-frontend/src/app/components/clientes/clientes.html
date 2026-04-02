@@ -108,6 +108,21 @@
     </mat-card>
   }
 
+  
+  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA 👇 -->
+  <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 10px; background-color: white;">
+    <mat-label>Buscar Cliente...</mat-label>
+    <mat-icon matPrefix style="margin-right: 10px; color: gray;">search</mat-icon>
+    <input matInput (keyup)="aplicarFiltro($event)" placeholder="Ej: Juan Pérez, 010888..., Cuenca" #inputBuscador>
+    
+    <!-- Botón con la "X" para limpiar la búsqueda rápidamente -->
+    <!-- Botón con la "X" para limpiar la búsqueda rápidamente -->
+    <button mat-icon-button matSuffix *ngIf="inputBuscador.value" (click)="inputBuscador.value=''; dataSource.filter=''">
+      <mat-icon>close</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <!-- Aquí empieza tu tabla -->
   <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
     
     <ng-container matColumnDef="id_cliente">

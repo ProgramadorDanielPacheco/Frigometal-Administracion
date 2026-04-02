@@ -147,7 +147,12 @@
     <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap;">
       
       <div style="flex: 1; min-width: 300px; background: #fafafa; padding: 20px; border-radius: 8px;">
-        <h3 style="margin-top: 0;">Añadir Material</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h3 style="margin: 0;">Añadir Material</h3>
+          <button mat-icon-button color="primary" (click)="cargarMaterialesBodega()" matTooltip="Refrescar lista de bodega" style="transform: scale(0.85);">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
         <mat-form-field appearance="outline" style="width: 100%;">
             <mat-label>Selecciona un Material de Bodega</mat-label>
             <mat-select [(ngModel)]="idMaterialSeleccionado">

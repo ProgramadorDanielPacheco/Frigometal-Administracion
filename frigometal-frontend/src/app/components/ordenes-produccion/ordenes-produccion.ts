@@ -17,6 +17,7 @@ import { MaterialService } from '../../services/material';
 import { Producto, ProductoService } from '../../services/producto';
 // Agrega esta línea arriba con tus otros imports:
 import { ProgramacionService } from '../../services/programacion';
+import { ClienteService } from '../../services/cliente';
 
 @Component({
   selector: 'app-ordenes-produccion',
@@ -38,6 +39,8 @@ export class OrdenesProduccionComponent implements OnInit {
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false;
   idEditando: number | null = null;
+  clientesDirectorio: any[] = [];
+  filtroClientes: string = '';
 
   // 👇 NUEVA VARIABLE PARA SABER SI ESTAMOS EDITANDO UN EQUIPO 👇
   indexEditandoEquipo: number | null = null;
@@ -57,6 +60,7 @@ export class OrdenesProduccionComponent implements OnInit {
     private recetaService: RecetaService,         // 👈 NUEVO
     private materialService: MaterialService,
     private programacionService: ProgramacionService,
+    private clienteService: ClienteService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef
   ) {}
@@ -65,6 +69,7 @@ export class OrdenesProduccionComponent implements OnInit {
     this.cargarOrdenes();
     this.productoService.getProductos().subscribe(datos => {
       this.productosCatalogo = datos;
+      this.cargarClientesDirectorio();
     });
 
     // Traemos los materiales para poder ponerles nombre en la receta
@@ -75,6 +80,38 @@ export class OrdenesProduccionComponent implements OnInit {
     this.programacionService.getOrdenes().subscribe(datos => {
       this.ordenesPlanta = datos;
     });
+  }
+
+
+  cargarClientesDirectorio(): void {
+    this.clienteService.getClientes().subscribe({
+      next: (datos) => this.clientesDirectorio = datos,
+      error: (err) => console.error('Error al cargar directorio', err)
+    });
+  }
+
+  get clientesFiltrados(): any[] {
+    if (!this.filtroClientes) return this.clientesDirectorio;
+    const filtro = this.filtroClientes.toLowerCase();
+    
+    return this.clientesDirectorio.filter(c => 
+      (c.nombre && c.nombre.toLowerCase().includes(filtro)) || 
+      (c.id_cliente && c.id_cliente.includes(filtro)) ||
+      (c.nombre_comercial && c.nombre_comercial.toLowerCase().includes(filtro)) // 👈 Busca por nombre comercial
+    );
+  }
+
+  seleccionarCliente(nombreCliente: string): void {
+    const cliente = this.clientesDirectorio.find(c => c.nombre === nombreCliente);
+    if (cliente) {
+      // Autocompletamos los campos del formulario de la OP. 
+      // ⚠️ NOTA: Verifica que estos nombres (cliente_cedula, cliente_direccion, etc.) 
+      // coincidan exactamente con cómo los llamaste en tu nuevaOrden.
+      this.nuevaOrden.cliente_cedula = cliente.id_cliente || ''; // Para el campo Cédula/RUC
+      this.nuevaOrden.cliente_direccion = cliente.direccion || '';
+      this.nuevaOrden.cliente_telefono = cliente.telefono || '';
+      this.nuevaOrden.cliente_email = cliente.correo || '';
+    }
   }
 
   cargarOrdenes(): void {
