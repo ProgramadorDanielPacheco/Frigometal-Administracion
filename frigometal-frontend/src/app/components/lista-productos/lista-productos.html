@@ -201,28 +201,59 @@
                   
                   <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 15px;">
                     
+                    <!-- PARTE IZQUIERDA: ICONO Y TEXTOS -->
                     <div style="display: flex; align-items: flex-start; gap: 15px; flex: 1; min-width: 0;">
                       <mat-icon color="primary" style="margin-top: 2px;">settings_suggest</mat-icon>
                       <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
                         <span style="font-weight: 600; color: #333; white-space: normal; word-break: break-word; line-height: 1.3;">
                           {{ obtenerNombreMaterial(item.id_material) }}
                         </span>
-                        <span style="font-size: 0.85em; color: gray; margin-top: 4px;">
-                          {{ item.cantidad_necesaria }} {{ obtenerUnidadMedida(item.id_material) }} x 
-                          ${{ obtenerPrecioMaterial(item.id_material) }}
-                        </span>
+                        
+                        <!-- 👇 MODO LECTURA 👇 -->
+                        @if (idEditandoReceta !== item.id_estructura) {
+                          <span style="font-size: 0.85em; color: gray; margin-top: 4px;">
+                            {{ item.cantidad_necesaria }} {{ obtenerUnidadMedida(item.id_material) }} x 
+                            ${{ obtenerPrecioMaterial(item.id_material) }}
+                          </span>
+                        }
+                        <!-- 👇 MODO EDICIÓN 👇 -->
+                        @else {
+                          <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                            <input type="number" [(ngModel)]="cantidadEditada" 
+                                   style="width: 70px; padding: 4px; border: 1px solid #1976d2; border-radius: 4px; outline: none; font-size: 0.9em;">
+                            <span style="font-size: 0.85em; color: gray;">
+                              {{ obtenerUnidadMedida(item.id_material) }} x ${{ obtenerPrecioMaterial(item.id_material) }}
+                            </span>
+                          </div>
+                        }
                       </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0; min-width: 130px; justify-content: flex-end;">
-                      <div style="text-align: right;">
+                    <!-- PARTE DERECHA: SUBTOTAL Y BOTONES -->
+                    <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0; min-width: 130px; justify-content: flex-end;">
+                      <div style="text-align: right; margin-right: 10px;">
                         <span style="display: block; font-size: 0.8em; color: gray; text-transform: uppercase;">Subtotal</span>
                         <strong style="font-size: 1.1em; color: #2e7d32;">${{ calcularSubtotal(item) | number:'1.2-2' }}</strong>
                       </div>
 
-                      <button mat-icon-button color="warn" (click)="eliminarIngrediente(item.id_estructura)">
-                        <mat-icon>delete_outline</mat-icon>
-                      </button>
+                      <!-- 👇 BOTONES MODO LECTURA 👇 -->
+                      @if (idEditandoReceta !== item.id_estructura) {
+                        <button mat-icon-button color="primary" (click)="iniciarEdicionMaterial(item)" title="Editar Cantidad">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" (click)="eliminarIngrediente(item.id_estructura)">
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                      } 
+                      <!-- 👇 BOTONES MODO EDICIÓN 👇 -->
+                      @else {
+                        <button mat-icon-button style="color: #2e7d32;" (click)="guardarEdicionMaterial(item)" title="Guardar">
+                          <mat-icon>check_circle</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" (click)="cancelarEdicionMaterial()" title="Cancelar">
+                          <mat-icon>cancel</mat-icon>
+                        </button>
+                      }
                     </div>
 
                   </div>

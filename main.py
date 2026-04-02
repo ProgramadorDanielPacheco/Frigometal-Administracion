@@ -765,6 +765,28 @@ def eliminar_material_receta(id_estructura: int, db: Session = Depends(get_db)):
     db.commit()
     return {"mensaje": "Material eliminado de la receta con éxito."}
 
+@app.put("/estructura-producto/{id_estructura}", response_model=schemas.EstructuraProductoResponse)
+def actualizar_cantidad_receta(id_estructura: int, datos_update: schemas.EstructuraProductoUpdate, db: Session = Depends(get_db)):
+    # 1. Buscamos el detalle de la receta
+    detalle_db = db.query(models.EstructuraProducto).filter(models.EstructuraProducto.id_estructura == id_estructura).first()
+    
+    if not detalle_db:
+        raise HTTPException(status_code=404, detail="Detalle de receta no encontrado")
+    
+    # 2. 👇 TRADUCCIÓN DE IDA: El esquema trae "cantidad_necesaria", la BD guarda en "cantidad_requerida" 👇
+    detalle_db.cantidad_requerida = datos_update.cantidad_necesaria
+        
+    db.commit()
+    db.refresh(detalle_db)
+    
+    # 3. 👇 TRADUCCIÓN DE VUELTA: Devolvemos el diccionario mapeado para que Angular no se confunda 👇
+    return {
+        "id_estructura": detalle_db.id_estructura,
+        "id_producto": detalle_db.id_producto,
+        "id_material": detalle_db.id_material,
+        "cantidad_necesaria": detalle_db.cantidad_requerida
+    }
+
 # ==========================================
 # RUTAS PARA PEDIDOS Y DESCUENTO DE STOCK (LA MAGIA)
 # ==========================================

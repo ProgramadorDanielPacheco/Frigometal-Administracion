@@ -122,7 +122,9 @@ class EstructuraProductoResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
+        
+class EstructuraProductoUpdate(BaseModel):
+    cantidad_necesaria: Decimal
 # ==========================
 # ESQUEMAS PARA PEDIDOS
 # ==========================

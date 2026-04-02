@@ -54,6 +54,9 @@ export class ListaProductos implements OnInit {
 
   filtroMateriales: string = '';
 
+  idEditandoReceta: number | null = null;
+  cantidadEditada: number = 0;
+
   constructor(
     private productoService: ProductoService,
     private materialService: MaterialService,
@@ -349,6 +352,37 @@ calcularCostoTotalReceta(): number {
         console.error('Error al compilar reporte', err);
         this.snackBar.open('❌ Hubo un error al generar el reporte', 'Cerrar', { duration: 3000 });
       }
+    });
+  }
+
+
+
+  iniciarEdicionMaterial(item: any): void {
+    this.idEditandoReceta = item.id_estructura; 
+    // Usamos la cantidad que traiga el backend (dependiendo de cómo lo llamaste)
+    this.cantidadEditada = item.cantidad_necesaria || item.cantidad_requerida || 0;
+  }
+
+  cancelarEdicionMaterial(): void {
+    this.idEditandoReceta = null;
+    this.cantidadEditada = 0;
+  }
+
+  guardarEdicionMaterial(item: any): void {
+    if (this.cantidadEditada <= 0) {
+      this.snackBar.open('⚠️ La cantidad debe ser mayor a 0', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const payload = { cantidad_necesaria: this.cantidadEditada };
+
+    this.recetaService.actualizarMaterial(item.id_estructura, payload).subscribe({
+      next: () => {
+        this.snackBar.open('✅ Cantidad actualizada', 'OK', { duration: 3000 });
+        this.idEditandoReceta = null;
+        this.cargarRecetaDelProducto(); // Refrescamos la lista para ver el nuevo subtotal
+      },
+      error: (err) => this.snackBar.open('❌ Error al actualizar', 'Cerrar', { duration: 3000 })
     });
   }
 }
