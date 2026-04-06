@@ -33,6 +33,6 @@ export class RecetaService {
 
   actualizarMaterial(idEstructura: number, datos: any): Observable<any> {
     // Asegúrate de que la URL apunte a 'estructura-producto' (o la variable de entorno que uses para esta ruta)
-    return this.http.put(`${this.apiUrl}/${idEstructura}`, datos); 
+    return this.http.put(`${this.apiUrl}${idEstructura}`, datos); 
   }
 }
