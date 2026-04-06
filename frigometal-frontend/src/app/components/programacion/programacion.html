@@ -9,6 +9,24 @@
       <mat-icon>refresh</mat-icon> Refrescar OPs
     </button>
   </div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h2 style="font-family: Roboto, sans-serif; font-weight: 400; color: #333; margin: 0;">Control de Planta y Taller</h2>
+      <p style="color: gray; margin-top: 5px;">Seguimiento de procesos de fabricación paso a paso.</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+      <!-- 👇 NUEVO BOTÓN DE REPORTES 👇 -->
+      <button mat-stroked-button color="accent" (click)="toggleReporte()" *ngIf="!mostrarFormulario">
+        <mat-icon>{{ mostrarReporte ? 'visibility_off' : 'bar_chart' }}</mat-icon> 
+        {{ mostrarReporte ? 'Ocultar Métricas' : 'Ver Métricas por Proceso' }}
+      </button>
+
+      <button mat-raised-button color="primary" (click)="cargarOrdenes()">
+        <mat-icon>refresh</mat-icon> Refrescar OPs
+      </button>
+    </div>
+  </div>
 
   @if (mostrarFormulario && opEditando) {
     <mat-card style="margin-bottom: 30px; border-top: 8px solid #1976d2; border-radius: 8px;">
@@ -204,6 +222,61 @@
   }
 
   @if (!mostrarFormulario) {
+
+    @if (!mostrarFormulario) {
+    
+    <!-- 👇 PANEL DE REPORTE DE TIEMPOS (Se muestra solo si se hace clic en Ver Métricas) 👇 -->
+    @if (mostrarReporte) {
+      <mat-card class="mat-elevation-z4" style="margin-bottom: 25px; border-top: 5px solid #ff9800; border-radius: 8px;">
+        <div style="padding: 15px 20px; background-color: #fff3e0; border-bottom: 1px solid #ffe0b2; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; color: #e65100; font-weight: bold;">
+            <mat-icon style="vertical-align: bottom; margin-right: 5px;">query_stats</mat-icon> 
+            Horas Invertidas por Departamento
+          </h3>
+        </div>
+
+        <mat-card-content style="padding: 20px;">
+          <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
+            <mat-form-field appearance="outline">
+              <mat-label>Fecha de Inicio</mat-label>
+              <input matInput type="date" [(ngModel)]="fechaInicioReporte">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Fecha de Fin</mat-label>
+              <input matInput type="date" [(ngModel)]="fechaFinReporte">
+            </mat-form-field>
+
+            <button mat-raised-button color="accent" style="margin-bottom: 1.25em; padding: 5px 20px;" (click)="generarReporteTiempos()">
+              <mat-icon>calculate</mat-icon> Calcular Tiempos
+            </button>
+          </div>
+
+          @if (reporteProcesos.length > 0) {
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0; text-align: left;">
+              <thead>
+                <tr style="background-color: #f5f5f5;">
+                  <th style="padding: 12px; border-bottom: 2px solid #ccc; font-weight: bold; width: 60%;">Departamento / Proceso</th>
+                  <th style="padding: 12px; border-bottom: 2px solid #ccc; font-weight: bold; text-align: center;">Horas Totales Trabajadas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (rep of reporteProcesos; track rep.proceso) {
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px; font-weight: 500; color: #333;">{{ rep.proceso }}</td>
+                    <td style="padding: 12px; text-align: center; color: #1565c0; font-weight: bold; font-size: 1.1rem;">
+                      {{ rep.totalTexto }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </mat-card-content>
+      </mat-card>
+      }
+    }
+    
     <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
       
       <ng-container matColumnDef="numero_op">

@@ -331,4 +331,82 @@ export class ProgramacionComponent implements OnInit {
       ventanaImpresion.document.close();
     }
   }
+  // ==========================================
+  // 👇 REPORTE GLOBAL DE TIEMPOS POR PROCESO 👇
+  // ==========================================
+  mostrarReporte: boolean = false;
+  fechaInicioReporte: string = '';
+  fechaFinReporte: string = '';
+  reporteProcesos: { proceso: string, totalMinutos: number, totalTexto: string }[] = [];
+
+  toggleReporte(): void {
+    this.mostrarReporte = !this.mostrarReporte;
+    if (!this.mostrarReporte) {
+      this.fechaInicioReporte = '';
+      this.fechaFinReporte = '';
+      this.reporteProcesos = [];
+    }
+  }
+
+  generarReporteTiempos(): void {
+    if (!this.fechaInicioReporte || !this.fechaFinReporte) {
+      this.snackBar.open('⚠️ Selecciona ambas fechas para calcular', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const inicioRango = new Date(`${this.fechaInicioReporte}T00:00:00`);
+    const finRango = new Date(`${this.fechaFinReporte}T23:59:59`);
+
+    // 1. Inicializamos el mapa con todos los procesos en 0
+    let mapaTiempos = new Map<string, number>();
+    this.listaProcesos.forEach(p => mapaTiempos.set(p, 0));
+
+    // 2. Recorremos TODAS las órdenes cargadas en la tabla
+    this.dataSource.data.forEach(orden => {
+      if (orden.seguimiento_procesos) {
+        
+        this.listaProcesos.forEach(proceso => {
+          const data = orden.seguimiento_procesos![proceso];
+          if (data) {
+            // Evaluamos Turno 1
+            this.sumarSiEnRango(data.fecha_inicio_1, data.hora_inicio_1, data.fecha_fin_1, data.hora_fin_1, inicioRango, finRango, proceso, mapaTiempos);
+            // Evaluamos Turno 2
+            this.sumarSiEnRango(data.fecha_inicio_2, data.hora_inicio_2, data.fecha_fin_2, data.hora_fin_2, inicioRango, finRango, proceso, mapaTiempos);
+            
+            // Evaluamos Turnos Extra
+            if (data.turnos_extra && data.turnos_extra.length > 0) {
+              data.turnos_extra.forEach((turno: any) => {
+                this.sumarSiEnRango(turno.fecha_inicio, turno.hora_inicio, turno.fecha_fin, turno.hora_fin, inicioRango, finRango, proceso, mapaTiempos);
+              });
+            }
+          }
+        });
+      }
+    });
+
+    // 3. Convertimos el mapa en un arreglo amigable para el HTML
+    this.reporteProcesos = [];
+    mapaTiempos.forEach((minutos, proceso) => {
+      const horas = Math.floor(minutos / 60);
+      const mins = Math.round(minutos % 60);
+      this.reporteProcesos.push({
+        proceso: proceso,
+        totalMinutos: minutos,
+        totalTexto: `${horas}h ${mins}m`
+      });
+    });
+  }
+
+  // Función auxiliar para validar fechas y sumar
+  private sumarSiEnRango(fIni: string | undefined, hIni: string | undefined, fFin: string | undefined, hFin: string | undefined, inicioRango: Date, finRango: Date, proceso: string, mapaTiempos: Map<string, number>) {
+    if (!fIni || !hIni || !fFin || !hFin) return;
+    
+    const fechaInicioTrabajo = new Date(`${fIni}T${hIni}`);
+    
+    // Si la fecha en la que inició el trabajo entra en nuestro rango de búsqueda, lo sumamos
+    if (fechaInicioTrabajo >= inicioRango && fechaInicioTrabajo <= finRango) {
+      const minutos = this.calcularMinutos(fIni, hIni, fFin, hFin);
+      mapaTiempos.set(proceso, mapaTiempos.get(proceso)! + minutos);
+    }
+  }
 }

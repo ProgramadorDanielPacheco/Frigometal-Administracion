@@ -63,6 +63,8 @@ export class EstadisticasComponent implements OnInit {
   formCuentas = { meta: 0, nombre_persona: '', monto: 0, tipo_movimiento: 'Deuda' }; // 👈 AÑADIDO // 👈 Incluye nombre_persona
   graficoCuentas: any;
   historialCuentas: any[] = [];
+  anchoGraficoCuentas: string = '100%';
+  anchoGraficoAbonos: string = '100%';
   
   formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
   formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
@@ -112,7 +114,7 @@ export class EstadisticasComponent implements OnInit {
           } else if (espacioDisponibleSobreBarra < margenNecesario) {
             // 2. Barras positivas MUY ALTAS: Texto ADENTRO
             yPos = bar.y + 15;
-            ctx.fillStyle = '#fff'; // Blanco para contraste dentro de la barra verde gigante
+            ctx.fillStyle = '#333'; // Blanco para contraste dentro de la barra verde gigante
           } else {
             // 3. Barras positivas normales: Texto AFUERA
             yPos = bar.y - 8;
@@ -340,6 +342,10 @@ export class EstadisticasComponent implements OnInit {
       else if (netoAcumulado === metaFija) { colores.push('rgba(255, 193, 7, 1)'); } 
       else { colores.push('rgba(76, 175, 80, 1)'); }
 
+
+      const anchoCalculado = labels.length * 70;
+      // Si hay poquitos clientes, usa el 100% de la pantalla. Si hay muchos, usa el ancho calculado.
+      this.anchoGraficoCuentas = anchoCalculado > 1000 ? `${anchoCalculado}px` : '100%';
       if (this.graficoCuentas) this.graficoCuentas.destroy();
       this.graficoCuentas = new Chart('canvasCuentas', {
         type: 'bar', 
@@ -379,6 +385,9 @@ export class EstadisticasComponent implements OnInit {
         montosAbonos.push(acumuladoAbonos);
         coloresAbonos.push('rgba(76, 175, 80, 1)'); // Verde más fuerte para el acumulado
       }
+
+      const anchoCalculadoAbonos = labelsAbonos.length * 70;
+      this.anchoGraficoAbonos = anchoCalculadoAbonos > 1000 ? `${anchoCalculadoAbonos}px` : '100%';
 
       if (this.graficoAbonos) this.graficoAbonos.destroy();
       this.graficoAbonos = new Chart('canvasAbonos', {

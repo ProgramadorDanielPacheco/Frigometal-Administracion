@@ -159,7 +159,6 @@
         </button>
       </div>
       
-      
       <div style="display: flex; gap: 20px; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
         
         <mat-form-field appearance="outline" style="flex: 1; min-width: 80px; margin-bottom: -1.25em;">
@@ -195,10 +194,11 @@
         </button>
       </div>
       
-      <div style="position: relative; height: 350px; width: 100%; background-color: white;">
-        <canvas id="canvasCuentas"></canvas>
-        <div style="position: relative; height: 350px; width: 100%; background-color: white;">
-        <canvas id="canvasCuentas"></canvas>
+      <!-- 👇 CONTENEDOR CON SCROLL HORIZONTAL (CUENTAS POR COBRAR) 👇 -->
+      <div style="width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 15px; background-color: white;">
+        <div [style.width]="anchoGraficoCuentas" style="position: relative; height: 350px;">
+          <canvas id="canvasCuentas"></canvas>
+        </div>
       </div>
 
       <div style="margin-top: 40px; border-top: 2px dashed #ccc; padding-top: 25px;">
@@ -213,11 +213,13 @@
           </button>
         </div>
 
-        <div style="position: relative; height: 350px; width: 100%; background-color: white;">
-          <canvas id="canvasAbonos"></canvas>
+        <!-- 👇 CONTENEDOR CON SCROLL HORIZONTAL (HISTORIAL DE ABONOS) 👇 -->
+        <div style="width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 15px; background-color: white;">
+          <div [style.width]="anchoGraficoAbonos" style="position: relative; height: 350px;">
+            <canvas id="canvasAbonos"></canvas>
+          </div>
         </div>
 
-      </div>
       </div>
     </mat-card>
 
