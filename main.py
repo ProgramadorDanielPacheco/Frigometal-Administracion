@@ -1673,37 +1673,39 @@ def obtener_proformas(db: Session = Depends(get_db)):
 
 @app.post("/proformas/", response_model=schemas.ProformaResponse)
 def crear_proforma(proforma: schemas.ProformaCreate, db: Session = Depends(get_db)):
-    nueva_proforma = models.Proforma(**proforma.model_dump())
-    db.add(nueva_proforma)
-    
-    # 👇 AJUSTE: Le agregamos "orden_produccion": 0 para evitar errores con el nuevo esquema 👇
-    equipos_para_op = [{"cantidad": d.cantidad, "descripcion": d.descripcion, "orden_produccion": 0} for d in proforma.detalles]
-    
-    import time
-    numero_borrador = f"DRAFT-{proforma.numero_proforma}-{int(time.time())}"
-
-    orden_borrador = models.OrdenProduccion(
-        numero_op=numero_borrador,
-        cliente_nombre=proforma.cliente_nombre,
-        cliente_direccion=proforma.cliente_direccion,
-        fecha_pedido=proforma.fecha_emision,
-        descripcion_pedido=proforma.trabajo,
-        # 👇 Añadimos el id_producto al diccionario del borrador
-        equipos_para_op = [{"cantidad": d.cantidad, "descripcion": d.descripcion, "id_producto": d.id_producto, "orden_produccion": 0} for d in proforma.detalles],
-        precio_total=proforma.precio_total,
-        forma_pago=None, 
-        saldo=proforma.precio_total,
-        vista_en_dashboard=False 
-    )
-    db.add(orden_borrador)
-    
     try:
+        # 1. Creamos la proforma
+        nueva_proforma = models.Proforma(**proforma.model_dump())
+        db.add(nueva_proforma)
+        
+        import time
+        numero_borrador = f"DRAFT-{proforma.numero_proforma}-{int(time.time())}"
+
+        # 2. Creamos la Orden de Producción Borrador
+        orden_borrador = models.OrdenProduccion(
+            numero_op=numero_borrador,
+            cliente_nombre=proforma.cliente_nombre,
+            cliente_direccion=proforma.cliente_direccion,
+            fecha_pedido=proforma.fecha_emision,
+            descripcion_pedido=proforma.trabajo,
+            # 👇 CORRECCIÓN: El campo se llama 'equipos', no 'equipos_para_op' 👇
+            equipos=[{"cantidad": d.cantidad, "descripcion": d.descripcion, "id_producto": d.id_producto, "orden_produccion": 0} for d in proforma.detalles],
+            precio_total=proforma.precio_total,
+            forma_pago=None, 
+            saldo=proforma.precio_total,
+            vista_en_dashboard=False 
+        )
+        db.add(orden_borrador)
+        
+        # 3. Guardamos todo junto
         db.commit()
         db.refresh(nueva_proforma)
         return nueva_proforma
+        
     except Exception as e:
         db.rollback()
         print(f"🚨 ERROR FATAL EN BD: {str(e)}") 
+        # Al estar todo en el try, Angular recibirá este error claro y no un error de CORS
         raise HTTPException(status_code=400, detail=f"Error interno: {str(e)}")
 
 
