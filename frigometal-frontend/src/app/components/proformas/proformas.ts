@@ -10,10 +10,14 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_LOCALE, MatOptionModule } from '@angular/material/core';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatSelectModule } from '@angular/material/select';
+
 import { ProformaService } from '../../services/proforma';
 import { ProductoService } from '../../services/producto';
-import { MatSelectModule } from '@angular/material/select';
 import { ClienteService } from '../../services/cliente';
+// 👇 NUEVOS IMPORTACIONES 👇
+import { RecetaService } from '../../services/receta'; 
+import { MaterialService } from '../../services/material';
 
 @Component({
   selector: 'app-proformas',
@@ -29,30 +33,37 @@ import { ClienteService } from '../../services/cliente';
 export class ProformasComponent implements OnInit {
 
   dataSource = new MatTableDataSource<any>([]);
-  columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'acciones']; // 👈 Añadido acciones
+  columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'acciones'];
   
   mostrarFormulario: boolean = false;
-  modoEdicion: boolean = false; // 👈 NUEVO
-  idEditando: number | null = null; // 👈 NUEVO
+  modoEdicion: boolean = false;
+  idEditando: number | null = null;
 
   clientesDirectorio: any[] = [];
   filtroClientes: string = '';
   nuevaProforma: any = this.obtenerModeloVacio();
   productosCatalogo: any[] = [];
+  materialesBodega: any[] = []; // 👈 NUEVO: Para saber los precios de la receta
   
-  // Asegúrate de incluir id_producto en tu modelo vacío
-  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, precio_total: 0 };
+  // 👇 NUEVO: Añadimos 'utilidad' inicializada en 30% por defecto (puedes cambiarlo)
+  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
   
-
   constructor(
     private proformaService: ProformaService,
     private productoService: ProductoService, 
     private clienteService: ClienteService,
-    private snackBar: MatSnackBar) {}
+    private recetaService: RecetaService, // 👈 NUEVO
+    private materialService: MaterialService, // 👈 NUEVO
+    private snackBar: MatSnackBar
+  ) {}
 
-  ngOnInit(): void { this.cargarProformas(); 
+  ngOnInit(): void { 
+    this.cargarProformas(); 
     this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
     this.cargarClientesDirectorio();
+    
+    // 👇 Cargamos los materiales al inicio para poder calcular la receta rápido
+    this.materialService.getMateriales().subscribe(res => this.materialesBodega = res);
   }
 
   cargarClientesDirectorio(): void {
@@ -73,10 +84,8 @@ export class ProformasComponent implements OnInit {
   }
 
   seleccionarCliente(nombreCliente: string): void {
-    // Buscamos el cliente completo en base al nombre seleccionado
     const cliente = this.clientesDirectorio.find(c => c.nombre === nombreCliente);
     if (cliente) {
-      // ¡Magia! Autocompletamos los demás campos de la proforma
       this.nuevaProforma.cliente_direccion = cliente.direccion || '';
       this.nuevaProforma.ciudad = cliente.ciudad || '';
     }
@@ -101,36 +110,74 @@ export class ProformasComponent implements OnInit {
     if (!this.mostrarFormulario) this.cancelarEdicion();
   }
 
-  // 👇 NUEVA FUNCIÓN PARA CANCELAR Y LIMPIAR 👇
   cancelarEdicion(): void {
     this.modoEdicion = false;
     this.idEditando = null;
     this.nuevaProforma = this.obtenerModeloVacio();
-    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, precio_total: 0 };
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
   }
 
-  // 👇 NUEVA FUNCIÓN PARA ACTIVAR MODO EDICIÓN 👇
   editarProforma(proforma: any): void {
     this.modoEdicion = true;
     this.idEditando = proforma.id_proforma;
     this.mostrarFormulario = true;
     
-    // Clonamos los datos para no modificar la tabla en vivo
     this.nuevaProforma = { ...proforma };
     if (!this.nuevaProforma.detalles) this.nuevaProforma.detalles = [];
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // ==========================================
+  // 👇 CÁLCULO DE COSTOS, UTILIDAD Y PRECIO 👇
+  // ==========================================
+  seleccionarProductoCatalogo(idProducto: number): void {
+    const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
+    if (prod) {
+      this.nuevoDetalle.descripcion = prod.nombre;
+      
+      // Consultamos la receta para armar el costo real
+      this.snackBar.open('⏳ Calculando costo desde bodega...', '', { duration: 1500 });
+      this.recetaService.getReceta(idProducto).subscribe({
+        next: (receta) => {
+          let costoTotal = 0;
+          
+          receta.forEach((r: any) => {
+            const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
+            const precioMat = materialBD ? Number(materialBD.precio_unitario || 0) : 0;
+            const cantidadMat = Number(r.cantidad_requerida || r.cantidad_necesaria || 0);
+            costoTotal += (cantidadMat * precioMat);
+          });
+          
+          // Asignamos el costo a "precio_unitario" y calculamos la ganancia
+          this.nuevoDetalle.precio_unitario = parseFloat(costoTotal.toFixed(2));
+          this.calcularTotalLinea();
+          this.snackBar.open('✅ Costo de producción cargado', 'OK', { duration: 2000 });
+        },
+        error: () => {
+          this.snackBar.open('⚠️ Producto sin receta. Ingresa el costo manual.', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
   calcularTotalLinea(): void {
-    this.nuevoDetalle.precio_total = this.nuevoDetalle.cantidad * this.nuevoDetalle.precio_unitario;
+    // 1. Calculamos el costo base (Costo de receta * Cantidad)
+    const costoBase = this.nuevoDetalle.cantidad * this.nuevoDetalle.precio_unitario;
+    
+    // 2. Calculamos cuánto es la ganancia según el porcentaje de utilidad
+    const porcentajeUtilidad = this.nuevoDetalle.utilidad / 100;
+    const ganancia = costoBase * porcentajeUtilidad;
+    
+    // 3. El Precio de Venta final (Total)
+    this.nuevoDetalle.precio_total = parseFloat((costoBase + ganancia).toFixed(2));
   }
 
   agregarDetalle(): void {
     if (!this.nuevoDetalle.descripcion) return;
     this.nuevaProforma.detalles.push({ ...this.nuevoDetalle });
     this.recalcularTotalGeneral();
-    this.nuevoDetalle = { cantidad: 1, descripcion: '', precio_unitario: 0, precio_total: 0 };
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
   }
 
   eliminarDetalle(index: number): void {
@@ -150,7 +197,6 @@ export class ProformasComponent implements OnInit {
     const payload = { ...this.nuevaProforma };
     if (payload.fecha_emision) payload.fecha_emision = new Date(payload.fecha_emision).toISOString().split('T')[0];
 
-    // 👇 EVALUAMOS SI ES ACTUALIZAR O CREAR 👇
     if (this.modoEdicion && this.idEditando) {
       this.proformaService.actualizarProforma(this.idEditando, payload).subscribe({
         next: () => {
@@ -177,16 +223,6 @@ export class ProformasComponent implements OnInit {
           this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 8000 });
         }
       });
-    }
-  }
-
-  seleccionarProductoCatalogo(idProducto: number): void {
-    const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
-    if (prod) {
-      this.nuevoDetalle.descripcion = prod.nombre;
-      // Nota: Si tus productos tienen un campo de precio_venta, podrías auto-completarlo aquí también:
-      // this.nuevoDetalle.precio_unitario = prod.precio_venta; 
-      // this.calcularTotalLinea();
     }
   }
 }

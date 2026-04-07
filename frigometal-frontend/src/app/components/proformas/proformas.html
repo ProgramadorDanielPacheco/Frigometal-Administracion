@@ -64,32 +64,60 @@
       </div>
 
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h4 style="margin-top: 0;">Detalle de Equipos</h4>
+        <h4 style="margin-top: 0;">Detalle de Equipos (Cálculo de Precios)</h4>
         
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <mat-form-field appearance="outline" style="width: 80px; margin-bottom: -1em;"><mat-label>Cant.</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.cantidad" (ngModelChange)="calcularTotalLinea()"></mat-form-field>
-          <mat-form-field appearance="outline" style="flex: 2; margin-bottom: -1em;">
+        <!-- 👇 NUEVA CUADRÍCULA CON UTILIDAD 👇 -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          
+          <mat-form-field appearance="outline" style="width: 70px; margin-bottom: -1em;">
+            <mat-label>Cant.</mat-label>
+            <input matInput type="number" [(ngModel)]="nuevoDetalle.cantidad" (ngModelChange)="calcularTotalLinea()">
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1em;">
             <mat-label>Seleccionar Producto</mat-label>
             <mat-select [(ngModel)]="nuevoDetalle.id_producto" (ngModelChange)="seleccionarProductoCatalogo($event)">
-              <mat-option *ngFor="let prod of productosCatalogo" [value]="prod.id_producto">
-                {{prod.nombre}}
-              </mat-option>
+              @for (prod of productosCatalogo; track prod.id_producto) {
+                <mat-option [value]="prod.id_producto">{{prod.nombre}}</mat-option>
+              }
             </mat-select>
           </mat-form-field>
-          <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1em;"><mat-label>V. Unit ($)</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()"></mat-form-field>
-          <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1em;"><mat-label>V. Total ($)</mat-label><input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" readonly></mat-form-field>
-          <button mat-raised-button color="accent" (click)="agregarDetalle()"><mat-icon>add</mat-icon></button>
+
+          <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1em;">
+            <mat-label>Costo ($)</mat-label>
+            <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()" matTooltip="Costo según Receta de Producción">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width: 90px; margin-bottom: -1em;">
+            <mat-label>Utilidad %</mat-label>
+            <input matInput type="number" [(ngModel)]="nuevoDetalle.utilidad" (ngModelChange)="calcularTotalLinea()">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width: 110px; margin-bottom: -1em; background-color: #e8f5e9; border-radius: 4px;">
+            <mat-label>P. Venta ($)</mat-label>
+            <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" readonly style="font-weight: bold; color: #2e7d32;">
+          </mat-form-field>
+
+          <button mat-raised-button color="accent" style="margin-bottom: -1em;" (click)="agregarDetalle()">
+            <mat-icon>add</mat-icon>
+          </button>
         </div>
 
         <div style="margin-top: 15px;">
           @for (d of nuevaProforma.detalles; track d; let i = $index) {
-            <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-bottom: 1px solid #ddd;">
-              <span><b>{{d.cantidad}}x</b> - {{d.descripcion}}</span>
-              <span><b>${{d.precio_total | number:'1.2-2'}}</b> <button mat-icon-button color="warn" (click)="eliminarDetalle(i)"><mat-icon>delete</mat-icon></button></span>
+            <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-bottom: 1px solid #ddd; align-items: center;">
+              <div>
+                <span style="font-weight: bold; font-size: 1.1em;">{{d.cantidad}}x</span> - {{d.descripcion}} 
+                <div style="color: gray; font-size: 0.85em; margin-top: 2px;">(Costo Receta: ${{d.precio_unitario}} c/u | Utilidad: {{d.utilidad}}%)</div>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 1.2em; color: #1976d2;"><b>${{d.precio_total | number:'1.2-2'}}</b></span> 
+                <button mat-icon-button color="warn" (click)="eliminarDetalle(i)"><mat-icon>delete</mat-icon></button>
+              </div>
             </div>
           }
         </div>
-        <h2 style="text-align: right; color: #2e7d32; margin-top: 10px;">TOTAL: ${{ nuevaProforma.precio_total | number:'1.2-2' }}</h2>
+        <h2 style="text-align: right; color: #2e7d32; margin-top: 15px; font-size: 1.8rem;">TOTAL: ${{ nuevaProforma.precio_total | number:'1.2-2' }}</h2>
       </div>
 
       <div style="display: flex; gap: 15px;">
