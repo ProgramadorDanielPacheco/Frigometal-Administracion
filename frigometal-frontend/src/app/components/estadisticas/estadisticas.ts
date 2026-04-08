@@ -274,64 +274,79 @@ export class EstadisticasComponent implements OnInit {
     });
 
     // ==========================================
-    // 5. GRÁFICO DE CUENTAS POR COBRAR (CONSOLIDADOS POR SEMANA)
+    // 5. GRÁFICO DE CUENTAS POR COBRAR (SALDOS HISTÓRICOS)
     // ==========================================
     this.kpiService.getCuentasCobrar().subscribe(datos => {
       this.historialCuentas = datos; this.buscarCuentasPorSemana();
       if (datos.length === 0) return;
 
-      // 👇 1. AGRUPAMOS POR SEMANA Y PERSONA PARA NO REPETIR BARRAS 👇
-      const movimientosPorSemanaPersona: { [key: string]: { semana: number, nombre: string, neto: number, meta: number } } = {};
+      // 👇 1. AGRUPAMOS POR SEMANA Y PERSONA PARA CONSOLIDAR LOS MOVIMIENTOS 👇
+      const movimientosSemanales: { [key: string]: { semana: number, nombre: string, neto: number, esCorreccion: boolean, valorCorreccion: number, meta: number } } = {};
 
       datos.forEach(d => {
         const nombreLimpio = d.nombre_persona.toUpperCase().trim();
         const key = `${d.semana}-${nombreLimpio}`;
         const monto = Number(d.monto);
 
-        if (!movimientosPorSemanaPersona[key]) {
-          movimientosPorSemanaPersona[key] = { semana: d.semana, nombre: d.nombre_persona, neto: 0, meta: Number(d.meta) };
+        if (!movimientosSemanales[key]) {
+          movimientosSemanales[key] = { semana: d.semana, nombre: d.nombre_persona, neto: 0, esCorreccion: false, valorCorreccion: 0, meta: Number(d.meta) };
         }
 
-        // Si es abono resta, si es deuda suma al total de ESE cliente en ESA semana
-        if (d.tipo_movimiento === 'Abono') {
-          movimientosPorSemanaPersona[key].neto -= monto;
+        // Si en la misma semana hay varios movimientos, los evaluamos:
+        if (d.tipo_movimiento === 'Correccion') {
+          movimientosSemanales[key].esCorreccion = true;
+          movimientosSemanales[key].valorCorreccion = monto;
+        } else if (d.tipo_movimiento === 'Abono') {
+          movimientosSemanales[key].neto -= monto;
         } else {
-          movimientosPorSemanaPersona[key].neto += monto;
+          // Deuda
+          movimientosSemanales[key].neto += monto;
         }
       });
 
-      // Convertimos el objeto agrupado en una lista ordenada por semana
-      const datosConsolidados = Object.values(movimientosPorSemanaPersona).sort((a, b) => a.semana - b.semana);
+      // 👇 2. ORDENAMOS CRONOLÓGICAMENTE PARA SIMULAR LA CALCULADORA 👇
+      const datosConsolidados = Object.values(movimientosSemanales).sort((a, b) => a.semana - b.semana);
 
-      // Creamos las etiquetas y montos con los datos ya fusionados
-      const labels = datosConsolidados.map(d => [`Sem ${d.semana}`, d.nombre]);
-      const montosArr = datosConsolidados.map(d => parseFloat(d.neto.toFixed(2)));
+      // 👇 3. CALCULAMOS EL SALDO ARRASTRADO (LA MAGIA) 👇
+      let saldosPorPersona: { [key: string]: number } = {};
+      const barrasParaGrafico: { label: string[], saldo: number, meta: number }[] = [];
+
+      datosConsolidados.forEach(mov => {
+        const nombre = mov.nombre.toUpperCase().trim();
+        
+        if (!saldosPorPersona[nombre]) {
+          saldosPorPersona[nombre] = 0;
+        }
+
+        // Aplicamos la matemática
+        if (mov.esCorreccion) {
+          saldosPorPersona[nombre] = mov.valorCorreccion; // Seteo exacto
+        } else {
+          saldosPorPersona[nombre] += mov.neto; // Suma (Deuda) o Resta (Abono)
+          if (saldosPorPersona[nombre] < 0) saldosPorPersona[nombre] = 0; // Evitamos saldos ilógicos
+        }
+
+        // Guardamos LA FOTO del saldo en esta semana para el gráfico
+        barrasParaGrafico.push({
+          label: [`Sem ${mov.semana}`, mov.nombre],
+          saldo: parseFloat(saldosPorPersona[nombre].toFixed(2)),
+          meta: mov.meta
+        });
+      });
+
+      // 👇 4. PREPARAMOS LOS DATOS PARA CHART.JS 👇
+      const labels = barrasParaGrafico.map(b => b.label);
+      const montosArr = barrasParaGrafico.map(b => b.saldo);
       const metaFija = datos.length > 0 ? datos[datos.length - 1].meta : 0;
 
-      const colores: string[] = datosConsolidados.map(d => {
-        if (d.neto < 0) return 'rgba(76, 175, 80, 0.8)'; // Si el neto es negativo (pagó más de lo que fió esa semana), Verde
-        if (d.neto > d.meta) return 'rgba(244, 67, 54, 0.8)'; // Si debe más que la meta, Rojo
-        if (d.neto === d.meta) return 'rgba(255, 193, 7, 0.8)'; // Al límite, Amarillo
-        return 'rgba(76, 175, 80, 0.8)'; // Deuda sana por debajo de la meta, Verde
+      const colores: string[] = barrasParaGrafico.map(b => {
+        if (b.saldo === 0) return 'rgba(158, 158, 158, 0.8)'; // Gris si la cuenta quedó en $0
+        if (b.saldo > b.meta) return 'rgba(244, 67, 54, 0.8)'; // Rojo
+        if (b.saldo === b.meta) return 'rgba(255, 193, 7, 0.8)'; // Amarillo
+        return 'rgba(76, 175, 80, 0.8)'; // Verde
       });
 
-      // 👇 2. CÁLCULO DE CARTERA VIVA GLOBAL (Se mantiene igual) 👇
-      let saldosPorPersona: { [key: string]: number } = {};
-
-      datos.forEach(d => {
-        const nombre = d.nombre_persona.toUpperCase().trim();
-        const monto = Number(d.monto);
-
-        if (!saldosPorPersona[nombre]) saldosPorPersona[nombre] = 0;
-
-        if (d.tipo_movimiento === 'Abono') {
-          saldosPorPersona[nombre] -= monto;
-          if (saldosPorPersona[nombre] < 0) saldosPorPersona[nombre] = 0; 
-        } else {
-          saldosPorPersona[nombre] += monto; 
-        }
-      });
-
+      // 👇 5. CARTERA VIVA GLOBAL (El acumulado real actual) 👇
       const acumuladoReal = Object.values(saldosPorPersona).reduce((a, b) => a + b, 0);
       const netoAcumulado = parseFloat(acumuladoReal.toFixed(2));
 
@@ -342,77 +357,19 @@ export class EstadisticasComponent implements OnInit {
       else if (netoAcumulado === metaFija) { colores.push('rgba(255, 193, 7, 1)'); } 
       else { colores.push('rgba(76, 175, 80, 1)'); }
 
-
+      // Dibujamos con el ancho dinámico
       const anchoCalculado = labels.length * 70;
-      // Si hay poquitos clientes, usa el 100% de la pantalla. Si hay muchos, usa el ancho calculado.
       this.anchoGraficoCuentas = anchoCalculado > 1000 ? `${anchoCalculado}px` : '100%';
-      if (this.graficoCuentas) this.graficoCuentas.destroy();
-      this.graficoCuentas = new Chart('canvasCuentas', {
-        type: 'bar', 
-        data: { labels, datasets: [{ label: 'Cuentas por Cobrar ($)', data: montosArr, backgroundColor: colores, borderColor: colores.map(c=>c.replace('0.8','1')), borderWidth: 2, barThickness: 'flex', maxBarThickness: 90 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, annotation: { annotations: { linea: { type: 'line', yMin: metaFija, yMax: metaFija, borderColor: '#333', borderWidth: 3, borderDash: [6,6], label: { content: `LÍMITE DEUDA: $${metaFija}`, display: true, position: 'start', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' } } } } } },
-        plugins: [this.textOnTopPlugin] 
-      });
-      // ==========================================
-      // 👇 NUEVO: GRÁFICO 6 - HISTORIAL DE ABONOS 👇
-      // ==========================================
-      const abonosAgrupados: { [key: string]: { semana: number, nombre: string, total: number } } = {};
-
-      // Filtramos SOLO los movimientos que sean 'Abono'
-      datos.filter(d => d.tipo_movimiento === 'Abono').forEach(d => {
-        const nombreLimpio = d.nombre_persona.toUpperCase().trim();
-        const key = `${d.semana}-${nombreLimpio}`;
-        const monto = Number(d.monto);
-
-        if (!abonosAgrupados[key]) {
-          abonosAgrupados[key] = { semana: d.semana, nombre: d.nombre_persona, total: 0 };
-        }
-        abonosAgrupados[key].total += monto; // Sumamos en positivo para ver la barra crecer hacia arriba
-      });
-
-      const datosAbonos = Object.values(abonosAgrupados).sort((a, b) => a.semana - b.semana);
-
-      const labelsAbonos = datosAbonos.map(d => [`Sem ${d.semana}`, d.nombre]);
-      const montosAbonos = datosAbonos.map(d => parseFloat(d.total.toFixed(2)));
       
-      // Todo en verde porque son ingresos reales a caja
-      const coloresAbonos = datosAbonos.map(d => 'rgba(76, 175, 80, 0.8)'); 
-
-      const acumuladoAbonos = parseFloat(datosAbonos.reduce((a, c) => a + c.total, 0).toFixed(2));
-
-      if (datosAbonos.length > 0) {
-        labelsAbonos.push(['ACUMULADO', 'TOTAL INGRESADO']);
-        montosAbonos.push(acumuladoAbonos);
-        coloresAbonos.push('rgba(76, 175, 80, 1)'); // Verde más fuerte para el acumulado
-      }
-
-      const anchoCalculadoAbonos = labelsAbonos.length * 70;
-      this.anchoGraficoAbonos = anchoCalculadoAbonos > 1000 ? `${anchoCalculadoAbonos}px` : '100%';
-
-      if (this.graficoAbonos) this.graficoAbonos.destroy();
-      this.graficoAbonos = new Chart('canvasAbonos', {
-        type: 'bar',
-        data: { 
-          labels: labelsAbonos, 
-          datasets: [{ 
-            label: 'Abonos Recibidos ($)', 
-            data: montosAbonos, 
-            backgroundColor: coloresAbonos, 
-            borderColor: coloresAbonos.map(c => c.replace('0.8', '1')), 
-            borderWidth: 2, 
-            barThickness: 'flex', 
-            maxBarThickness: 90 
-          }] 
-        },
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false, 
-          plugins: { 
-            legend: { display: false } 
-          } 
-        },
-        plugins: [this.textOnTopPlugin] 
-      });
+      setTimeout(() => {
+        if (this.graficoCuentas) this.graficoCuentas.destroy();
+        this.graficoCuentas = new Chart('canvasCuentas', {
+          type: 'bar', 
+          data: { labels, datasets: [{ label: 'Saldo Deuda ($)', data: montosArr, backgroundColor: colores, borderColor: colores.map(c=>c.replace('0.8','1')), borderWidth: 2, barThickness: 'flex', maxBarThickness: 90 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, annotation: { annotations: { linea: { type: 'line', yMin: metaFija, yMax: metaFija, borderColor: '#333', borderWidth: 3, borderDash: [6,6], label: { content: `LÍMITE DEUDA: $${metaFija}`, display: true, position: 'start', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' } } } } } },
+          plugins: [this.textOnTopPlugin] 
+        });
+      }, 0);
     });
   }
 
@@ -428,16 +385,75 @@ export class EstadisticasComponent implements OnInit {
     }); 
   }
 
+  // 👇 NUEVA FUNCIÓN: Calcula cuánto debe exactamente el cliente hasta HOY 👇
+  obtenerSaldoActualCliente(nombreCliente: string): number {
+    let saldo = 0;
+    const nombreLimpio = nombreCliente.toUpperCase().trim();
+    
+    // Ordenamos el historial para recorrerlo cronológicamente
+    const historialOrdenado = [...this.historialCuentas].sort((a, b) => a.semana - b.semana);
+
+    historialOrdenado.forEach(d => {
+      if (d.nombre_persona.toUpperCase().trim() === nombreLimpio) {
+        const monto = Number(d.monto);
+        if (d.tipo_movimiento === 'Correccion') {
+          saldo = monto; // Se sobreescribe
+        } else if (d.tipo_movimiento === 'Abono') {
+          saldo -= monto; // Se resta
+          if (saldo < 0) saldo = 0;
+        } else {
+          saldo += monto; // Se suma
+        }
+      }
+    });
+    
+    return saldo;
+  }
+
   guardarCuentas(): void { 
-    if(!this.formCuentas.nombre_persona) {
+    const nombre = this.formCuentas.nombre_persona.trim();
+    const montoIngresado = Number(this.formCuentas.monto);
+
+    if(!nombre) {
       this.snackBar.open(`⚠️ Ingresa el nombre del cliente`, 'OK', { duration: 3000 }); 
       return;
     }
-    
-    this.kpiService.guardarCuentasCobrar({ semana: this.semanaCuentas, anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
-      this.snackBar.open(`✅ Cuenta de ${this.formCuentas.nombre_persona} registrada`, 'OK', { duration: 3000 }); 
+
+    if (montoIngresado <= 0) {
+      this.snackBar.open(`⚠️ El monto debe ser mayor a 0`, 'OK', { duration: 3000 }); 
+      return;
+    }
+
+    // 1. Averiguamos cuánto debe este cliente en este momento
+    const saldoActual = this.obtenerSaldoActualCliente(nombre);
+
+    // ==========================================
+    // 👇 2. EL GUARDIA DE SEGURIDAD (VALIDACIONES) 👇
+    // ==========================================
+    if (this.formCuentas.tipo_movimiento === 'Deuda') {
       
-      // Limpiamos solo el nombre y el monto para que puedas registrar a otra persona rápido en la misma semana
+      // CASO 1: Intentan registrar exactamente lo mismo que ya debe (Semana 13 debe $15 -> Semana 14 registran $15 de nuevo)
+      if (saldoActual > 0 && montoIngresado === saldoActual) {
+        this.snackBar.open(`✋ ${nombre} ya debe $${saldoActual}. Si no sacó nada nuevo, NO registres nada. El sistema ya lo sabe.`, 'Entendido', { duration: 7000 });
+        return; // 🛑 Detenemos el guardado
+      }
+
+      // CASO 2: El cliente debía $100, pagó $50 y el usuario intenta registrar el saldo ($50) como una nueva Deuda.
+      if (saldoActual > 0 && montoIngresado < saldoActual) {
+         const mensaje = `⚠️ CUIDADO: ${nombre} ya debe $${saldoActual}.\n\nSi guardas esto como DEUDA, se sumará y deberá$${saldoActual + montoIngresado}.\n\n¿Su saldo REAL es $${montoIngresado}?\nSi es así, cancela esto y usa la opción "Corregir Total (=)".\n\n¿Deseas continuar y SUMARLOS de todas formas?`;
+         
+         const confirmacion = confirm(mensaje);
+         if (!confirmacion) {
+           return; // 🛑 Detenemos el guardado si el usuario se da cuenta de su error
+         }
+      }
+    }
+
+    // Si todo está correcto o el usuario confirmó la advertencia, guardamos en la Base de Datos
+    this.kpiService.guardarCuentasCobrar({ semana: this.semanaCuentas, anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
+      this.snackBar.open(`✅ Cuenta de ${nombre} registrada`, 'OK', { duration: 3000 }); 
+      
+      // Limpiamos solo el nombre y el monto
       this.formCuentas.nombre_persona = '';
       this.formCuentas.monto = 0;
       this.cargarGraficos(); 
