@@ -364,61 +364,129 @@ export class EstadisticasComponent implements OnInit {
         });
       }, 0);
 
+      
+
+      // 👇 NUEVO: GRÁFICO 6 - HISTORIAL DE ABONOS 👇
+
       // ==========================================
-      // 👇 PARTE B: GRÁFICO DE HISTORIAL DE ABONOS 👇
-      // ==========================================
+
       const abonosAgrupados: { [key: string]: { semana: number, nombre: string, total: number } } = {};
 
+
+
+      // Filtramos SOLO los movimientos que sean 'Abono'
+
       datos.filter(d => d.tipo_movimiento === 'Abono').forEach(d => {
+
         const nombreLimpio = d.nombre_persona.toUpperCase().trim();
+
         const key = `${d.semana}-${nombreLimpio}`;
+
         const monto = Number(d.monto);
 
+
+
         if (!abonosAgrupados[key]) {
+
           abonosAgrupados[key] = { semana: d.semana, nombre: d.nombre_persona, total: 0 };
+
         }
-        abonosAgrupados[key].total += monto; 
+
+        abonosAgrupados[key].total += monto; // Sumamos en positivo para ver la barra crecer hacia arriba
+
       });
+
+
 
       const datosAbonos = Object.values(abonosAgrupados).sort((a, b) => a.semana - b.semana);
 
+
+
       const labelsAbonos = datosAbonos.map(d => [`Sem ${d.semana}`, d.nombre]);
+
       const montosAbonos = datosAbonos.map(d => parseFloat(d.total.toFixed(2)));
-      const coloresAbonos = datosAbonos.map(d => 'rgba(76, 175, 80, 0.8)'); 
+
+     
+
+      // Todo en verde porque son ingresos reales a caja
+
+      const coloresAbonos = datosAbonos.map(d => 'rgba(76, 175, 80, 0.8)');
+
+
 
       const acumuladoAbonos = parseFloat(datosAbonos.reduce((a, c) => a + c.total, 0).toFixed(2));
 
+
+
       if (datosAbonos.length > 0) {
+
         labelsAbonos.push(['ACUMULADO', 'TOTAL INGRESADO']);
+
         montosAbonos.push(acumuladoAbonos);
-        coloresAbonos.push('rgba(76, 175, 80, 1)'); 
+
+        coloresAbonos.push('rgba(76, 175, 80, 1)'); // Verde más fuerte para el acumulado
+
       }
 
+
+
       const anchoCalculadoAbonos = labelsAbonos.length * 70;
+
       this.anchoGraficoAbonos = anchoCalculadoAbonos > 1000 ? `${anchoCalculadoAbonos}px` : '100%';
 
-      setTimeout(() => {
-        if (this.graficoAbonos) this.graficoAbonos.destroy();
-        this.graficoAbonos = new Chart('canvasAbonos', {
-          type: 'bar',
-          data: { 
-            labels: labelsAbonos, 
-            datasets: [{ 
-              label: 'Abonos Recibidos ($)', 
-              data: montosAbonos, 
-              backgroundColor: coloresAbonos, 
-              borderColor: coloresAbonos.map(c => c.replace('0.8', '1')), 
-              borderWidth: 2, 
-              barThickness: 'flex', 
-              maxBarThickness: 90 
-            }] 
-          },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
-          plugins: [this.textOnTopPlugin] 
-        });
-      }, 0);
+
+
+      if (this.graficoAbonos) this.graficoAbonos.destroy();
+
+      this.graficoAbonos = new Chart('canvasAbonos', {
+
+        type: 'bar',
+
+        data: {
+
+          labels: labelsAbonos,
+
+          datasets: [{
+
+            label: 'Abonos Recibidos ($)',
+
+            data: montosAbonos,
+
+            backgroundColor: coloresAbonos,
+
+            borderColor: coloresAbonos.map(c => c.replace('0.8', '1')),
+
+            borderWidth: 2,
+
+            barThickness: 'flex',
+
+            maxBarThickness: 90
+
+          }]
+
+        },
+
+        options: {
+
+          responsive: true,
+
+          maintainAspectRatio: false,
+
+          plugins: {
+
+            legend: { display: false }
+
+          }
+
+        },
+
+        plugins: [this.textOnTopPlugin]
+
+      });
 
     });
+
+  
   }
 
   // MÉTODOS DE GUARDADO
