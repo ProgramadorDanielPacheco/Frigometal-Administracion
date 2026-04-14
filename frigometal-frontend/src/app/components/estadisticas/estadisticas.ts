@@ -330,12 +330,16 @@ export class EstadisticasComponent implements OnInit {
         });
       });
 
-      const labels = barrasParaGrafico.map(b => b.label);
-      const montosArr = barrasParaGrafico.map(b => b.saldo);
+      // 👇 LA MAGIA: Filtramos y nos quedamos SOLO con las deudas vivas (saldo > 0) 👇
+      const barrasActivas = barrasParaGrafico.filter(b => b.saldo > 0);
+
+      // Usamos el arreglo filtrado ('barrasActivas') para extraer las etiquetas y montos
+      const labels = barrasActivas.map(b => b.label);
+      const montosArr = barrasActivas.map(b => b.saldo);
       const metaFija = datos.length > 0 ? datos[datos.length - 1].meta : 0;
 
-      const colores: string[] = barrasParaGrafico.map(b => {
-        if (b.saldo === 0) return 'rgba(158, 158, 158, 0.8)'; 
+      const colores: string[] = barrasActivas.map(b => {
+        // Ya no necesitamos la condición del saldo 0 porque fueron eliminadas
         if (b.saldo > b.meta) return 'rgba(244, 67, 54, 0.8)'; 
         if (b.saldo === b.meta) return 'rgba(255, 193, 7, 0.8)'; 
         return 'rgba(76, 175, 80, 0.8)'; 

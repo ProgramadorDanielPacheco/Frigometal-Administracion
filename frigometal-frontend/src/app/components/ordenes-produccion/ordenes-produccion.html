@@ -290,111 +290,106 @@
     </mat-card>
   }
 
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+  <div class="mat-elevation-z8" style="width: 100%; overflow-x: auto; border-radius: 8px; background-color: white;">
     
-    <ng-container matColumnDef="numero_op">
-      <th mat-header-cell *matHeaderCellDef> Nº OP </th>
-      <td mat-cell *matCellDef="let orden" style="font-weight: bold;"> {{orden.numero_op}} </td>
-    </ng-container>
+    <table mat-table [dataSource]="dataSource" style="width: 100%; min-width: 1400px;">
+      
+      <ng-container matColumnDef="numero_op">
+        <th mat-header-cell *matHeaderCellDef> Nº OP </th>
+        <td mat-cell *matCellDef="let orden" style="font-weight: bold;"> {{orden.numero_op}} </td>
+      </ng-container>
 
-    <ng-container matColumnDef="cliente">
-      <th mat-header-cell *matHeaderCellDef> Cliente </th>
-      <td mat-cell *matCellDef="let orden"> {{orden.cliente_nombre}} </td>
-    </ng-container>
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef> Cliente </th>
+        <td mat-cell *matCellDef="let orden"> {{orden.cliente_nombre}} </td>
+      </ng-container>
 
-    <ng-container matColumnDef="fecha_entrega">
-      <th mat-header-cell *matHeaderCellDef> Fecha Entrega </th>
-      <td mat-cell *matCellDef="let orden"> {{orden.fecha_entrega || 'N/A'}} </td>
-    </ng-container>
+      <ng-container matColumnDef="fecha_entrega">
+        <th mat-header-cell *matHeaderCellDef> Fecha Entrega </th>
+        <td mat-cell *matCellDef="let orden"> {{orden.fecha_entrega || 'N/A'}} </td>
+      </ng-container>
 
-    <ng-container matColumnDef="costo_teorico">
-        <th mat-header-cell *matHeaderCellDef> Desglose Teórico </th>
-        <td mat-cell *matCellDef="let orden" style="color: gray; font-size: 0.85em; padding: 10px 5px;">
-          <!-- Lista de productos -->
-          <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
-            {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="color: #555;">${{ calcularCostoTeoricoEquipo(eq) | number:'1.2-2' }}</strong>
-          </div>
-         
+      <ng-container matColumnDef="costo_teorico">
+          <th mat-header-cell *matHeaderCellDef> Desglose Teórico </th>
+          <td mat-cell *matCellDef="let orden" style="color: gray; font-size: 0.85em; padding: 10px 5px;">
+            <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
+              {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="color: #555;">${{ calcularCostoTeoricoEquipo(eq) | number:'1.2-2' }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="costo_real">
+          <th mat-header-cell *matHeaderCellDef> Desglose Real </th>
+          <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px;">
+            <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;"
+                 [ngStyle]="{'color': calcularCostoRealEquipo(eq) > calcularCostoTeoricoEquipo(eq) ? '#d32f2f' : '#2e7d32'}">
+              {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="font-weight: 800;">${{ calcularCostoRealEquipo(eq) | number:'1.2-2' }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+      <ng-container matColumnDef="precio">
+        <th mat-header-cell *matHeaderCellDef> Precio Total </th>
+        <td mat-cell *matCellDef="let orden"> ${{orden.precio_total | number:'1.2-2'}} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tiempo_taller">
+          <th mat-header-cell *matHeaderCellDef> Tiempo Invertido </th>
+          <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px; color: #1565c0; background-color: #f5f9ff;">
+            
+            <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
+              {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: 
+              <strong>
+                <mat-icon style="vertical-align: middle; font-size: 14px; width: 14px; height: 14px;">schedule</mat-icon> 
+                {{ calcularTiempoEquipo(eq) }}
+              </strong>
+            </div>
+            
+            <div style="border-top: 1px solid #90caf9; margin-top: 6px; padding-top: 6px; font-size: 1.1em; font-weight: bold;">
+              Total OP: 
+              <mat-icon style="vertical-align: middle; font-size: 16px; width: 16px; height: 16px;">schedule</mat-icon> 
+              {{ calcularTiempoTotalOP(orden) }}
+            </div>
+            
+          </td>
+        </ng-container>
+
+      <ng-container matColumnDef="saldo">
+        <th mat-header-cell *matHeaderCellDef> Saldo Pendiente </th>
+        <td mat-cell *matCellDef="let orden">
+          <span [style.color]="orden.saldo > 0 ? '#c62828' : '#2e7d32'" style="font-weight: 500;">
+            ${{orden.saldo | number:'1.2-2'}}
+          </span>
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="costo_real">
-        <th mat-header-cell *matHeaderCellDef> Desglose Real </th>
-        <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px;">
-          <!-- Lista de productos con color dinámico -->
-          <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;"
-               [ngStyle]="{'color': calcularCostoRealEquipo(eq) > calcularCostoTeoricoEquipo(eq) ? '#d32f2f' : '#2e7d32'}">
-            {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="font-weight: 800;">${{ calcularCostoRealEquipo(eq) | number:'1.2-2' }}</strong>
-          </div>
-         
-      </ng-container>
+      <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
+          <td mat-cell *matCellDef="let orden" style="text-align: right;">
+            
+            <button mat-icon-button color="primary" (click)="editarOrden(orden)" title="Editar Orden">
+              <mat-icon>edit</mat-icon>
+            </button>
+            
+            <button mat-icon-button color="warn" *ngIf="!orden.finalizada" (click)="finalizarOrden(orden)" title="Finalizar OP y Bloquear Productos">
+              <mat-icon>gavel</mat-icon>
+            </button>
+            
+            <mat-icon *ngIf="orden.finalizada" style="color: #2e7d32; margin-left: 10px; vertical-align: middle;" title="Productos Bloqueados">lock</mat-icon>
+            
+          </td>
+        </ng-container>
 
+      <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" colspan="6" style="text-align: center; padding: 20px; color: gray;">
+          No hay órdenes de producción registradas.
+        </td>
+      </tr>
+    </table>
     
-
-    <ng-container matColumnDef="precio">
-      <th mat-header-cell *matHeaderCellDef> Precio Total </th>
-      <td mat-cell *matCellDef="let orden"> ${{orden.precio_total | number:'1.2-2'}} </td>
-    </ng-container>
-
-    <ng-container matColumnDef="tiempo_taller">
-        <th mat-header-cell *matHeaderCellDef> Tiempo Invertido </th>
-        <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px; color: #1565c0; background-color: #f5f9ff;">
-          
-          <!-- Lista de tiempos desglosados por equipo -->
-          <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
-            {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: 
-            <strong>
-              <mat-icon style="vertical-align: middle; font-size: 14px; width: 14px; height: 14px;">schedule</mat-icon> 
-              {{ calcularTiempoEquipo(eq) }}
-            </strong>
-          </div>
-          
-          <!-- Gran Total de tiempo de toda la OP -->
-          <div style="border-top: 1px solid #90caf9; margin-top: 6px; padding-top: 6px; font-size: 1.1em; font-weight: bold;">
-            Total OP: 
-            <mat-icon style="vertical-align: middle; font-size: 16px; width: 16px; height: 16px;">schedule</mat-icon> 
-            {{ calcularTiempoTotalOP(orden) }}
-          </div>
-          
-        </td>
-      </ng-container>
-
-    <ng-container matColumnDef="saldo">
-      <th mat-header-cell *matHeaderCellDef> Saldo Pendiente </th>
-      <td mat-cell *matCellDef="let orden">
-        <span [style.color]="orden.saldo > 0 ? '#c62828' : '#2e7d32'" style="font-weight: 500;">
-          ${{orden.saldo | number:'1.2-2'}}
-        </span>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
-        <td mat-cell *matCellDef="let orden" style="text-align: right;">
-          
-          <button mat-icon-button color="primary" (click)="editarOrden(orden)" title="Editar Orden">
-            <mat-icon>edit</mat-icon>
-          </button>
-          
-          <!-- Si NO está finalizada, mostramos el botón para finalizarla -->
-          <button mat-icon-button color="warn" *ngIf="!orden.finalizada" (click)="finalizarOrden(orden)" title="Finalizar OP y Bloquear Productos">
-            <mat-icon>gavel</mat-icon>
-          </button>
-          
-          <!-- Si YA está finalizada, mostramos un candado verde de seguridad -->
-          <mat-icon *ngIf="orden.finalizada" style="color: #2e7d32; margin-left: 10px; vertical-align: middle;" title="Productos Bloqueados">lock</mat-icon>
-          
-        </td>
-      </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
-    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
-
-    <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="6" style="text-align: center; padding: 20px; color: gray;">
-        No hay órdenes de producción registradas.
-      </td>
-    </tr>
-  </table>
+  </div>
 
 </div>
