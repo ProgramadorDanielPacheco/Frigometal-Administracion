@@ -535,7 +535,7 @@ export class EstadisticasComponent implements OnInit {
       return;
     }
 
-    if (montoIngresado <= 0) {
+    if (montoIngresado < 0) {
       this.snackBar.open(`⚠️ El monto debe ser mayor a 0`, 'OK', { duration: 3000 }); 
       return;
     }
