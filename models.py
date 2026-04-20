@@ -38,6 +38,7 @@ class Producto(Base):
     nombre = Column(String(150), nullable=False)
     es_estandar = Column(Boolean, default=True)
     tiempo_fabricacion_horas = Column(Numeric(5, 2), nullable=False)
+    parametro = Column(String(50000), nullable=True)
 
 class Material(Base):
     __tablename__ = "materiales"

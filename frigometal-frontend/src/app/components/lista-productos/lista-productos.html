@@ -69,6 +69,11 @@
           </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Parámetros Adicionales / Especificaciones Técnicas</mat-label>
+          <textarea matInput rows="3" [(ngModel)]="nuevoProducto.parametro" placeholder="Ej: Chapa de acero 304, patas regulables, incluye bisagras reforzadas..."></textarea>
+        </mat-form-field>
+
       </mat-card-content>
 
       <mat-card-actions align="end" style="padding: 15px;">

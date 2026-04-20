@@ -7,6 +7,7 @@ export interface Producto {
   nombre: string;
   tiempo_fabricacion_horas: number;
   es_estandar: boolean;
+  parametro?: string;
 }
 
 @Injectable({ providedIn: 'root' })

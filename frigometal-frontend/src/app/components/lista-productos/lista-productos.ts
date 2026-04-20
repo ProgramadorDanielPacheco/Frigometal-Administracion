@@ -19,6 +19,8 @@ import { Material, MaterialService } from '../../services/material';
 import { RecetaDetalle, RecetaService } from '../../services/receta';
 import { ReportesService } from '../../services/reportes';
 import { MatMenuModule } from '@angular/material/menu';
+// Agrégalo junto a tus otros imports
+import { OrdenProduccionService } from '../../services/orden-produccion';
 
 @Component({
   selector: 'app-lista-productos',
@@ -41,7 +43,7 @@ export class ListaProductos implements OnInit {
 
   modoEdicion: boolean = false;
   idProductoEditando: number | null = null;
-  nuevoProducto: Producto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true };
+  nuevoProducto: Producto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '' };
 
   // === VARIABLES PARA LA RECETA ===
   productoSeleccionado: Producto | null = null;
@@ -56,6 +58,7 @@ export class ListaProductos implements OnInit {
 
   idEditandoReceta: number | null = null;
   cantidadEditada: number = 0;
+  ultimaOPDetectada: number = 1;
 
   constructor(
     private productoService: ProductoService,
@@ -63,6 +66,7 @@ export class ListaProductos implements OnInit {
     private reportesService: ReportesService,
     private recetaService: RecetaService,
     private snackBar: MatSnackBar,
+    private ordenService: OrdenProduccionService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -71,6 +75,19 @@ export class ListaProductos implements OnInit {
     // Cargamos los materiales de la bodega una sola vez para el menú desplegable
     this.materialService.getMateriales().subscribe(datos => this.materialesBodega = datos);
     this.cargarMaterialesBodega();
+    this.ordenService.getOrdenes().subscribe(ordenes => {
+      let maxOP = 0;
+      ordenes.forEach((orden: any) => {
+        if (orden.equipos) {
+          orden.equipos.forEach((equipo: any) => {
+            const op = Number(equipo.orden_produccion) || 0;
+            if (op > maxOP) maxOP = op;
+          });
+        }
+      });
+      // Guardamos la última OP encontrada (o 1 si está vacío)
+      this.ultimaOPDetectada = maxOP > 0 ? maxOP : 1;
+    });
   }
 
   cargarProductos(): void {
@@ -153,7 +170,8 @@ export class ListaProductos implements OnInit {
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idProductoEditando = null;
-    this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true };
+    // 👇 También añádelo aquí 👇
+    this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '' };
   }
 
   // 👇 NUEVAS FUNCIONES PARA LA RECETA 👇
@@ -396,8 +414,8 @@ calcularCostoTotalReceta(): number {
     });
   }
 
-  // ==========================================
-  // 👇 NUEVA FUNCIÓN: IMPRIMIR RECETA TÉCNICA 👇
+ // ==========================================
+  // 👇 FUNCIÓN ACTUALIZADA: IMPRIMIR RECETA TÉCNICA 👇
   // ==========================================
   imprimirReceta(): void {
     if (!this.productoSeleccionado || this.recetaActual.length === 0) {
@@ -405,9 +423,20 @@ calcularCostoTotalReceta(): number {
       return;
     }
 
+    // 👇 1. EL CUADRO DE PREGUNTA AL USUARIO 👇
+    const opSeleccionada = window.prompt(
+      '🖨️ Ingrese el Número de OP (Máquina) para imprimir en esta receta:', 
+      this.ultimaOPDetectada.toString()
+    );
+
+    // Si el usuario presiona "Cancelar" o cierra la ventanita, detenemos la impresión
+    if (opSeleccionada === null) return; 
+
+    // Limpiamos el texto por si dejaron espacios en blanco
+    const numeroOP = opSeleccionada.trim() || 'S/N';
+
+    // 2. Armamos las filas de los materiales
     let filasMateriales = '';
-    
-    // Armamos las filas de la tabla leyendo los datos calculados en pantalla
     this.recetaActual.forEach(item => {
       const nombreMat = this.obtenerNombreMaterial(item.id_material);
       const unidad = this.obtenerUnidadMedida(item.id_material);
@@ -430,19 +459,23 @@ calcularCostoTotalReceta(): number {
     const tiempoFab = this.productoSeleccionado.tiempo_fabricacion_horas;
     const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
 
+    // 3. Generamos el PDF
     const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
     if (ventanaImpresion) {
       ventanaImpresion.document.write(`
         <html>
           <head>
-            <title>Receta Técnica - ${nombreProducto}</title>
+            <title>Receta Técnica OP-${numeroOP} - ${nombreProducto}</title>
             <style>
               body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; margin: 0; }
-              .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
               .header img { height: 60px; }
               .header-text { text-align: right; }
               .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
               .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
+              
+              /* 👇 ESTILO PARA EL NÚMERO DE OP 👇 */
+              .numero-op { color: #d32f2f; font-size: 24px; font-weight: 900; margin: 5px 0; display: block; }
               
               .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
               .product-info h2 { margin: 0 0 10px 0; color: #2e7d32; font-size: 18px; text-transform: uppercase; }
@@ -466,8 +499,9 @@ calcularCostoTotalReceta(): number {
               <img src="/logo.png" alt="Frigo Metal" onerror="this.style.display='none'">
               <div class="header-text">
                 <h1>FRIGO METAL</h1>
-                <p>Reporte de Receta Técnica y Costos de Producción</p>
-                <p><b>Fecha de Impresión:</b> ${new Date().toLocaleDateString('es-ES')}</p>
+                <span class="numero-op">OP N° ${numeroOP}</span>
+                <p>Reporte de Receta Técnica y Costos</p>
+                <p><b>Fecha:</b> ${new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
 

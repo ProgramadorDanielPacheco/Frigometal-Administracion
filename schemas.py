@@ -69,6 +69,7 @@ class ProductoBase(BaseModel):
     nombre: str
     es_estandar: Optional[bool] = True
     tiempo_fabricacion_horas: Decimal
+    parametro: Optional[str] = None
 
 class ProductoCreate(ProductoBase):
     pass
@@ -83,6 +84,7 @@ class ProductoUpdate(BaseModel):
     nombre: Optional[str] = None
     es_estandar: Optional[bool] = None
     tiempo_fabricacion_horas: Optional[Decimal] = None
+    parametro: Optional[str] = None
 
 class MaterialBase(BaseModel):
     nombre: str
