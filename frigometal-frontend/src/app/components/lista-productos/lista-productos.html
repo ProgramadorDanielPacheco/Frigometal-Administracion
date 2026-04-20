@@ -134,14 +134,21 @@
         <p style="margin: 0; color: gray;">Configuración de costos y materiales de producción.</p>
       </div>
       
-      <div style="background: #e8f5e9; padding: 10px 25px; border-radius: 8px; border: 1px solid #2e7d32; text-align: right;">
-        <span style="color: #2e7d32; font-size: 0.9em; font-weight: 500; display: block; text-transform: uppercase;">Costo Total de Producción</span>
-        <strong style="color: #1b5e20; font-size: 1.8em;">${{ calcularCostoTotalReceta() | number:'1.2-2' }}</strong>
-      </div>
+      <div style="display: flex; gap: 15px; align-items: center;">
+        
+        <button mat-stroked-button color="primary" (click)="imprimirReceta()" title="Imprimir PDF de la Receta" style="border-color: #1976d2; font-weight: bold;">
+          <mat-icon>print</mat-icon> Imprimir Receta
+        </button>
 
-      <button mat-icon-button color="warn" (click)="cerrarReceta()" title="Cerrar Panel">
-        <mat-icon>close</mat-icon>
-      </button>
+        <div style="background: #e8f5e9; padding: 10px 25px; border-radius: 8px; border: 1px solid #2e7d32; text-align: right;">
+          <span style="color: #2e7d32; font-size: 0.9em; font-weight: 500; display: block; text-transform: uppercase;">Costo Total de Producción</span>
+          <strong style="color: #1b5e20; font-size: 1.8em;">${{ calcularCostoTotalReceta() | number:'1.2-2' }}</strong>
+        </div>
+
+        <button mat-icon-button color="warn" (click)="cerrarReceta()" title="Cerrar Panel">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
     </div>
 
     <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap;">

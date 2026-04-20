@@ -395,4 +395,120 @@ calcularCostoTotalReceta(): number {
       error: (err) => this.snackBar.open('❌ Error al actualizar', 'Cerrar', { duration: 3000 })
     });
   }
+
+  // ==========================================
+  // 👇 NUEVA FUNCIÓN: IMPRIMIR RECETA TÉCNICA 👇
+  // ==========================================
+  imprimirReceta(): void {
+    if (!this.productoSeleccionado || this.recetaActual.length === 0) {
+      this.snackBar.open('⚠️ No hay materiales en la receta para imprimir', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    let filasMateriales = '';
+    
+    // Armamos las filas de la tabla leyendo los datos calculados en pantalla
+    this.recetaActual.forEach(item => {
+      const nombreMat = this.obtenerNombreMaterial(item.id_material);
+      const unidad = this.obtenerUnidadMedida(item.id_material);
+      const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
+      const precioUnitario = this.obtenerPrecioMaterial(item.id_material);
+      const subtotal = this.calcularSubtotal(item);
+
+      filasMateriales += `
+        <tr>
+          <td style="text-align: left; padding: 8px; border: 1px solid #ccc;">${nombreMat}</td>
+          <td style="text-align: center; padding: 8px; border: 1px solid #ccc;">${cantidad} ${unidad}</td>
+          <td style="text-align: right; padding: 8px; border: 1px solid #ccc;">$${precioUnitario.toFixed(2)}</td>
+          <td style="text-align: right; font-weight: bold; padding: 8px; border: 1px solid #ccc; color: #2e7d32;">$${subtotal.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    const costoTotal = this.calcularCostoTotalReceta().toFixed(2);
+    const nombreProducto = this.productoSeleccionado.nombre;
+    const tiempoFab = this.productoSeleccionado.tiempo_fabricacion_horas;
+    const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
+
+    const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
+    if (ventanaImpresion) {
+      ventanaImpresion.document.write(`
+        <html>
+          <head>
+            <title>Receta Técnica - ${nombreProducto}</title>
+            <style>
+              body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; margin: 0; }
+              .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
+              .header img { height: 60px; }
+              .header-text { text-align: right; }
+              .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
+              .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
+              
+              .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+              .product-info h2 { margin: 0 0 10px 0; color: #2e7d32; font-size: 18px; text-transform: uppercase; }
+              .product-info p { margin: 3px 0; font-size: 14px; }
+              
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+              th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 14px; }
+              tr:nth-child(even) { background-color: #f2f2f2; }
+              
+              .total-box { float: right; border: 2px solid #2e7d32; border-radius: 8px; padding: 15px 25px; background-color: #e8f5e9; text-align: right; }
+              .total-box span { font-size: 12px; color: #555; text-transform: uppercase; display: block; margin-bottom: 5px; font-weight: bold; }
+              .total-box strong { font-size: 24px; color: #1b5e20; }
+
+              @media print {
+                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <img src="/logo.png" alt="Frigo Metal" onerror="this.style.display='none'">
+              <div class="header-text">
+                <h1>FRIGO METAL</h1>
+                <p>Reporte de Receta Técnica y Costos de Producción</p>
+                <p><b>Fecha de Impresión:</b> ${new Date().toLocaleDateString('es-ES')}</p>
+              </div>
+            </div>
+
+            <div class="product-info">
+              <h2>${nombreProducto}</h2>
+              <p><b>Tiempo de Fabricación:</b> ${tiempoFab} horas</p>
+              <p><b>Clasificación:</b> ${tipoProd}</p>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 50%;">MATERIAL REQUERIDO</th>
+                  <th style="width: 15%;">CANTIDAD</th>
+                  <th style="width: 15%;">COSTO UNIT.</th>
+                  <th style="width: 20%;">SUBTOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filasMateriales}
+              </tbody>
+            </table>
+
+            <div class="total-box">
+              <span>Costo Total de Producción</span>
+              <strong>$ ${costoTotal}</strong>
+            </div>
+
+            <div style="clear: both; margin-top: 60px; font-size: 11px; color: gray; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
+              Documento interno de uso exclusivo para el área de producción y bodega.
+            </div>
+
+            <script>
+              window.onload = function() {
+                setTimeout(function() { window.print(); window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      ventanaImpresion.document.close();
+    }
+  }
 }
