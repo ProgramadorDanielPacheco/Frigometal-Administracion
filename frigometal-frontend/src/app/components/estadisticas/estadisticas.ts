@@ -280,81 +280,71 @@ export class EstadisticasComponent implements OnInit {
       this.historialCuentas = datos; this.buscarCuentasPorSemana();
       if (datos.length === 0) return;
 
+     // ==========================================
+      // 👇 PARTE A: GRÁFICO DE DEUDA VIVA (PIZARRA ACTUALIZADA) 👇
       // ==========================================
-      // 👇 PARTE A: GRÁFICO DE DEUDA VIVA (LA FOTOGRAFÍA) 👇
-      // ==========================================
-      const movimientosSemanales: { [key: string]: { semana: number, nombre: string, neto: number, esCorreccion: boolean, valorCorreccion: number, meta: number } } = {};
+      let saldosPorPersona: { [key: string]: { saldo: number, meta: number, ultimaSemana: number } } = {};
+      let metaGlobalFija = datos.length > 0 ? Number(datos[datos.length - 1].meta) : 0;
 
-      datos.forEach(d => {
-        const nombreLimpio = d.nombre_persona.toUpperCase().trim();
-        const key = `${d.semana}-${nombreLimpio}`;
+      // Ordenamos para procesar la historia correctamente
+      const historialOrdenado = [...datos].sort((a, b) => a.semana - b.semana);
+
+      // 1. Calculamos el saldo final exacto de cada cliente
+      historialOrdenado.forEach(d => {
+        const nombre = d.nombre_persona.toUpperCase().trim();
         const monto = Number(d.monto);
 
-        if (!movimientosSemanales[key]) {
-          movimientosSemanales[key] = { semana: d.semana, nombre: d.nombre_persona, neto: 0, esCorreccion: false, valorCorreccion: 0, meta: Number(d.meta) };
+        if (!saldosPorPersona[nombre]) {
+          saldosPorPersona[nombre] = { saldo: 0, meta: Number(d.meta), ultimaSemana: d.semana };
         }
 
         if (d.tipo_movimiento === 'Correccion') {
-          movimientosSemanales[key].esCorreccion = true;
-          movimientosSemanales[key].valorCorreccion = monto;
+          saldosPorPersona[nombre].saldo = monto;
         } else if (d.tipo_movimiento === 'Abono') {
-          movimientosSemanales[key].neto -= monto;
+          saldosPorPersona[nombre].saldo -= monto;
+          if (saldosPorPersona[nombre].saldo < 0) saldosPorPersona[nombre].saldo = 0;
         } else {
-          movimientosSemanales[key].neto += monto;
+          saldosPorPersona[nombre].saldo += monto;
         }
-      });
-
-      const datosConsolidados = Object.values(movimientosSemanales).sort((a, b) => a.semana - b.semana);
-
-      let saldosPorPersona: { [key: string]: number } = {};
-      const barrasParaGrafico: { label: string[], saldo: number, meta: number }[] = [];
-
-      datosConsolidados.forEach(mov => {
-        const nombre = mov.nombre.toUpperCase().trim();
         
-        if (!saldosPorPersona[nombre]) {
-          saldosPorPersona[nombre] = 0;
-        }
-
-        if (mov.esCorreccion) {
-          saldosPorPersona[nombre] = mov.valorCorreccion; 
-        } else {
-          saldosPorPersona[nombre] += mov.neto; 
-          if (saldosPorPersona[nombre] < 0) saldosPorPersona[nombre] = 0; 
-        }
-
-        barrasParaGrafico.push({
-          label: [`Sem ${mov.semana}`, mov.nombre],
-          saldo: parseFloat(saldosPorPersona[nombre].toFixed(2)),
-          meta: mov.meta
-        });
+        // Mantenemos la meta actualizada a la última que se haya ingresado
+        saldosPorPersona[nombre].meta = Number(d.meta);
+        saldosPorPersona[nombre].ultimaSemana = d.semana; // Guardamos en qué semana fue su último movimiento
       });
 
-      // 👇 LA MAGIA: Filtramos y nos quedamos SOLO con las deudas vivas (saldo > 0) 👇
-      const barrasActivas = barrasParaGrafico.filter(b => b.saldo > 0);
+      // 2. Filtramos: SOLO los que realmente deben plata HOY (> 0)
+      const clientesConDeuda = Object.entries(saldosPorPersona)
+        .filter(([nombre, datos]) => datos.saldo > 0)
+        .map(([nombre, datos]) => ({
+           nombre: nombre,
+           saldo: parseFloat(datos.saldo.toFixed(2)),
+           meta: datos.meta,
+           ultimaSemana: datos.ultimaSemana
+        }));
 
-      // Usamos el arreglo filtrado ('barrasActivas') para extraer las etiquetas y montos
-      const labels = barrasActivas.map(b => b.label);
-      const montosArr = barrasActivas.map(b => b.saldo);
-      const metaFija = datos.length > 0 ? datos[datos.length - 1].meta : 0;
-
-      const colores: string[] = barrasActivas.map(b => {
-        // Ya no necesitamos la condición del saldo 0 porque fueron eliminadas
-        if (b.saldo > b.meta) return 'rgba(244, 67, 54, 0.8)'; 
-        if (b.saldo === b.meta) return 'rgba(255, 193, 7, 0.8)'; 
-        return 'rgba(76, 175, 80, 0.8)'; 
+      // 3. Preparamos las etiquetas, montos y colores para el gráfico
+      const labels = clientesConDeuda.map(c => [`Sem ${c.ultimaSemana}`, c.nombre]); // Mostramos en qué semana fue su último movimiento
+      const montosArr = clientesConDeuda.map(c => c.saldo);
+      
+      const colores: string[] = clientesConDeuda.map(c => {
+        if (c.saldo > c.meta) return 'rgba(244, 67, 54, 0.8)'; // Superó la meta (Rojo)
+        if (c.saldo === c.meta) return 'rgba(255, 193, 7, 0.8)'; // Al límite (Amarillo)
+        return 'rgba(76, 175, 80, 0.8)'; // Bien (Verde)
       });
 
-      const acumuladoReal = Object.values(saldosPorPersona).reduce((a, b) => a + b, 0);
+      // 4. Calculamos la Cartera Viva Global (La suma de lo que todos deben hoy)
+      const acumuladoReal = clientesConDeuda.reduce((sum, c) => sum + c.saldo, 0);
       const netoAcumulado = parseFloat(acumuladoReal.toFixed(2));
 
+      // Añadimos la columna del gran total al final
       labels.push(['ACUMULADO', 'DEUDA VIVA']);
       montosArr.push(netoAcumulado);
       
-      if (netoAcumulado > metaFija) { colores.push('rgba(244, 67, 54, 1)'); } 
-      else if (netoAcumulado === metaFija) { colores.push('rgba(255, 193, 7, 1)'); } 
+      if (netoAcumulado > metaGlobalFija) { colores.push('rgba(244, 67, 54, 1)'); } 
+      else if (netoAcumulado === metaGlobalFija) { colores.push('rgba(255, 193, 7, 1)'); } 
       else { colores.push('rgba(76, 175, 80, 1)'); }
 
+      // 5. Dibujamos el gráfico con el ancho dinámico
       const anchoCalculado = labels.length * 70;
       this.anchoGraficoCuentas = anchoCalculado > 1000 ? `${anchoCalculado}px` : '100%';
       
@@ -362,12 +352,41 @@ export class EstadisticasComponent implements OnInit {
         if (this.graficoCuentas) this.graficoCuentas.destroy();
         this.graficoCuentas = new Chart('canvasCuentas', {
           type: 'bar', 
-          data: { labels, datasets: [{ label: 'Saldo Deuda ($)', data: montosArr, backgroundColor: colores, borderColor: colores.map(c=>c.replace('0.8','1')), borderWidth: 2, barThickness: 'flex', maxBarThickness: 90 }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, annotation: { annotations: { linea: { type: 'line', yMin: metaFija, yMax: metaFija, borderColor: '#333', borderWidth: 3, borderDash: [6,6], label: { content: `LÍMITE DEUDA: $${metaFija}`, display: true, position: 'start', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' } } } } } },
+          data: { 
+            labels, 
+            datasets: [{ 
+              label: 'Deuda Actual ($)', 
+              data: montosArr, 
+              backgroundColor: colores, 
+              borderColor: colores.map(c=>c.replace('0.8','1')), 
+              borderWidth: 2, 
+              barThickness: 'flex', 
+              maxBarThickness: 90 
+            }] 
+          },
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+              legend: { display: false }, 
+              annotation: { 
+                annotations: { 
+                  linea: { 
+                    type: 'line', 
+                    yMin: metaGlobalFija, 
+                    yMax: metaGlobalFija, 
+                    borderColor: '#333', 
+                    borderWidth: 3, 
+                    borderDash: [6,6], 
+                    label: { content: `LÍMITE DEUDA: $${metaGlobalFija}`, display: true, position: 'start', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' } 
+                  } 
+                } 
+              } 
+            } 
+          },
           plugins: [this.textOnTopPlugin] 
         });
       }, 0);
-
       
 
       // 👇 NUEVO: GRÁFICO 6 - HISTORIAL DE ABONOS 👇
