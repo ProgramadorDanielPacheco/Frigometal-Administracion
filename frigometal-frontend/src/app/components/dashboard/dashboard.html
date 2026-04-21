@@ -35,6 +35,56 @@
     </mat-card>
   }
 
+  @if (ordenesAtrasadas > 0) {
+    <mat-card class="mat-elevation-z6" style="background-color: #ffebee; border-left: 6px solid #b71c1c; margin-bottom: 30px; border-radius: 8px;">
+      <mat-card-content style="display: flex; align-items: center; justify-content: space-between; padding: 20px; flex-wrap: wrap; gap: 15px;">
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <mat-icon style="color: #b71c1c; font-size: 48px; width: 48px; height: 48px; animation: pulse 2s infinite;">error</mat-icon>
+          <div>
+            <h2 style="margin: 0; color: #b71c1c; font-weight: bold; font-size: 1.5rem;">
+              ¡Alerta Crítica! Tienes {{ ordenesAtrasadas }} OP(s) Atrasada(s)
+            </h2>
+            <p style="margin: 5px 0 0 0; color: #555; font-size: 1.1rem;">
+              La fecha de entrega al cliente ya pasó y la orden sigue sin finalizar en planta.
+            </p>
+          </div>
+        </div>
+
+        <button mat-raised-button color="warn" style="padding: 5px 20px; font-size: 1.1rem;" routerLink="/ordenes-produccion">
+          Ver Órdenes <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
+
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (ordenesPorVencer > 0) {
+    <mat-card class="mat-elevation-z6" style="background-color: #fff8e1; border-left: 6px solid #ff8f00; margin-bottom: 30px; border-radius: 8px;">
+      <mat-card-content style="display: flex; align-items: center; justify-content: space-between; padding: 20px; flex-wrap: wrap; gap: 15px;">
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <mat-icon style="color: #ff8f00; font-size: 48px; width: 48px; height: 48px;">schedule</mat-icon>
+          <div>
+            <h2 style="margin: 0; color: #ff8f00; font-weight: bold; font-size: 1.5rem;">
+              Atención: Tienes {{ ordenesPorVencer }} OP(s) a punto de vencer
+            </h2>
+            <p style="margin: 5px 0 0 0; color: #555; font-size: 1.1rem;">
+              Estas órdenes deben entregarse al cliente en 7 días o menos. Prioriza su fabricación.
+            </p>
+          </div>
+        </div>
+
+        <button mat-raised-button style="background-color: #ff8f00; color: white; padding: 5px 20px; font-size: 1.1rem;" routerLink="/ordenes-produccion">
+          Priorizar Trabajo <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
+
+      </mat-card-content>
+    </mat-card>
+  }
+
+  
+
   <div class="grid-tarjetas">
 
     <mat-card class="tarjeta-kpi pedidos" routerLink="/pedidos">
