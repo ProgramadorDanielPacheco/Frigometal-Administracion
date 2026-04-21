@@ -36,7 +36,8 @@ import { OrdenProduccionService } from '../../services/orden-produccion';
 export class ListaProductos implements OnInit {
   dataSource = new MatTableDataSource<Producto>([]);
   // 👇 AGREGAMOS LA COLUMNA DE ACCIONES 👇
-  columnasMostradas: string[] = ['id_producto', 'nombre', 'tiempo', 'es_estandar', 'acciones'];
+  // 👇 AGREGAMOS 'parametro' A LA LISTA DE COLUMNAS 👇
+  columnasMostradas: string[] = ['id_producto', 'nombre', 'parametro', 'tiempo', 'es_estandar', 'acciones'];
 
   mostrarFormulario: boolean = false;
   guardando: boolean = false;
@@ -417,55 +418,61 @@ calcularCostoTotalReceta(): number {
  // ==========================================
   // 👇 FUNCIÓN ACTUALIZADA: IMPRIMIR RECETA TÉCNICA 👇
   // ==========================================
+ // ==========================================
+  // 👇 FUNCIÓN ACTUALIZADA: IMPRIMIR RECETA PARA TALLER/BODEGA 👇
+  // ==========================================
   imprimirReceta(): void {
     if (!this.productoSeleccionado || this.recetaActual.length === 0) {
       this.snackBar.open('⚠️ No hay materiales en la receta para imprimir', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    // 👇 1. EL CUADRO DE PREGUNTA AL USUARIO 👇
+    // 1. CUADRO DE PREGUNTA AL USUARIO
     const opSeleccionada = window.prompt(
       '🖨️ Ingrese el Número de OP (Máquina) para imprimir en esta receta:', 
       this.ultimaOPDetectada.toString()
     );
 
-    // Si el usuario presiona "Cancelar" o cierra la ventanita, detenemos la impresión
     if (opSeleccionada === null) return; 
 
-    // Limpiamos el texto por si dejaron espacios en blanco
     const numeroOP = opSeleccionada.trim() || 'S/N';
 
-    // 2. Armamos las filas de los materiales
+    // 👇 2. ORDENAMOS LA RECETA ALFABÉTICAMENTE POR NOMBRE DE MATERIAL 👇
+    const recetaOrdenada = [...this.recetaActual].sort((a, b) => {
+      const nombreA = this.obtenerNombreMaterial(a.id_material).toLowerCase();
+      const nombreB = this.obtenerNombreMaterial(b.id_material).toLowerCase();
+      return nombreA.localeCompare(nombreB);
+    });
+
+    // 3. Armamos las filas de los materiales (SIN PRECIOS)
     let filasMateriales = '';
-    this.recetaActual.forEach(item => {
+    recetaOrdenada.forEach(item => {
       const nombreMat = this.obtenerNombreMaterial(item.id_material);
       const unidad = this.obtenerUnidadMedida(item.id_material);
       const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
-      const precioUnitario = this.obtenerPrecioMaterial(item.id_material);
-      const subtotal = this.calcularSubtotal(item);
 
       filasMateriales += `
         <tr>
-          <td style="text-align: left; padding: 8px; border: 1px solid #ccc;">${nombreMat}</td>
-          <td style="text-align: center; padding: 8px; border: 1px solid #ccc;">${cantidad} ${unidad}</td>
-          <td style="text-align: right; padding: 8px; border: 1px solid #ccc;">$${precioUnitario.toFixed(2)}</td>
-          <td style="text-align: right; font-weight: bold; padding: 8px; border: 1px solid #ccc; color: #2e7d32;">$${subtotal.toFixed(2)}</td>
+          <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">${nombreMat}</td>
+          <td style="text-align: center; padding: 10px; border: 1px solid #ccc; font-weight: bold; font-size: 1.1em;">${cantidad} ${unidad}</td>
         </tr>
       `;
     });
 
-    const costoTotal = this.calcularCostoTotalReceta().toFixed(2);
     const nombreProducto = this.productoSeleccionado.nombre;
     const tiempoFab = this.productoSeleccionado.tiempo_fabricacion_horas;
     const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
+    
+    // 👇 CAPTURAMOS LOS PARÁMETROS DEL PRODUCTO 👇
+    const parametrosProd = this.productoSeleccionado.parametro || 'No se registraron especificaciones adicionales para este equipo.';
 
-    // 3. Generamos el PDF
+    // 4. Generamos el PDF
     const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
     if (ventanaImpresion) {
       ventanaImpresion.document.write(`
         <html>
           <head>
-            <title>Receta Técnica OP-${numeroOP} - ${nombreProducto}</title>
+            <title>Receta Taller OP-${numeroOP} - ${nombreProducto}</title>
             <style>
               body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; margin: 0; }
               .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
@@ -474,20 +481,20 @@ calcularCostoTotalReceta(): number {
               .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
               .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
               
-              /* 👇 ESTILO PARA EL NÚMERO DE OP 👇 */
               .numero-op { color: #d32f2f; font-size: 24px; font-weight: 900; margin: 5px 0; display: block; }
               
-              .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+              .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
               .product-info h2 { margin: 0 0 10px 0; color: #2e7d32; font-size: 18px; text-transform: uppercase; }
               .product-info p { margin: 3px 0; font-size: 14px; }
               
-              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
-              th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 14px; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+              th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 15px; }
               tr:nth-child(even) { background-color: #f2f2f2; }
               
-              .total-box { float: right; border: 2px solid #2e7d32; border-radius: 8px; padding: 15px 25px; background-color: #e8f5e9; text-align: right; }
-              .total-box span { font-size: 12px; color: #555; text-transform: uppercase; display: block; margin-bottom: 5px; font-weight: bold; }
-              .total-box strong { font-size: 24px; color: #1b5e20; }
+              /* 👇 ESTILOS DE LA SECCIÓN DE PARÁMETROS 👇 */
+              .parametros-box { margin-top: 20px; padding: 15px; border: 2px dashed #1976d2; background-color: #e3f2fd; border-radius: 8px; }
+              .parametros-box h3 { margin: 0 0 8px 0; color: #1565c0; font-size: 16px; text-transform: uppercase; }
+              .parametros-box p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; font-weight: 500; }
 
               @media print {
                 body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -500,24 +507,22 @@ calcularCostoTotalReceta(): number {
               <div class="header-text">
                 <h1>FRIGO METAL</h1>
                 <span class="numero-op">OP N° ${numeroOP}</span>
-                <p>Reporte de Receta Técnica y Costos</p>
+                <p>Hoja de Despacho Bodega y Taller</p>
                 <p><b>Fecha:</b> ${new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
 
             <div class="product-info">
               <h2>${nombreProducto}</h2>
-              <p><b>Tiempo de Fabricación:</b> ${tiempoFab} horas</p>
+              <p><b>Tiempo de Fabricación Estimado:</b> ${tiempoFab} horas</p>
               <p><b>Clasificación:</b> ${tipoProd}</p>
             </div>
 
             <table>
               <thead>
                 <tr>
-                  <th style="width: 50%;">MATERIAL REQUERIDO</th>
-                  <th style="width: 15%;">CANTIDAD</th>
-                  <th style="width: 15%;">COSTO UNIT.</th>
-                  <th style="width: 20%;">SUBTOTAL</th>
+                  <th style="width: 75%; text-align: left; padding-left: 15px;">MATERIAL REQUERIDO</th>
+                  <th style="width: 25%;">CANTIDAD</th>
                 </tr>
               </thead>
               <tbody>
@@ -525,13 +530,13 @@ calcularCostoTotalReceta(): number {
               </tbody>
             </table>
 
-            <div class="total-box">
-              <span>Costo Total de Producción</span>
-              <strong>$ ${costoTotal}</strong>
+            <div class="parametros-box">
+              <h3>Especificaciones Técnicas / Parámetros:</h3>
+              <p>${parametrosProd}</p>
             </div>
 
-            <div style="clear: both; margin-top: 60px; font-size: 11px; color: gray; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
-              Documento interno de uso exclusivo para el área de producción y bodega.
+            <div style="clear: both; margin-top: 50px; font-size: 11px; color: gray; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
+              Documento interno de uso exclusivo para el área de producción y bodega. (Versión sin información financiera)
             </div>
 
             <script>
