@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { Material, MaterialService } from '../../services/material';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table'; // <-- IMPORTANTE
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 @Component({
   selector: 'app-inventario',
@@ -19,7 +20,7 @@ import { MatMenuModule } from '@angular/material/menu';
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule, 
     MatIconModule, MatCardModule, MatFormFieldModule, 
-    MatInputModule, MatSelectModule, MatSnackBarModule, MatMenuModule
+    MatInputModule, MatSelectModule, MatSnackBarModule, MatMenuModule, MatSortModule
   ],
   templateUrl: './inventario.html',
   styleUrls: ['./inventario.scss']
@@ -28,6 +29,8 @@ export class Inventario implements OnInit {
   // Usamos el DataSource oficial de Material
   dataSource = new MatTableDataSource<Material>([]);
   columnasMostradas: string[] = ['id_material', 'nombre', 'stock_actual', 'precio_unitario', 'estado', 'acciones'];
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   soloStockBajo: boolean = false;
   textoBusqueda: string = '';
@@ -66,6 +69,10 @@ export class Inventario implements OnInit {
     const nombre = data.nombre.toLowerCase();
     return nombre.includes(filter.trim().toLowerCase());
   };
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
   }
 
   cargarInventario(): void {

@@ -170,11 +170,11 @@
       </div>
     </div>
 
-    <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap;">
+    <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start;">
       
-      <div style="flex: 1; min-width: 300px; background: #fafafa; padding: 20px; border-radius: 8px;">
+      <div style="flex: 1; min-width: 300px; background: #fafafa; padding: 20px; border-radius: 8px; position: sticky; top: 20px; align-self: flex-start; z-index: 2; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h3 style="margin: 0;">Añadir Material</h3>
+          <h3 style="margin: 0; color: #1976d2;">Añadir Material</h3>
           <button mat-icon-button color="primary" (click)="cargarMaterialesBodega()" matTooltip="Refrescar lista de bodega" style="transform: scale(0.85);">
             <mat-icon>refresh</mat-icon>
           </button>
@@ -218,21 +218,21 @@
       </div>
 
       <div style="flex: 2; min-width: 300px;">
-        <h3>Materiales y Desglose de Costos</h3>
+        <h3 style="color: #333;">Materiales y Desglose de Costos</h3>
         <div style="min-height: 200px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background: white;">
-          @if (recetaActual.length === 0) {
+          
+          @if (recetaOrdenada.length === 0) {
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; color: #999; text-align: center;">
               <mat-icon style="font-size: 48px; width: 48px; height: 48px; margin-bottom: 10px;">assignment_late</mat-icon>
               <p>No hay materiales asignados.</p>
             </div>
           } @else {
             <mat-list>
-              @for (item of recetaActual; track item.id_estructura) {
+              @for (item of recetaOrdenada; track item.id_estructura) {
                 <mat-list-item style="height: auto; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
                   
                   <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 15px;">
                     
-                    <!-- PARTE IZQUIERDA: ICONO Y TEXTOS -->
                     <div style="display: flex; align-items: flex-start; gap: 15px; flex: 1; min-width: 0;">
                       <mat-icon color="primary" style="margin-top: 2px;">settings_suggest</mat-icon>
                       <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
@@ -240,14 +240,12 @@
                           {{ obtenerNombreMaterial(item.id_material) }}
                         </span>
                         
-                        <!-- 👇 MODO LECTURA 👇 -->
                         @if (idEditandoReceta !== item.id_estructura) {
                           <span style="font-size: 0.85em; color: gray; margin-top: 4px;">
                             {{ item.cantidad_necesaria }} {{ obtenerUnidadMedida(item.id_material) }} x 
                             ${{ obtenerPrecioMaterial(item.id_material) }}
                           </span>
                         }
-                        <!-- 👇 MODO EDICIÓN 👇 -->
                         @else {
                           <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
                             <input type="number" [(ngModel)]="cantidadEditada" 
@@ -260,14 +258,12 @@
                       </div>
                     </div>
 
-                    <!-- PARTE DERECHA: SUBTOTAL Y BOTONES -->
                     <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0; min-width: 130px; justify-content: flex-end;">
                       <div style="text-align: right; margin-right: 10px;">
                         <span style="display: block; font-size: 0.8em; color: gray; text-transform: uppercase;">Subtotal</span>
                         <strong style="font-size: 1.1em; color: #2e7d32;">${{ calcularSubtotal(item) | number:'1.2-2' }}</strong>
                       </div>
 
-                      <!-- 👇 BOTONES MODO LECTURA 👇 -->
                       @if (idEditandoReceta !== item.id_estructura) {
                         <button mat-icon-button color="primary" (click)="iniciarEdicionMaterial(item)" title="Editar Cantidad">
                           <mat-icon>edit</mat-icon>
@@ -276,7 +272,6 @@
                           <mat-icon>delete_outline</mat-icon>
                         </button>
                       } 
-                      <!-- 👇 BOTONES MODO EDICIÓN 👇 -->
                       @else {
                         <button mat-icon-button style="color: #2e7d32;" (click)="guardarEdicionMaterial(item)" title="Guardar">
                           <mat-icon>check_circle</mat-icon>

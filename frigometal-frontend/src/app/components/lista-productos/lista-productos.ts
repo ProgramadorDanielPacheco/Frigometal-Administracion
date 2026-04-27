@@ -50,6 +50,14 @@ export class ListaProductos implements OnInit {
   productoSeleccionado: Producto | null = null;
   materialesBodega: Material[] = [];
   recetaActual: any[] = []; // Lo que ya tiene la receta
+
+  get recetaOrdenada(): any[] {
+    return [...this.recetaActual].sort((a, b) => {
+      const nombreA = this.obtenerNombreMaterial(a.id_material).toLowerCase();
+      const nombreB = this.obtenerNombreMaterial(b.id_material).toLowerCase();
+      return nombreA.localeCompare(nombreB);
+    });
+  }
   
   // Lo que el usuario está agregando
   idMaterialSeleccionado: number | null = null;
