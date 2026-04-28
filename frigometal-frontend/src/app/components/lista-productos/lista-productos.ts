@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
@@ -21,6 +21,7 @@ import { ReportesService } from '../../services/reportes';
 import { MatMenuModule } from '@angular/material/menu';
 // Agrégalo junto a tus otros imports
 import { OrdenProduccionService } from '../../services/orden-produccion';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 @Component({
   selector: 'app-lista-productos',
@@ -28,16 +29,19 @@ import { OrdenProduccionService } from '../../services/orden-produccion';
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule, 
     MatIconModule, MatCardModule, MatFormFieldModule, 
-    MatInputModule, MatSelectModule, MatListModule, MatSnackBarModule, MatMenuModule
+    MatInputModule, MatSelectModule, MatListModule, MatSnackBarModule, MatMenuModule, MatSortModule
   ],
   templateUrl: './lista-productos.html',
   styleUrls: ['./lista-productos.scss']
 })
-export class ListaProductos implements OnInit {
+export class ListaProductos implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<Producto>([]);
   // 👇 AGREGAMOS LA COLUMNA DE ACCIONES 👇
   // 👇 AGREGAMOS 'parametro' A LA LISTA DE COLUMNAS 👇
   columnasMostradas: string[] = ['id_producto', 'nombre', 'parametro', 'tiempo', 'es_estandar', 'acciones'];
+
+  @ViewChild(MatSort) sort!: MatSort;
+  textoBusqueda: string = '';
 
   mostrarFormulario: boolean = false;
   guardando: boolean = false;
@@ -97,6 +101,16 @@ export class ListaProductos implements OnInit {
       // Guardamos la última OP encontrada (o 1 si está vacío)
       this.ultimaOPDetectada = maxOP > 0 ? maxOP : 1;
     });
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+  }
+
+  aplicarFiltroTexto(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.textoBusqueda = filterValue;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
   cargarProductos(): void {

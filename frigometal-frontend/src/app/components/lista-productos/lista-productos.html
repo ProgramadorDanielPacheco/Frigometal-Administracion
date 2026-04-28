@@ -86,14 +86,23 @@
     </mat-card>
   }
 
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+ <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+      <mat-label>Buscar producto...</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput (keyup)="aplicarFiltroTexto($event)" placeholder="Escribe el nombre o ID del producto..." autocomplete="off">
+    </mat-form-field>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" class="mat-elevation-z8" style="width: 100%;">
+    
     <ng-container matColumnDef="id_producto">
-      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> ID </th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> ID </th>
       <td mat-cell *matCellDef="let prod"> {{prod.id_producto}} </td>
     </ng-container>
 
     <ng-container matColumnDef="nombre">
-      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Nombre del Producto </th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Nombre del Producto </th>
       <td mat-cell *matCellDef="let prod"> {{prod.nombre}} </td>
     </ng-container>
 
@@ -109,15 +118,14 @@
         }
       </td>
     </ng-container>
-    
 
     <ng-container matColumnDef="tiempo">
-      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Tiempo de Fabricación </th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Tiempo de Fabricación </th>
       <td mat-cell *matCellDef="let prod"> {{prod.tiempo_fabricacion_horas}} horas </td>
     </ng-container>
 
     <ng-container matColumnDef="es_estandar">
-      <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> Tipo </th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Tipo </th>
       <td mat-cell *matCellDef="let prod">
         <span [style.color]="prod.es_estandar ? 'green' : 'orange'">
           {{prod.es_estandar ? 'Estándar' : 'A Medida'}}
@@ -142,6 +150,12 @@
 
     <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
     <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="6" style="text-align: center; padding: 30px; color: gray;">
+        No se encontraron productos que coincidan con la búsqueda.
+      </td>
+    </tr>
   </table>
 
   @if (productoSeleccionado) {
