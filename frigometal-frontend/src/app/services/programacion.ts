@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface ProcesoTaller {
+  // Datos Viejos (Los dejamos por si hay OPs antiguas sin migrar)
   fecha_inicio_1?: string;
   hora_inicio_1?: string;
   fecha_fin_1?: string;
@@ -23,7 +24,11 @@ export interface ProcesoTaller {
   hora_fin?: string;
 
   turnos_extra?: any[];
+  
+  // 👇 NUEVO: La lista mágica dinámica que unifica todos los turnos 👇
+  turnos?: any[]; 
 }
+
 export interface OrdenPlanta {
   id_op?: number;
   numero_op: string;

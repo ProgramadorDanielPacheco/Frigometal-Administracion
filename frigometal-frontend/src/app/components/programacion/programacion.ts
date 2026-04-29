@@ -10,6 +10,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatIconModule } from "@angular/material/icon";
+import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 
 import { Usuario, UsuarioService } from '../../services/usuario';
 import { OrdenPlanta, ProgramacionService, ProcesoTaller } from '../../services/programacion';
@@ -22,8 +24,9 @@ import { ReportesService } from '../../services/reportes';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule,
     MatSelectModule, MatInputModule, MatButtonModule, MatTableModule, 
-    MatSnackBarModule, MatIconModule
+    MatSnackBarModule, MatIconModule, MatDatepickerModule, MatNativeDateModule
   ],
+  providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
   templateUrl: './programacion.html',
   styleUrls: ['./programacion.scss']
 })
@@ -37,13 +40,24 @@ export class ProgramacionComponent implements OnInit {
   mostrarFormulario: boolean = false;
   opEditando: OrdenPlanta | null = null;
 
-  // 👇 LA LISTA EXACTA DE PROCESOS DE LA FOTO FÍSICA 👇
   listaProcesos: string[] = [
     'Corte Laser', 'Plegado', 'Estructura', 'Armado', 'Poliuretano', 
     'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final'
   ];
 
   estadosPlanta: string[] = ['EN COLA', 'EN PROGRESO', 'PAUSADO', 'TERMINADO'];
+
+  // ==========================================
+  // 👇 VARIABLES DEL REPORTE 👇
+  // ==========================================
+  mostrarReporte: boolean = false;
+  fechaInicioReporte: Date | null = null;
+  fechaFinReporte: Date | null = null;
+  trabajadorReporte: string = 'TODOS'; 
+  reporteProcesos: { proceso: string, totalMinutos: number, totalTexto: string }[] = [];
+  
+  // 👇 NUEVA VARIABLE PARA EL GRAN TOTAL DEL TRABAJADOR 👇
+  granTotalTextoTrabajador: string = '';
 
   constructor(
     private usuarioService: UsuarioService,
@@ -73,29 +87,53 @@ export class ProgramacionComponent implements OnInit {
     return prod ? prod.nombre : `Desconocido (#${idProducto})`;
   }
 
+  private normalizarTurnos(data: any): any[] {
+    if (!data) return [];
+    if (data.turnos) return data.turnos; 
+    
+    let turnos = [];
+    if (data.fecha_inicio_1 || data.fecha_inicio || data.responsable) {
+       turnos.push({
+         fecha_inicio: data.fecha_inicio_1 || data.fecha_inicio || '',
+         hora_inicio: data.hora_inicio_1 || data.hora_inicio || '',
+         fecha_fin: data.fecha_fin_1 || data.fecha_fin || '',
+         hora_fin: data.hora_fin_1 || data.hora_fin || '',
+         responsable: data.responsable || ''
+       });
+    }
+    if (data.fecha_inicio_2) {
+       turnos.push({
+         fecha_inicio: data.fecha_inicio_2 || '', hora_inicio: data.hora_inicio_2 || '',
+         fecha_fin: data.fecha_fin_2 || '', hora_fin: data.hora_fin_2 || '',
+         responsable: data.responsable || ''
+       });
+    }
+    if (data.turnos_extra && data.turnos_extra.length > 0) {
+       data.turnos_extra.forEach((t: any) => {
+         turnos.push({
+           fecha_inicio: t.fecha_inicio || '', hora_inicio: t.hora_inicio || '',
+           fecha_fin: t.fecha_fin || '', hora_fin: t.hora_fin || '',
+           responsable: t.responsable || data.responsable || ''
+         });
+       });
+    }
+    return turnos;
+  }
+
   abrirHojaTrabajo(orden: OrdenPlanta): void {
     this.opEditando = JSON.parse(JSON.stringify(orden));
     if (!this.opEditando!.seguimiento_procesos) this.opEditando!.seguimiento_procesos = {};
 
     this.listaProcesos.forEach(proceso => {
-      const procAnterior = this.opEditando!.seguimiento_procesos[proceso];
-      if (!procAnterior) {
+      const procData = this.opEditando!.seguimiento_procesos[proceso];
+      
+      if (!procData || (!procData.turnos && !procData.fecha_inicio_1 && !procData.fecha_inicio)) {
         this.opEditando!.seguimiento_procesos[proceso] = { 
-          fecha_inicio_1: '', hora_inicio_1: '', fecha_fin_1: '', hora_fin_1: '',
-          fecha_inicio_2: '', hora_inicio_2: '', fecha_fin_2: '', hora_fin_2: '',
-          responsable: '',
-          turnos_extra: [] // 👈 NUEVO
+          turnos: [{ fecha_inicio: '', hora_inicio: '', fecha_fin: '', hora_fin: '', responsable: '' }] 
         };
       } else {
-        // Migración de datos viejos al Turno 1 para no perder nada
-        if (procAnterior.fecha_inicio && !procAnterior.fecha_inicio_1) {
-          procAnterior.fecha_inicio_1 = procAnterior.fecha_inicio;
-          procAnterior.hora_inicio_1 = procAnterior.hora_inicio;
-          procAnterior.fecha_fin_1 = procAnterior.fecha_fin;
-          procAnterior.hora_fin_1 = procAnterior.hora_fin;
-        }
-        if (!procAnterior.turnos_extra) {
-          procAnterior.turnos_extra = [];
+        if (!procData.turnos) {
+          procData.turnos = this.normalizarTurnos(procData);
         }
       }
     });
@@ -117,32 +155,20 @@ export class ProgramacionComponent implements OnInit {
     this.opEditando = null;
   }
 
-  // ==========================================
-  // 👇 GESTIÓN DE TURNOS DINÁMICOS 👇
-  // ==========================================
-  // ==========================================
-  // 👇 GESTIÓN DE TURNOS DINÁMICOS (CORREGIDO) 👇
-  // ==========================================
-  agregarTurnoExtra(proceso: string): void {
+  agregarTurno(proceso: string): void {
     if (this.opEditando && this.opEditando.seguimiento_procesos) {
       const proc = this.opEditando.seguimiento_procesos[proceso];
-      if (proc) {
-        // Si no existe la lista, la creamos vacía primero
-        if (!proc.turnos_extra) proc.turnos_extra = []; 
-        
-        proc.turnos_extra.push({
-          fecha_inicio: '', hora_inicio: '', fecha_fin: '', hora_fin: ''
-        });
+      if (proc && proc.turnos) { 
+        proc.turnos.push({ fecha_inicio: '', hora_inicio: '', fecha_fin: '', hora_fin: '', responsable: '' });
       }
     }
   }
 
-  eliminarTurnoExtra(proceso: string, index: number): void {
+  eliminarTurno(proceso: string, index: number): void {
     if (this.opEditando && this.opEditando.seguimiento_procesos) {
       const proc = this.opEditando.seguimiento_procesos[proceso];
-      // Verificamos que proc y turnos_extra existan antes de cortar
-      if (proc && proc.turnos_extra) { 
-        proc.turnos_extra.splice(index, 1);
+      if (proc && proc.turnos) { 
+        proc.turnos.splice(index, 1);
       }
     }
   }
@@ -173,31 +199,15 @@ export class ProgramacionComponent implements OnInit {
     }
   }
 
-  // ==========================================
-  // 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
-  // ==========================================
-  // ==========================================
-// 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
-// ==========================================
-// ==========================================
-  // 👇 CÁLCULO DE TIEMPO TOTAL EN PLANTA 👇
-  // ==========================================
- calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
+  calcularTiempoTotalOrden(orden: OrdenPlanta | null): string {
     if (!orden || !orden.seguimiento_procesos) return '0h 0m';
     let totalMinutos = 0;
 
     this.listaProcesos.forEach(proceso => {
-      const data = orden.seguimiento_procesos![proceso]; // 👈 Ojo con el '!'
+      const data = orden.seguimiento_procesos![proceso];
       if (data) {
-        totalMinutos += this.calcularMinutos(data.fecha_inicio_1, data.hora_inicio_1, data.fecha_fin_1, data.hora_fin_1);
-        totalMinutos += this.calcularMinutos(data.fecha_inicio_2, data.hora_inicio_2, data.fecha_fin_2, data.hora_fin_2);
-        
-        // 👇 Sumamos los turnos extra dinámicos 👇
-        if (data.turnos_extra && data.turnos_extra.length > 0) {
-          data.turnos_extra.forEach((turno: any) => {
-            totalMinutos += this.calcularMinutos(turno.fecha_inicio, turno.hora_inicio, turno.fecha_fin, turno.hora_fin);
-          });
-        }
+        const turnos = this.normalizarTurnos(data);
+        turnos.forEach(t => totalMinutos += this.calcularMinutos(t.fecha_inicio, t.hora_inicio, t.fecha_fin, t.hora_fin));
       }
     });
 
@@ -205,12 +215,7 @@ export class ProgramacionComponent implements OnInit {
     const minutos = Math.round(totalMinutos % 60);
     return `${horas}h ${minutos}m`;
   }
-  // ==========================================
-  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
-  // ==========================================
-  // ==========================================
-  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
-  // ==========================================
+
   imprimirHojaTrabajo(): void {
     if (!this.opEditando) return;
 
@@ -220,46 +225,47 @@ export class ProgramacionComponent implements OnInit {
     let filasProcesos = '';
     this.listaProcesos.forEach(proc => {
       const p = orden.seguimiento_procesos?.[proc] || {};
+      const turnos = this.normalizarTurnos(p);
+      const rowspan = turnos.length > 0 ? turnos.length : 1;
       
-      let filasExtras = '';
-      let extrasCount = p.turnos_extra ? p.turnos_extra.length : 0;
+      let filasTurnos = '';
       
-      // Armamos las filas extra
-      if (extrasCount > 0) {
-        p.turnos_extra?.forEach((t: any, index: number) => {
-          filasExtras += `
-            <tr>
-              <td style="color: #666; font-size: 11px; background-color: #fcfcfc;">T${index + 3}</td>
-              <td style="background-color: #fcfcfc;">${t.fecha_inicio || ''}</td>
-              <td style="background-color: #fcfcfc;">${t.hora_inicio || ''}</td>
-              <td style="background-color: #fcfcfc;">${t.fecha_fin || ''}</td>
-              <td style="background-color: #fcfcfc;">${t.hora_fin || ''}</td>
-            </tr>`;
+      if (turnos.length === 0) {
+        filasTurnos = `
+          <tr>
+            <td class="col-proceso" style="vertical-align: middle;">${proc}</td>
+            <td colspan="6" style="text-align: center; color: gray; font-style: italic;">Sin turnos registrados</td>
+          </tr>
+        `;
+      } else {
+        turnos.forEach((t: any, index: number) => {
+          if (index === 0) {
+            filasTurnos += `
+              <tr>
+                <td rowspan="${rowspan}" class="col-proceso" style="vertical-align: middle;">${proc}</td>
+                <td style="color: #666; font-size: 11px;">T${index + 1}</td>
+                <td>${t.fecha_inicio || ''}</td>
+                <td>${t.hora_inicio || ''}</td>
+                <td>${t.fecha_fin || ''}</td>
+                <td>${t.hora_fin || ''}</td>
+                <td style="font-size: 10px;">${t.responsable || ''}</td>
+              </tr>
+            `;
+          } else {
+            filasTurnos += `
+              <tr>
+                <td style="color: #666; font-size: 11px;">T${index + 1}</td>
+                <td>${t.fecha_inicio || ''}</td>
+                <td>${t.hora_inicio || ''}</td>
+                <td>${t.fecha_fin || ''}</td>
+                <td>${t.hora_fin || ''}</td>
+                <td style="font-size: 10px;">${t.responsable || ''}</td>
+              </tr>
+            `;
+          }
         });
       }
-
-      // El rowspan base es 2 (T1 y T2). Le sumamos los extras que existan.
-      const rowspan = 2 + extrasCount;
-
-      filasProcesos += `
-        <tr>
-          <td rowspan="${rowspan}" class="col-proceso" style="vertical-align: middle;">${proc}</td>
-          <td style="color: #666; font-size: 11px;">T1</td>
-          <td>${p.fecha_inicio_1 || ''}</td>
-          <td>${p.hora_inicio_1 || ''}</td>
-          <td>${p.fecha_fin_1 || ''}</td>
-          <td>${p.hora_fin_1 || ''}</td>
-          <td rowspan="${rowspan}" style="vertical-align: middle;">${p.responsable || ''}</td>
-        </tr>
-        <tr>
-          <td style="color: #666; font-size: 11px; background-color: #fcfcfc;">T2</td>
-          <td style="background-color: #fcfcfc;">${p.fecha_inicio_2 || ''}</td>
-          <td style="background-color: #fcfcfc;">${p.hora_inicio_2 || ''}</td>
-          <td style="background-color: #fcfcfc;">${p.fecha_fin_2 || ''}</td>
-          <td style="background-color: #fcfcfc;">${p.hora_fin_2 || ''}</td>
-        </tr>
-        ${filasExtras}
-      `;
+      filasProcesos += filasTurnos;
     });
 
     const ventanaImpresion = window.open('', '_blank', 'width=1000,height=700');
@@ -311,7 +317,7 @@ export class ProgramacionComponent implements OnInit {
                 <td style="text-align: left;">Proceso</td>
                 <td style="width: 3%;">#</td>
                 <td>F. Inicio</td>
-                <td>Hora Inicio</td>
+                <td>Hora Ini</td>
                 <td>F. Fin</td>
                 <td>Hora Fin</td>
                 <td>Responsable</td>
@@ -331,20 +337,15 @@ export class ProgramacionComponent implements OnInit {
       ventanaImpresion.document.close();
     }
   }
-  // ==========================================
-  // 👇 REPORTE GLOBAL DE TIEMPOS POR PROCESO 👇
-  // ==========================================
-  mostrarReporte: boolean = false;
-  fechaInicioReporte: string = '';
-  fechaFinReporte: string = '';
-  reporteProcesos: { proceso: string, totalMinutos: number, totalTexto: string }[] = [];
 
   toggleReporte(): void {
     this.mostrarReporte = !this.mostrarReporte;
     if (!this.mostrarReporte) {
-      this.fechaInicioReporte = '';
-      this.fechaFinReporte = '';
+      this.fechaInicioReporte = null;
+      this.fechaFinReporte = null;
+      this.trabajadorReporte = 'TODOS'; 
       this.reporteProcesos = [];
+      this.granTotalTextoTrabajador = ''; // 👈 Limpiamos también el gran total
     }
   }
 
@@ -354,56 +355,56 @@ export class ProgramacionComponent implements OnInit {
       return;
     }
 
-    const inicioRango = new Date(`${this.fechaInicioReporte}T00:00:00`);
-    const finRango = new Date(`${this.fechaFinReporte}T23:59:59`);
+    const inicioRango = new Date(this.fechaInicioReporte);
+    inicioRango.setHours(0, 0, 0, 0);
+    const finRango = new Date(this.fechaFinReporte);
+    finRango.setHours(23, 59, 59, 999);
 
-    // 1. Inicializamos el mapa con todos los procesos en 0
     let mapaTiempos = new Map<string, number>();
     this.listaProcesos.forEach(p => mapaTiempos.set(p, 0));
 
-    // 2. Recorremos TODAS las órdenes cargadas en la tabla
     this.dataSource.data.forEach(orden => {
       if (orden.seguimiento_procesos) {
-        
         this.listaProcesos.forEach(proceso => {
           const data = orden.seguimiento_procesos![proceso];
           if (data) {
-            // Evaluamos Turno 1
-            this.sumarSiEnRango(data.fecha_inicio_1, data.hora_inicio_1, data.fecha_fin_1, data.hora_fin_1, inicioRango, finRango, proceso, mapaTiempos);
-            // Evaluamos Turno 2
-            this.sumarSiEnRango(data.fecha_inicio_2, data.hora_inicio_2, data.fecha_fin_2, data.hora_fin_2, inicioRango, finRango, proceso, mapaTiempos);
+            const turnos = this.normalizarTurnos(data);
             
-            // Evaluamos Turnos Extra
-            if (data.turnos_extra && data.turnos_extra.length > 0) {
-              data.turnos_extra.forEach((turno: any) => {
-                this.sumarSiEnRango(turno.fecha_inicio, turno.hora_inicio, turno.fecha_fin, turno.hora_fin, inicioRango, finRango, proceso, mapaTiempos);
-              });
-            }
+            turnos.forEach(t => {
+              if (this.trabajadorReporte !== 'TODOS' && t.responsable !== this.trabajadorReporte) return;
+              this.sumarSiEnRango(t.fecha_inicio, t.hora_inicio, t.fecha_fin, t.hora_fin, inicioRango, finRango, proceso, mapaTiempos);
+            });
           }
         });
       }
     });
 
-    // 3. Convertimos el mapa en un arreglo amigable para el HTML
     this.reporteProcesos = [];
+    let sumaGranTotalMinutos = 0; // 👈 Variable auxiliar para sumar el gran total
+
     mapaTiempos.forEach((minutos, proceso) => {
+      sumaGranTotalMinutos += minutos; // 👈 Vamos sumando todo
+
       const horas = Math.floor(minutos / 60);
       const mins = Math.round(minutos % 60);
-      this.reporteProcesos.push({
-        proceso: proceso,
-        totalMinutos: minutos,
-        totalTexto: `${horas}h ${mins}m`
-      });
+      this.reporteProcesos.push({ proceso: proceso, totalMinutos: minutos, totalTexto: `${horas}h ${mins}m` });
     });
+
+    // 👇 Calculamos y guardamos el Gran Total SOLO si se seleccionó a un trabajador específico 👇
+    if (this.trabajadorReporte !== 'TODOS') {
+      const horasTotales = Math.floor(sumaGranTotalMinutos / 60);
+      const minsTotales = Math.round(sumaGranTotalMinutos % 60);
+      this.granTotalTextoTrabajador = `${horasTotales}h ${minsTotales}m`;
+    } else {
+      this.granTotalTextoTrabajador = ''; // Si es 'TODOS', lo dejamos vacío para que se oculte
+    }
   }
 
-  // Función auxiliar para validar fechas y sumar
   private sumarSiEnRango(fIni: string | undefined, hIni: string | undefined, fFin: string | undefined, hFin: string | undefined, inicioRango: Date, finRango: Date, proceso: string, mapaTiempos: Map<string, number>) {
     if (!fIni || !hIni || !fFin || !hFin) return;
     
     const fechaInicioTrabajo = new Date(`${fIni}T${hIni}`);
     
-    // Si la fecha en la que inició el trabajo entra en nuestro rango de búsqueda, lo sumamos
     if (fechaInicioTrabajo >= inicioRango && fechaInicioTrabajo <= finRango) {
       const minutos = this.calcularMinutos(fIni, hIni, fFin, hFin);
       mapaTiempos.set(proceso, mapaTiempos.get(proceso)! + minutos);

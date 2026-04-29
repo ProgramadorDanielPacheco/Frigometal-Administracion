@@ -266,6 +266,8 @@ class ProcesoTaller(BaseModel):
 
     turnos_extra: Optional[list] = []
 
+    turnos: Optional[list] = []
+
 class OrdenPlantaBase(BaseModel):
     numero_op: str
     id_pedido: Optional[int] = None  # 👈 EL CAMBIO ESTÁ AQUÍ
