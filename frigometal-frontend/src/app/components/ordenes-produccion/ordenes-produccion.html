@@ -177,9 +177,25 @@
             <mat-form-field appearance="outline" style="flex: 3; min-width: 250px; margin-bottom: -1.25em;">
               <mat-label>Seleccionar Producto del Catálogo</mat-label>
               <mat-select [(ngModel)]="nuevoEquipo.id_producto" (selectionChange)="seleccionarProductoCatalogo($event.value)">
-                <mat-option *ngFor="let prod of productosCatalogo" [value]="prod.id_producto">
-                  {{prod.nombre}}
-                </mat-option>
+                
+                <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                  <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                    <mat-label>Escribe el nombre o ID...</mat-label>
+                    <input matInput [(ngModel)]="filtroProductos" placeholder="Ej: Vitrina o 302" autocomplete="off">
+                    <mat-icon matSuffix>search</mat-icon>
+                  </mat-form-field>
+                </div>
+
+                @for (prod of productosFiltrados; track prod.id_producto) {
+                  <mat-option [value]="prod.id_producto">
+                    {{prod.nombre}} <span style="color: gray; font-size: 0.8em;">(#{{prod.id_producto}})</span>
+                  </mat-option>
+                }
+
+                @if (productosFiltrados.length === 0) {
+                  <mat-option disabled>No se encontraron productos</mat-option>
+                }
+
               </mat-select>
             </mat-form-field>
 

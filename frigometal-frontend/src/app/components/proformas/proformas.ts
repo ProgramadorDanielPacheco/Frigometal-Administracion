@@ -43,6 +43,7 @@ export class ProformasComponent implements OnInit {
   filtroClientes: string = '';
   nuevaProforma: any = this.obtenerModeloVacio();
   productosCatalogo: any[] = [];
+  filtroProductos: string = ''; 
   materialesBodega: any[] = []; // 👈 NUEVO: Para saber los precios de la receta
   
   // 👇 NUEVO: Añadimos 'utilidad' inicializada en 30% por defecto (puedes cambiarlo)
@@ -80,6 +81,16 @@ export class ProformasComponent implements OnInit {
       c.nombre.toLowerCase().includes(filtro) || 
       c.id_cliente.includes(filtro) ||
       (c.nombre_comercial && c.nombre_comercial.toLowerCase().includes(filtro))
+    );
+  }
+
+  get productosFiltrados(): any[] {
+    if (!this.filtroProductos) return this.productosCatalogo;
+    const filtro = this.filtroProductos.toLowerCase();
+    
+    return this.productosCatalogo.filter(p => 
+      p.nombre.toLowerCase().includes(filtro) || 
+      (p.id_producto && p.id_producto.toString().includes(filtro))
     );
   }
 

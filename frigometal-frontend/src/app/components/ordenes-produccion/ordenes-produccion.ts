@@ -49,6 +49,7 @@ export class OrdenesProduccionComponent implements OnInit {
   nuevoEquipo: any = { cantidad: 1, descripcion: '', orden_produccion: 1 };
   formasDePago: string[] = ['Efectivo', 'Transferencia Bancaria', 'Tarjeta de Crédito', 'Cheque'];
   productosCatalogo: Producto[] = [];
+  filtroProductos: string = '';
   materialesBodega: any[] = [];
   ordenesPlanta: any[] = [];
   recetaViendo: any = null; 
@@ -98,6 +99,17 @@ export class OrdenesProduccionComponent implements OnInit {
       (c.nombre && c.nombre.toLowerCase().includes(filtro)) || 
       (c.id_cliente && c.id_cliente.includes(filtro)) ||
       (c.nombre_comercial && c.nombre_comercial.toLowerCase().includes(filtro)) // 👈 Busca por nombre comercial
+    );
+  }
+
+  // 👇 NUEVA FUNCIÓN: Filtro inteligente para los productos en OP 👇
+  get productosFiltrados(): Producto[] {
+    if (!this.filtroProductos) return this.productosCatalogo;
+    const filtro = this.filtroProductos.toLowerCase();
+    
+    return this.productosCatalogo.filter(p => 
+      p.nombre.toLowerCase().includes(filtro) || 
+      (p.id_producto && p.id_producto.toString().includes(filtro))
     );
   }
 
