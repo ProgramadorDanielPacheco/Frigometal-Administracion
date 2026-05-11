@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware # <-- NUEVO
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from pydantic import BaseModel
 from fastapi import HTTPException, status
@@ -1678,18 +1679,36 @@ def crear_proforma(proforma: schemas.ProformaCreate, db: Session = Depends(get_d
         nueva_proforma = models.Proforma(**proforma.model_dump())
         db.add(nueva_proforma)
         
-        import time
-        numero_borrador = f"DRAFT-{proforma.numero_proforma}-{int(time.time())}"
+        # 2. BUSCAMOS EL CONSECUTIVO DE LA SIGUIENTE OP
+        # Consultamos el valor máximo de la columna 'numero_op' en la tabla OrdenProduccion
+        max_op = db.query(func.max(models.OrdenProduccion.numero_op)).scalar()
+        
+        try:
+            # Intentamos convertir el máximo encontrado a número y sumamos 1
+            # Si max_op es None (tabla vacía), empezamos en 1
+            siguiente_numero_op = int(max_op) + 1 if max_op and str(max_op).isdigit() else 1
+        except (ValueError, TypeError):
+            # Si el campo tiene letras (ej. "OP-100"), podrías necesitar una lógica de limpieza más compleja
+            # Por ahora, si falla la conversión, reiniciamos a 1 o manejamos el error
+            siguiente_numero_op = 1
 
-        # 2. Creamos la Orden de Producción Borrador
+        # Convertimos a string para guardarlo (ya que numero_op suele ser String)
+        numero_borrador = str(siguiente_numero_op)
+
+        # 3. Creamos la Orden de Producción Borrador con el número real que le toca
         orden_borrador = models.OrdenProduccion(
             numero_op=numero_borrador,
             cliente_nombre=proforma.cliente_nombre,
             cliente_direccion=proforma.cliente_direccion,
             fecha_pedido=proforma.fecha_emision,
             descripcion_pedido=proforma.trabajo,
-            # 👇 CORRECCIÓN: El campo se llama 'equipos', no 'equipos_para_op' 👇
-            equipos=[{"cantidad": d.cantidad, "descripcion": d.descripcion, "id_producto": d.id_producto, "orden_produccion": 0} for d in proforma.detalles],
+            # Mapeamos los equipos desde los detalles de la proforma
+            equipos=[{
+                "cantidad": d.cantidad, 
+                "descripcion": d.descripcion, 
+                "id_producto": d.id_producto, 
+                "orden_produccion": siguiente_numero_op # El equipo lleva el mismo número de OP
+            } for d in proforma.detalles],
             precio_total=proforma.precio_total,
             forma_pago=None, 
             saldo=proforma.precio_total,
@@ -1697,16 +1716,16 @@ def crear_proforma(proforma: schemas.ProformaCreate, db: Session = Depends(get_d
         )
         db.add(orden_borrador)
         
-        # 3. Guardamos todo junto
+        # 4. Guardamos todo en una sola transacción
         db.commit()
         db.refresh(nueva_proforma)
+        
         return nueva_proforma
         
     except Exception as e:
         db.rollback()
         print(f"🚨 ERROR FATAL EN BD: {str(e)}") 
-        # Al estar todo en el try, Angular recibirá este error claro y no un error de CORS
-        raise HTTPException(status_code=400, detail=f"Error interno: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error interno al generar proforma y OP: {str(e)}")
 
 
 # 👇 NUEVA FUNCIÓN PARA ACTUALIZAR PROFORMA Y SINCRONIZAR OP 👇
