@@ -28,13 +28,13 @@ import { ReportesService } from '../../services/reportes';
 })
 export class ClientesComponent implements OnInit {
   
-  // Variables de la tabla (Añadimos 'acciones' al final)
+  // Variables de la tabla
   dataSource = new MatTableDataSource<Cliente>([]);
   columnasMostradas: string[] = ['id_cliente', 'nombre', 'nombre_comercial', 'telefono', 'correo', 'direccion','ciudad', 'acciones'];
   
   // Variables del formulario
   mostrarFormulario: boolean = false;
-  modoEdicion: boolean = false; // 👈 NUEVO: Controla si estamos creando o editando
+  modoEdicion: boolean = false; 
   nuevoCliente: Cliente = { id_cliente: '', nombre: '', nombre_comercial: '', telefono: '', correo: '', direccion: '' , ciudad:''};
 
   constructor(
@@ -66,7 +66,6 @@ export class ClientesComponent implements OnInit {
     });
   }
 
-  // 👇 LÓGICA PARA MODO EDICIÓN
   editarCliente(cliente: Cliente): void {
     this.modoEdicion = true;
     this.mostrarFormulario = true;
@@ -83,6 +82,7 @@ export class ClientesComponent implements OnInit {
     this.nuevoCliente = { id_cliente: '', nombre: '', nombre_comercial: '', telefono: '', correo: '', direccion: '', ciudad: '' };
   }
 
+  // 👇 LÓGICA DE GUARDADO CON "SOFT-FAIL" PARA EL SRI 👇
   guardarCliente(): void {
     if (!this.nuevoCliente.id_cliente || !this.nuevoCliente.nombre) {
       this.snackBar.open('⚠️ La identificación y el nombre son obligatorios', 'Cerrar', { duration: 3000 });
@@ -114,7 +114,7 @@ export class ClientesComponent implements OnInit {
       });
 
     } else {
-      // 🟢 MODO CREAR (Lo que ya tenías)
+      // 🟢 MODO CREAR
       this.clienteService.crearCliente(this.nuevoCliente).subscribe({
         next: () => {
           this.snackBar.open('✅ Cliente registrado con éxito', 'Genial', { duration: 4000 });
@@ -123,14 +123,39 @@ export class ClientesComponent implements OnInit {
           this.cargarClientes();
         },
         error: (err) => {
-          const mensajeError = err.error?.detail || 'Error al registrar el cliente';
-          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 4000 });
+          
+          // 👇 LA MAGIA DE LA TRAMPA DEL SRI 👇
+          if (err.error?.detail === 'RUC_INVALIDO') {
+            const confirmar = confirm('⚠️ Según el algoritmo estándar, este RUC parece ser inválido.\n\nSin embargo, el SRI emite RUCs especiales que no siguen la regla. ¿Verificaste que el número sea correcto y deseas guardarlo a la fuerza?');
+            
+            if (confirmar) {
+              // Le decimos al backend que lo guarde ignorando las reglas
+              // Enviamos el cliente como 'any' para poder inyectarle la nueva bandera al vuelo
+              const payloadConFuerza = { ...this.nuevoCliente, forzar_registro: true };
+              
+              this.clienteService.crearCliente(payloadConFuerza as any).subscribe({
+                next: () => {
+                  this.snackBar.open('✅ Cliente registrado como Excepción Especial', 'Genial', { duration: 4000 });
+                  this.mostrarFormulario = false;
+                  this.cancelarEdicion();
+                  this.cargarClientes();
+                },
+                error: (err2) => {
+                  const msg = err2.error?.detail || 'Error al forzar el registro del cliente';
+                  this.snackBar.open(`❌ ${msg}`, 'Cerrar', { duration: 5000 });
+                }
+              });
+            }
+          } else {
+            // Cualquier otro error normal (ej. cliente ya existe)
+            const mensajeError = err.error?.detail || 'Error al registrar el cliente';
+            this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 4000 });
+          }
         }
       });
     }
   }
 
-  // 👇 NUEVA FUNCIÓN PARA ELIMINAR CLIENTES DUPLICADOS 👇
   eliminarCliente(cliente: Cliente): void {
     const confirmacion = confirm(`¿Estás seguro de que deseas eliminar al cliente "${cliente.nombre}"?\nEsta acción no se puede deshacer.`);
     
@@ -138,7 +163,7 @@ export class ClientesComponent implements OnInit {
       this.clienteService.eliminarCliente(cliente.id_cliente).subscribe({
         next: () => {
           this.snackBar.open(`🗑️ Cliente eliminado correctamente`, 'OK', { duration: 4000 });
-          this.cargarClientes(); // Refrescamos la tabla para que desaparezca
+          this.cargarClientes(); 
         },
         error: (err) => {
           const mensajeError = err.error?.detail || 'Error al eliminar el cliente. Verifica que no tenga órdenes vinculadas.';
@@ -182,7 +207,6 @@ export class ClientesComponent implements OnInit {
       return;
     }
 
-    // Mapeamos y limpiamos los datos para el reporte
     const datosLimpios = clientes.map(c => ({
       'Cédula / RUC': c.id_cliente,
       'Nombre / Razón Social': c.nombre,
@@ -193,7 +217,6 @@ export class ClientesComponent implements OnInit {
       'Ciudad': c.ciudad || 'No registrada'
     }));
 
-    // Enviamos al servicio de reportes
     if (formato === 'excel') {
       this.reportesService.exportarExcel(datosLimpios, 'Directorio_Clientes_Frigometal');
     } else {
@@ -202,12 +225,8 @@ export class ClientesComponent implements OnInit {
     }
   }
 
-  // ==========================================
-  // 👇 NUEVA FUNCIÓN PARA EL BUSCADOR 👇
-  // ==========================================
   aplicarFiltro(event: Event) {
     const valorFiltro = (event.target as HTMLInputElement).value;
-    // Angular Material aplica el filtro en minúsculas y sin espacios a los lados
     this.dataSource.filter = valorFiltro.trim().toLowerCase();
   }
 }

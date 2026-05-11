@@ -308,10 +308,10 @@
 
   <div class="mat-elevation-z8" style="width: 100%; overflow-x: auto; border-radius: 8px; background-color: white;">
     
-    <table mat-table [dataSource]="dataSource" style="width: 100%; min-width: 1400px;">
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_op" matSortDirection="desc" style="width: 100%; min-width: 1400px;">
       
       <ng-container matColumnDef="numero_op">
-        <th mat-header-cell *matHeaderCellDef> Nº OP </th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Nº OP </th>
         <td mat-cell *matCellDef="let orden" style="font-weight: bold;"> {{orden.numero_op}} </td>
       </ng-container>
 

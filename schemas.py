@@ -48,6 +48,9 @@ class ClienteCreate(ClienteBase):
     # 👇 LE DECIMOS A FASTAPI QUE AHORA EXIJA LA CÉDULA/RUC AL CREAR 👇
     id_cliente: str
 
+    forzar_registro: Optional[bool] = False
+    
+
 class ClienteResponse(ClienteBase):
     id_cliente: str
 

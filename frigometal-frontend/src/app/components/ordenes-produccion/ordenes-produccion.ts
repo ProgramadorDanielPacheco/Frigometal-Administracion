@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, AfterViewInit } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -11,6 +11,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table'; 
+import { MatSort, MatSortModule } from '@angular/material/sort';
 import { OrdenProduccionService } from '../../services/orden-produccion';
 import { RecetaService } from '../../services/receta';
 import { MaterialService } from '../../services/material';
@@ -26,12 +27,12 @@ import { ClienteService } from '../../services/cliente';
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule, 
     MatDatepickerModule, MatNativeDateModule, MatSnackBarModule,
-    MatTableModule 
+    MatTableModule, MatSortModule
   ],
   templateUrl: './ordenes-produccion.html',
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
 })
-export class OrdenesProduccionComponent implements OnInit {
+export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   
   dataSource = new MatTableDataSource<any>([]);
   columnasMostradas: string[] = ['numero_op', 'cliente', 'fecha_entrega', 'tiempo_taller', 'costo_teorico', 'costo_real', 'precio', 'saldo', 'acciones'];
@@ -41,6 +42,8 @@ export class OrdenesProduccionComponent implements OnInit {
   idEditando: number | null = null;
   clientesDirectorio: any[] = [];
   filtroClientes: string = '';
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   // 👇 NUEVA VARIABLE PARA SABER SI ESTAMOS EDITANDO UN EQUIPO 👇
   indexEditandoEquipo: number | null = null;
@@ -81,6 +84,10 @@ export class OrdenesProduccionComponent implements OnInit {
     this.programacionService.getOrdenes().subscribe(datos => {
       this.ordenesPlanta = datos;
     });
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
   }
 
 

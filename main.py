@@ -278,22 +278,20 @@ def validar_identificacion_ec(identificacion: str) -> bool:
         return False
     
     provincia = int(identificacion[0:2])
-    # Provincias de Ecuador van del 01 al 24 (y 30 para ecuatorianos en el exterior)
     if provincia < 1 or (provincia > 24 and provincia != 30):
         return False
         
     tercer_digito = int(identificacion[2])
 
-    # 1. Validación para Personas Naturales (Cédula o RUC que termina en 001)
+    # 1. Validación para Personas Naturales
     if tercer_digito < 6:
         if len(identificacion) == 13 and identificacion[10:13] != "001":
             return False
         
-        # Algoritmo Módulo 10 del Registro Civil
         suma = 0
         for i in range(9):
             valor = int(identificacion[i])
-            if i % 2 == 0:  # Posiciones impares (índices pares) se multiplican por 2
+            if i % 2 == 0:  
                 valor *= 2
                 if valor > 9:
                     valor -= 9
@@ -303,34 +301,32 @@ def validar_identificacion_ec(identificacion: str) -> bool:
         calculado = (10 - (suma % 10)) % 10
         return calculado == digito_verificador
 
-    # 2. Validación estructural para Sociedades Privadas (Tercer dígito = 9, termina en 001)
+    # 2. Validación estructural para Sociedades Privadas
     elif tercer_digito == 9:
         if len(identificacion) != 13 or identificacion[10:13] != "001":
             return False
-        return True # (Aquí se podría agregar el Módulo 11 si se desea más precisión)
+        return True 
 
-    # 3. Validación estructural para Entidades Públicas (Tercer dígito = 6, termina en 0001)
+    # 3. Validación estructural para Entidades Públicas (Ajustado a 001)
     elif tercer_digito == 6:
-        if len(identificacion) != 13 or identificacion[9:13] != "0001":
+        # 👇 El SRI a veces usa 0001, otras veces 3001, etc. Solo verificamos que termine en 001
+        if len(identificacion) != 13 or identificacion[10:13] != "001":
             return False
         return True
 
     return False
 
-# ==========================================
-# ENDPOINT ACTUALIZADO DE CLIENTES
-# ==========================================
 @app.post("/clientes/", response_model=schemas.ClienteResponse)
 def crear_cliente(cliente: schemas.ClienteCreate, db: Session = Depends(get_db)):
     
-    # 1. Llamamos a nuestra validación antes de tocar la base de datos
-    if not validar_identificacion_ec(cliente.id_cliente):
+    # 1. Validación con Soft-Fail: Si es inválido Y NO forzaron el registro, lo detenemos.
+    if not cliente.forzar_registro and not validar_identificacion_ec(cliente.id_cliente):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="La Cédula o RUC ingresado no es válido en Ecuador."
+            detail="RUC_INVALIDO" # Enviamos esta palabra clave para que Angular la reconozca
         )
     
-    # 2. Verificamos que no exista ya en la base de datos
+    # 2. Verificamos que no exista ya
     cliente_existente = db.query(models.Cliente).filter(models.Cliente.id_cliente == cliente.id_cliente).first()
     if cliente_existente:
         raise HTTPException(
@@ -338,8 +334,9 @@ def crear_cliente(cliente: schemas.ClienteCreate, db: Session = Depends(get_db))
             detail="Este cliente ya está registrado en el sistema."
         )
 
-    # 3. Guardamos si todo está perfecto
-    nuevo_cliente = models.Cliente(**cliente.model_dump())
+    # 3. Guardamos (excluimos la variable 'forzar_registro' porque no existe en la base de datos)
+    datos_cliente = cliente.model_dump(exclude={"forzar_registro"})
+    nuevo_cliente = models.Cliente(**datos_cliente)
     db.add(nuevo_cliente)
     db.commit()
     db.refresh(nuevo_cliente)
