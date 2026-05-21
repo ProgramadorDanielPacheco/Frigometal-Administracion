@@ -60,20 +60,26 @@
           </mat-form-field>
         </div>
 
-        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+       <div style="display: flex; gap: 15px; margin-bottom: 20px;">
           <mat-form-field appearance="outline" style="flex: 1;">
             <mat-label>Fecha Entrega Límite</mat-label>
-            <input matInput type="date" [value]="opEditando.fecha_entrega_prevista" >
+            <input matInput [matDatepicker]="pickerEntregaOP" [(ngModel)]="opEditando.fecha_entrega_prevista">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerEntregaOP"></mat-datepicker-toggle>
+            <mat-datepicker #pickerEntregaOP></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field appearance="outline" style="flex: 1; background-color: #fff9c4;">
             <mat-label>FECHA INICIO TALLER</mat-label>
-            <input matInput type="date" [(ngModel)]="opEditando.fecha_inicio_produccion">
+            <input matInput [matDatepicker]="pickerInicioTaller" [(ngModel)]="opEditando.fecha_inicio_produccion">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerInicioTaller"></mat-datepicker-toggle>
+            <mat-datepicker #pickerInicioTaller></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field appearance="outline" style="flex: 1; background-color: #c8e6c9;">
             <mat-label>FECHA FIN TALLER</mat-label>
-            <input matInput type="date" [(ngModel)]="opEditando.fecha_fin_produccion">
+            <input matInput [matDatepicker]="pickerFinTaller" [(ngModel)]="opEditando.fecha_fin_produccion">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerFinTaller"></mat-datepicker-toggle>
+            <mat-datepicker #pickerFinTaller></mat-datepicker>
           </mat-form-field>
         </div>
 

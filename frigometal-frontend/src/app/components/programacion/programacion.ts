@@ -178,7 +178,20 @@ export class ProgramacionComponent implements OnInit {
 
     this.snackBar.open('⏳ Guardando progreso en taller...', '', { duration: 2000 });
 
-    this.programacionService.actualizarOrden(this.opEditando.id_op, this.opEditando).subscribe({
+    // 👇 CLONAMOS Y FORMATEAMOS LAS FECHAS ANTES DE ENVIAR AL BACKEND 👇
+    const payload = { ...this.opEditando };
+    
+    if (payload.fecha_entrega_prevista) {
+      payload.fecha_entrega_prevista = new Date(payload.fecha_entrega_prevista).toISOString().split('T')[0];
+    }
+    if (payload.fecha_inicio_produccion) {
+      payload.fecha_inicio_produccion = new Date(payload.fecha_inicio_produccion).toISOString().split('T')[0];
+    }
+    if (payload.fecha_fin_produccion) {
+      payload.fecha_fin_produccion = new Date(payload.fecha_fin_produccion).toISOString().split('T')[0];
+    }
+
+    this.programacionService.actualizarOrden(payload.id_op, payload).subscribe({
       next: () => {
         this.snackBar.open('✅ Hoja de trabajo actualizada', 'Excelente', { duration: 3000 });
         this.cerrarHojaTrabajo();
