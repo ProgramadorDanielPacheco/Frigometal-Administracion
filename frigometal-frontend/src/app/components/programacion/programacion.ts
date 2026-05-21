@@ -191,7 +191,7 @@ export class ProgramacionComponent implements OnInit {
       payload.fecha_fin_produccion = new Date(payload.fecha_fin_produccion).toISOString().split('T')[0];
     }
 
-    this.programacionService.actualizarOrden(payload.id_op, payload).subscribe({
+    this.programacionService.actualizarOrden(payload.id_op!, payload).subscribe({
       next: () => {
         this.snackBar.open('✅ Hoja de trabajo actualizada', 'Excelente', { duration: 3000 });
         this.cerrarHojaTrabajo();
