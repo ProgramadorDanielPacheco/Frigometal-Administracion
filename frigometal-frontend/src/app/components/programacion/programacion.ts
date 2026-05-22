@@ -250,11 +250,17 @@ export class ProgramacionComponent implements OnInit {
     return `${horas}h ${minutos}m`;
   }
 
+  // ==========================================
+  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
+  // ==========================================
   imprimirHojaTrabajo(): void {
     if (!this.opEditando) return;
 
     const productoNombre = this.obtenerNombreProducto(this.opEditando.id_producto);
     const orden = this.opEditando;
+    
+    // 👇 NUEVO: Calculamos el tiempo total antes de imprimir 👇
+    const tiempoTotal = this.calcularTiempoTotalOrden(orden);
     
     let filasProcesos = '';
     this.listaProcesos.forEach(proc => {
@@ -339,8 +345,10 @@ export class ProgramacionComponent implements OnInit {
                 <td style="text-align: left;">${orden.fecha_entrega_prevista || ''}</td>
                 <td colspan="2" class="yellow-box"></td>
               </tr>
+              
               <tr>
-                <td colspan="3" style="border-right: 1px solid white;"></td>
+                <td colspan="2" class="header-cell" style="text-align: left;">Tiempo Total OP</td>
+                <td style="text-align: left; font-weight: bold;">${tiempoTotal}</td>
                 <td class="header-cell" style="text-align: left;">FECHA INI</td>
                 <td style="text-align: left;">${orden.fecha_inicio_produccion || ''}</td>
                 <td class="header-cell" style="text-align: left;">FECHA FIN</td>
