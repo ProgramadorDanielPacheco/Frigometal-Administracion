@@ -253,14 +253,32 @@ export class ProgramacionComponent implements OnInit {
   // ==========================================
   // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
   // ==========================================
+  // ==========================================
+  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
+  // ==========================================
   imprimirHojaTrabajo(): void {
     if (!this.opEditando) return;
 
     const productoNombre = this.obtenerNombreProducto(this.opEditando.id_producto);
     const orden = this.opEditando;
     
-    // 👇 NUEVO: Calculamos el tiempo total antes de imprimir 👇
+    // Calculamos el tiempo total
     const tiempoTotal = this.calcularTiempoTotalOrden(orden);
+
+    // 👇 NUEVO: Función para formatear fechas a dd/mm/aaaa en el PDF 👇
+    const formatearFechaVista = (fecha: any) => {
+      if (!fecha) return '';
+      const d = new Date(fecha);
+      if (isNaN(d.getTime())) return fecha; // Si por alguna razón falla, devuelve el texto original
+      const dia = ('0' + d.getDate()).slice(-2);
+      const mes = ('0' + (d.getMonth() + 1)).slice(-2);
+      const anio = d.getFullYear();
+      return `${dia}/${mes}/${anio}`;
+    };
+
+    const fechaEntregaF = formatearFechaVista(orden.fecha_entrega_prevista);
+    const fechaIniF = formatearFechaVista(orden.fecha_inicio_produccion);
+    const fechaFinF = formatearFechaVista(orden.fecha_fin_produccion);
     
     let filasProcesos = '';
     this.listaProcesos.forEach(proc => {
@@ -279,14 +297,18 @@ export class ProgramacionComponent implements OnInit {
         `;
       } else {
         turnos.forEach((t: any, index: number) => {
+          // Formateamos también las fechas de los turnos para que se vean limpias
+          const fIniTurno = formatearFechaVista(t.fecha_inicio);
+          const fFinTurno = formatearFechaVista(t.fecha_fin);
+
           if (index === 0) {
             filasTurnos += `
               <tr>
                 <td rowspan="${rowspan}" class="col-proceso" style="vertical-align: middle;">${proc}</td>
                 <td style="color: #666; font-size: 11px;">T${index + 1}</td>
-                <td>${t.fecha_inicio || ''}</td>
+                <td>${fIniTurno}</td>
                 <td>${t.hora_inicio || ''}</td>
-                <td>${t.fecha_fin || ''}</td>
+                <td>${fFinTurno}</td>
                 <td>${t.hora_fin || ''}</td>
                 <td style="font-size: 10px;">${t.responsable || ''}</td>
               </tr>
@@ -295,9 +317,9 @@ export class ProgramacionComponent implements OnInit {
             filasTurnos += `
               <tr>
                 <td style="color: #666; font-size: 11px;">T${index + 1}</td>
-                <td>${t.fecha_inicio || ''}</td>
+                <td>${fIniTurno}</td>
                 <td>${t.hora_inicio || ''}</td>
-                <td>${t.fecha_fin || ''}</td>
+                <td>${fFinTurno}</td>
                 <td>${t.hora_fin || ''}</td>
                 <td style="font-size: 10px;">${t.responsable || ''}</td>
               </tr>
@@ -322,6 +344,25 @@ export class ProgramacionComponent implements OnInit {
               .col-proceso { font-weight: bold; color: #555; text-align: left; }
               .yellow-box { background-color: #ffeb3b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               .logo { max-height: 35px; float: right; }
+              
+              /* 👇 Estilos para el cuadro azul del final 👇 */
+              .caja-tiempo {
+                margin-top: 25px;
+                background-color: #e3f2fd !important;
+                border: 2px solid #90caf9;
+                border-radius: 12px;
+                padding: 15px;
+                width: 250px;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: center;
+                page-break-inside: avoid;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+              }
+              .caja-tiempo-titulo { color: #1565c0; font-weight: bold; font-size: 12px; margin-bottom: 5px; }
+              .caja-tiempo-valor { color: #0d47a1; font-weight: bold; font-size: 34px; margin: 0; }
+
               @media print { @page { size: portrait; margin: 1cm; } body { padding: 0; } }
             </style>
           </head>
@@ -342,17 +383,15 @@ export class ProgramacionComponent implements OnInit {
                 <td colspan="2" class="header-cell" style="text-align: left;">Cant.</td>
                 <td style="text-align: left;">${orden.cantidad || ''}</td>
                 <td class="header-cell" style="text-align: left;">Fecha entrega</td>
-                <td style="text-align: left;">${orden.fecha_entrega_prevista || ''}</td>
+                <td style="text-align: left; font-weight: bold;">${fechaEntregaF}</td>
                 <td colspan="2" class="yellow-box"></td>
               </tr>
-              
               <tr>
-                <td colspan="2" class="header-cell" style="text-align: left;">Tiempo Total OP</td>
-                <td style="text-align: left; font-weight: bold;">${tiempoTotal}</td>
+                <td colspan="3" style="border-right: 1px solid white;"></td>
                 <td class="header-cell" style="text-align: left;">FECHA INI</td>
-                <td style="text-align: left;">${orden.fecha_inicio_produccion || ''}</td>
+                <td style="text-align: left; font-weight: bold;">${fechaIniF}</td>
                 <td class="header-cell" style="text-align: left;">FECHA FIN</td>
-                <td style="text-align: left;">${orden.fecha_fin_produccion || ''}</td>
+                <td style="text-align: left; font-weight: bold;">${fechaFinF}</td>
               </tr>
 
               <tr class="header-cell">
@@ -370,6 +409,12 @@ export class ProgramacionComponent implements OnInit {
                 <td colspan="5" style="height: 50px; vertical-align: top; text-align: left;">${orden.observaciones_taller || ''}</td>
               </tr>
             </table>
+
+            <div class="caja-tiempo">
+              <div class="caja-tiempo-titulo">TIEMPO TOTAL DE TRABAJO</div>
+              <div class="caja-tiempo-valor">${tiempoTotal}</div>
+            </div>
+
             <script>
               window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 300); };
             </script>
