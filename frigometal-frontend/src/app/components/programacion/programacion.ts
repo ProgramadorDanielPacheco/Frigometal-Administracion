@@ -40,9 +40,10 @@ export class ProgramacionComponent implements OnInit {
   mostrarFormulario: boolean = false;
   opEditando: OrdenPlanta | null = null;
 
+  // 👇 AGREGAMOS 'Reproceso' AL FINAL DE LA LISTA 👇
   listaProcesos: string[] = [
     'Corte Laser', 'Plegado', 'Estructura', 'Armado', 'Poliuretano', 
-    'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final'
+    'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final', 'Reproceso'
   ];
 
   estadosPlanta: string[] = ['EN COLA', 'EN PROGRESO', 'PAUSADO', 'TERMINADO'];
