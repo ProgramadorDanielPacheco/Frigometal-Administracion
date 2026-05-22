@@ -125,6 +125,19 @@ export class ProgramacionComponent implements OnInit {
     this.opEditando = JSON.parse(JSON.stringify(orden));
     if (!this.opEditando!.seguimiento_procesos) this.opEditando!.seguimiento_procesos = {};
 
+    // 👇 SOLUCIÓN DE ZONA HORARIA 👇
+    // Si la base de datos nos manda un string "2026-05-22", le agregamos "T00:00:00" 
+    // para obligar al Datepicker de Angular a leerlo en el huso horario local de Ecuador.
+    if (this.opEditando!.fecha_entrega_prevista) {
+      this.opEditando!.fecha_entrega_prevista = new Date(this.opEditando!.fecha_entrega_prevista + 'T00:00:00') as any;
+    }
+    if (this.opEditando!.fecha_inicio_produccion) {
+      this.opEditando!.fecha_inicio_produccion = new Date(this.opEditando!.fecha_inicio_produccion + 'T00:00:00') as any;
+    }
+    if (this.opEditando!.fecha_fin_produccion) {
+      this.opEditando!.fecha_fin_produccion = new Date(this.opEditando!.fecha_fin_produccion + 'T00:00:00') as any;
+    }
+
     this.listaProcesos.forEach(proceso => {
       const procData = this.opEditando!.seguimiento_procesos[proceso];
       
@@ -174,23 +187,30 @@ export class ProgramacionComponent implements OnInit {
     }
   }
 
-  guardarHojaTrabajo(): void {
+ guardarHojaTrabajo(): void {
     if (!this.opEditando || !this.opEditando.id_op) return;
 
     this.snackBar.open('⏳ Guardando progreso en taller...', '', { duration: 2000 });
 
-    // 👇 CLONAMOS Y FORMATEAMOS LAS FECHAS ANTES DE ENVIAR AL BACKEND 👇
     const payload = { ...this.opEditando };
     
-    if (payload.fecha_entrega_prevista) {
-      payload.fecha_entrega_prevista = new Date(payload.fecha_entrega_prevista).toISOString().split('T')[0];
-    }
-    if (payload.fecha_inicio_produccion) {
-      payload.fecha_inicio_produccion = new Date(payload.fecha_inicio_produccion).toISOString().split('T')[0];
-    }
-    if (payload.fecha_fin_produccion) {
-      payload.fecha_fin_produccion = new Date(payload.fecha_fin_produccion).toISOString().split('T')[0];
-    }
+    // 👇 SOLUCIÓN DE GUARDADO 👇
+    // Función extractora que evita que "toISOString" nos atrase un día
+    const formatearFecha = (fecha: any) => {
+      if (!fecha) return null;
+      // Si el calendario ya nos da un string válido, lo usamos directo
+      if (typeof fecha === 'string') return fecha.split('T')[0]; 
+      
+      // Si nos da un objeto Date local, sacamos los números manualmente
+      const d = new Date(fecha);
+      const month = ('0' + (d.getMonth() + 1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
+      return `${d.getFullYear()}-${month}-${day}`;
+    };
+
+    payload.fecha_entrega_prevista = formatearFecha(payload.fecha_entrega_prevista) as any;
+    payload.fecha_inicio_produccion = formatearFecha(payload.fecha_inicio_produccion) as any;
+    payload.fecha_fin_produccion = formatearFecha(payload.fecha_fin_produccion) as any;
 
     this.programacionService.actualizarOrden(payload.id_op!, payload).subscribe({
       next: () => {
