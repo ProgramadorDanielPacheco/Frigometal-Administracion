@@ -416,13 +416,47 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return 0;
   }
 
+  // 👇 NUEVO: Función para normalizar los turnos (igual que en Control de Planta) 👇
+  private normalizarTurnos(data: any): any[] {
+    if (!data) return [];
+    if (data.turnos) return data.turnos; 
+    
+    let turnos = [];
+    if (data.fecha_inicio_1 || data.fecha_inicio || data.responsable) {
+       turnos.push({
+         fecha_inicio: data.fecha_inicio_1 || data.fecha_inicio || '',
+         hora_inicio: data.hora_inicio_1 || data.hora_inicio || '',
+         fecha_fin: data.fecha_fin_1 || data.fecha_fin || '',
+         hora_fin: data.hora_fin_1 || data.hora_fin || '',
+         responsable: data.responsable || ''
+       });
+    }
+    if (data.fecha_inicio_2) {
+       turnos.push({
+         fecha_inicio: data.fecha_inicio_2 || '', hora_inicio: data.hora_inicio_2 || '',
+         fecha_fin: data.fecha_fin_2 || '', hora_fin: data.hora_fin_2 || '',
+         responsable: data.responsable || ''
+       });
+    }
+    if (data.turnos_extra && data.turnos_extra.length > 0) {
+       data.turnos_extra.forEach((t: any) => {
+         turnos.push({
+           fecha_inicio: t.fecha_inicio || '', hora_inicio: t.hora_inicio || '',
+           fecha_fin: t.fecha_fin || '', hora_fin: t.hora_fin || '',
+           responsable: t.responsable || data.responsable || ''
+         });
+       });
+    }
+    return turnos;
+  }
+
   // 1. Calcula los minutos exactos de UN SOLO equipo
   private calcularMinutosEquipo(equipo: any): number {
     if (!equipo || this.ordenesPlanta.length === 0) return 0;
     let totalMinutos = 0;
     const procesos = [ 
       'Corte Laser', 'Plegado', 'Estructura', 'Armado', 'Poliuretano', 
-      'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final' 
+      'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final', 'Reproceso' // 👈 Agregamos 'Reproceso' aquí también
     ];
     
     const numOpMaquina = String(equipo.orden_produccion);
@@ -432,8 +466,11 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       procesos.forEach(proc => {
         const data = plantaMatch.seguimiento_procesos[proc];
         if (data) {
-          totalMinutos += this.calcularMinutos(data.fecha_inicio_1, data.hora_inicio_1, data.fecha_fin_1, data.hora_fin_1);
-          totalMinutos += this.calcularMinutos(data.fecha_inicio_2, data.hora_inicio_2, data.fecha_fin_2, data.hora_fin_2);
+          // 👇 AHORA USAMOS LA LISTA DINÁMICA DE TURNOS 👇
+          const turnos = this.normalizarTurnos(data);
+          turnos.forEach((t: any) => {
+            totalMinutos += this.calcularMinutos(t.fecha_inicio, t.hora_inicio, t.fecha_fin, t.hora_fin);
+          });
         }
       });
     }
