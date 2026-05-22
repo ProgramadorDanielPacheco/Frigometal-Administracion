@@ -59,6 +59,7 @@ export class ProgramacionComponent implements OnInit {
   
   // 👇 NUEVA VARIABLE PARA EL GRAN TOTAL DEL TRABAJADOR 👇
   granTotalTextoTrabajador: string = '';
+  maximoMinutosReporte: number = 1;
 
   constructor(
     private usuarioService: UsuarioService,
@@ -432,7 +433,8 @@ export class ProgramacionComponent implements OnInit {
       this.fechaFinReporte = null;
       this.trabajadorReporte = 'TODOS'; 
       this.reporteProcesos = [];
-      this.granTotalTextoTrabajador = ''; // 👈 Limpiamos también el gran total
+      this.granTotalTextoTrabajador = ''; 
+      this.maximoMinutosReporte = 1; // 👈 Lo limpiamos aquí
     }
   }
 
@@ -485,7 +487,15 @@ export class ProgramacionComponent implements OnInit {
     } else {
       this.granTotalTextoTrabajador = ''; // Si es 'TODOS', lo dejamos vacío para que se oculte
     }
+
+    if (this.reporteProcesos.length > 0) {
+      this.maximoMinutosReporte = Math.max(...this.reporteProcesos.map(r => r.totalMinutos));
+      if (this.maximoMinutosReporte === 0) this.maximoMinutosReporte = 1; // Evitamos división por cero
+    }
+  
   }
+
+  
 
   private sumarSiEnRango(fIni: string | undefined, hIni: string | undefined, fFin: string | undefined, hFin: string | undefined, inicioRango: Date, finRango: Date, proceso: string, mapaTiempos: Map<string, number>) {
     if (!fIni || !hIni || !fFin || !hFin) return;
