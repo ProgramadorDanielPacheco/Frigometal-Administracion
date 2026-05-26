@@ -13,4 +13,13 @@ export class ProformaService {
   actualizarProforma(id: number, proforma: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}${id}`, proforma);
   }
+  
+  // 👇 NUEVAS FUNCIONES 👇
+  eliminarProforma(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}${id}`);
+  }
+
+  generarOP(id: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}${id}/generar-op`, {});
+  }
 }

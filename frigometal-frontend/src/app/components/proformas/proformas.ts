@@ -211,7 +211,7 @@ export class ProformasComponent implements OnInit {
     if (this.modoEdicion && this.idEditando) {
       this.proformaService.actualizarProforma(this.idEditando, payload).subscribe({
         next: () => {
-          this.snackBar.open('✅ Proforma Actualizada y OP Sincronizada', 'OK', { duration: 5000 });
+          this.snackBar.open('✅ Proforma Actualizada', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
           this.cargarProformas();
@@ -224,7 +224,7 @@ export class ProformasComponent implements OnInit {
     } else {
       this.proformaService.crearProforma(payload).subscribe({
         next: () => {
-          this.snackBar.open('✅ Proforma Creada y Borrador de Orden Generado', 'OK', { duration: 5000 });
+          this.snackBar.open('✅ Proforma Guardada en Standby', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
           this.cargarProformas();
@@ -237,6 +237,35 @@ export class ProformasComponent implements OnInit {
     }
   }
 
+  // 👇 NUEVAS FUNCIONES PARA LA TABLA 👇
+  eliminarProforma(proforma: any): void {
+    const confirmar = confirm(`¿Estás seguro de eliminar la proforma ${proforma.numero_proforma}? Esta acción no se puede deshacer.`);
+    if (confirmar) {
+      this.proformaService.eliminarProforma(proforma.id_proforma).subscribe({
+        next: () => {
+          this.snackBar.open('🗑️ Proforma eliminada', 'OK', { duration: 3000 });
+          this.cargarProformas();
+        },
+        error: () => this.snackBar.open('❌ Error al eliminar', 'Cerrar', { duration: 3000 })
+      });
+    }
+  }
+
+  generarOPDesdeProforma(proforma: any): void {
+    const confirmar = confirm(`¿El cliente aprobó la proforma ${proforma.numero_proforma}?\nAl aceptar, se generará una nueva Orden de Producción en el sistema.`);
+    if (confirmar) {
+      this.snackBar.open('⏳ Generando Orden de Producción...', '', { duration: 2000 });
+      this.proformaService.generarOP(proforma.id_proforma).subscribe({
+        next: (res) => {
+          this.snackBar.open(`✅ ¡Éxito! Se ha creado la OP Nº ${res.numero_op} en Producción.`, 'Genial', { duration: 5000 });
+        },
+        error: (err) => {
+          const msg = err.error?.detail || 'Error al generar la OP';
+          this.snackBar.open(`❌ ${msg}`, 'Cerrar', { duration: 5000 });
+        }
+      });
+    }
+  }
   // ==========================================
   // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO FRIGOMETAL) 👇
   // ==========================================
