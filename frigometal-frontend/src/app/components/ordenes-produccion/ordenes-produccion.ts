@@ -146,22 +146,34 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     };
   }
 
+  // 👇 LÓGICA DE ESCÁNER PROFUNDO DEL CONSECUTIVO 👇
   calcularSiguienteOP(): number {
     let maxOP = 0;
+
+    // 1. Escaneamos la base de datos completa
     this.dataSource.data.forEach(orden => {
+      // Sacamos los números del ID general por si le pusieron "OP-90"
+      const numeroGeneral = parseInt(String(orden.numero_op).replace(/\D/g, ''), 10) || 0;
+      if (numeroGeneral > maxOP) maxOP = numeroGeneral;
+
+      // Escaneamos uno por uno los equipos de esta orden
       if (orden.equipos) {
         orden.equipos.forEach((e: any) => {
-          const op = Number(e.orden_produccion) || 0;
-          if (op > maxOP) maxOP = op;
+          const opEquipo = Number(e.orden_produccion) || 0;
+          if (opEquipo > maxOP) maxOP = opEquipo;
         });
       }
     });
 
-    this.nuevaOrden.equipos.forEach((e: any) => {
-      const op = Number(e.orden_produccion) || 0;
-      if (op > maxOP) maxOP = op;
-    });
+    // 2. Escaneamos los equipos que el usuario está añadiendo ahorita en pantalla
+    if (this.nuevaOrden && this.nuevaOrden.equipos) {
+      this.nuevaOrden.equipos.forEach((e: any) => {
+        const opLocal = Number(e.orden_produccion) || 0;
+        if (opLocal > maxOP) maxOP = opLocal;
+      });
+    }
 
+    // Retornamos el número absoluto más alto + 1
     return maxOP === 0 ? 1 : maxOP + 1;
   }
 
@@ -170,7 +182,10 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     if (!this.mostrarFormulario) {
       this.cancelarEdicion();
     } else {
-      this.nuevoEquipo.orden_produccion = this.calcularSiguienteOP();
+      // 👇 AUTOCOMPLETAMOS LA OP PADRE Y EL PRIMER EQUIPO AL INSTANTE 👇
+      const consecutivo = this.calcularSiguienteOP();
+      this.nuevaOrden.numero_op = String(consecutivo);
+      this.nuevoEquipo.orden_produccion = consecutivo;
     }
   }
 
@@ -245,7 +260,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // 👇 NUEVA FUNCIÓN: Sincroniza una receta que quedó en 0 👇
   sincronizarReceta(index: number): void {
     const equipo = this.nuevaOrden.equipos[index];
     if (!equipo.id_producto) {
