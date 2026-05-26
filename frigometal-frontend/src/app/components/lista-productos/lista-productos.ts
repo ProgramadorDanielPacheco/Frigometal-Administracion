@@ -11,15 +11,14 @@ import { MatCardActions, MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatListModule } from '@angular/material/list'; // <-- NUEVO PARA LA LISTA DE RECETA
+import { MatListModule } from '@angular/material/list'; 
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 
-import { Producto, ProductoService } from '../../services/producto'; // Revisa si es .service o no
+import { Producto, ProductoService } from '../../services/producto'; 
 import { Material, MaterialService } from '../../services/material';
 import { RecetaDetalle, RecetaService } from '../../services/receta';
 import { ReportesService } from '../../services/reportes';
 import { MatMenuModule } from '@angular/material/menu';
-// Agrégalo junto a tus otros imports
 import { OrdenProduccionService } from '../../services/orden-produccion';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 
@@ -36,8 +35,6 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 })
 export class ListaProductos implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<Producto>([]);
-  // 👇 AGREGAMOS LA COLUMNA DE ACCIONES 👇
-  // 👇 AGREGAMOS 'parametro' A LA LISTA DE COLUMNAS 👇
   columnasMostradas: string[] = ['id_producto', 'nombre', 'parametro', 'tiempo', 'es_estandar', 'acciones'];
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -53,7 +50,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
   // === VARIABLES PARA LA RECETA ===
   productoSeleccionado: Producto | null = null;
   materialesBodega: Material[] = [];
-  recetaActual: any[] = []; // Lo que ya tiene la receta
+  recetaActual: any[] = []; 
 
   get recetaOrdenada(): any[] {
     return [...this.recetaActual].sort((a, b) => {
@@ -63,7 +60,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
     });
   }
   
-  // Lo que el usuario está agregando
   idMaterialSeleccionado: number | null = null;
   cantidadNecesaria: number = 1;
 
@@ -85,7 +81,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.cargarProductos();
-    // Cargamos los materiales de la bodega una sola vez para el menú desplegable
     this.materialService.getMateriales().subscribe(datos => this.materialesBodega = datos);
     this.cargarMaterialesBodega();
     this.ordenService.getOrdenes().subscribe(ordenes => {
@@ -98,7 +93,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
           });
         }
       });
-      // Guardamos la última OP encontrada (o 1 si está vacío)
       this.ultimaOPDetectada = maxOP > 0 ? maxOP : 1;
     });
   }
@@ -132,7 +126,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.modoEdicion = true;
     this.idProductoEditando = prod.id_producto!;
     this.mostrarFormulario = true;
-    this.nuevoProducto = { ...prod }; // Copia los datos
+    this.nuevoProducto = { ...prod }; 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -145,7 +139,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.guardando = true;
 
     if (this.modoEdicion && this.idProductoEditando) {
-      // 🟢 MODO ACTUALIZAR
       this.productoService.actualizarProducto(this.idProductoEditando, this.nuevoProducto).subscribe({
         next: () => {
           this.snackBar.open('✅ Producto actualizado', 'Excelente', { duration: 3000 });
@@ -157,7 +150,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
         }
       });
     } else {
-      // 🔵 MODO CREAR
       this.productoService.crearProducto(this.nuevoProducto).subscribe({
         next: () => {
           this.snackBar.open('✅ Producto registrado', 'Excelente', { duration: 3000 });
@@ -173,7 +165,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
 
   finalizarGuardado(): void {
     this.cargarProductos();
-    // setTimeout evita el error NG0100 de Angular
     setTimeout(() => {
       this.mostrarFormulario = false;
       this.guardando = false;
@@ -193,18 +184,25 @@ export class ListaProductos implements OnInit, AfterViewInit {
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idProductoEditando = null;
-    // 👇 También añádelo aquí 👇
     this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '' };
   }
 
-  // 👇 NUEVAS FUNCIONES PARA LA RECETA 👇
-
+  // 👇 FUNCIÓN CORREGIDA PARA HACER SCROLL INSTANTÁNEO 👇
   abrirReceta(prod: Producto): void {
     this.productoSeleccionado = prod;
-    this.cargarMaterialesBodega(); // 👈 NUEVO: Refresca el catálogo al abrir el panel
+    this.cargarMaterialesBodega(); 
     this.cargarRecetaDelProducto();
-    // Hacemos scroll hacia abajo para que el usuario vea el panel
-    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+    
+    // Obligamos a Angular a dibujar el HTML inmediatamente
+    this.cdr.detectChanges(); 
+    
+    // Ahora que el HTML existe, bajamos directo a ese ID
+    setTimeout(() => {
+      const panelReceta = document.getElementById('panel-receta-tecnica');
+      if (panelReceta) {
+        panelReceta.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50); 
   }
 
   cerrarReceta(): void {
@@ -238,8 +236,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.recetaService.agregarMaterial(detalle).subscribe({
       next: () => {
         this.snackBar.open('✅ Material agregado a la receta', 'OK', { duration: 3000 });
-        this.cargarRecetaDelProducto(); // Refrescamos la lista de la receta
-        // Limpiamos los campos
+        this.cargarRecetaDelProducto(); 
         this.idMaterialSeleccionado = null;
         this.cantidadNecesaria = 1;
         this.filtroMateriales = '';
@@ -272,26 +269,20 @@ obtenerPrecioMaterial(idMaterial: number): number {
   return material ? Number(material.precio_unitario) : 0;
 }
 
-// 2. Calcula el subtotal para una fila de la receta
 calcularSubtotal(item: any): number {
   const precio = this.obtenerPrecioMaterial(item.id_material);
   const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
   return precio * cantidad;
 }
 
-// 3. Suma todos los subtotales para el costo total del producto
 calcularCostoTotalReceta(): number {
   return this.recetaActual.reduce((total, item) => total + this.calcularSubtotal(item), 0);
 }
 
-  // ==========================================
-  // LÓGICA DE IMPORTACIÓN MASIVA (EXCEL)
-  // ==========================================
   onArchivoSeleccionado(event: any): void {
     const archivo: File = event.target.files[0];
     
     if (archivo) {
-      // Validación de seguridad para que solo suban Excels
       if (!archivo.name.endsWith('.xlsx') && !archivo.name.endsWith('.xls')) {
         this.snackBar.open('⚠️ Por favor, selecciona un archivo de Excel válido', 'Cerrar', { duration: 3000 });
         return;
@@ -303,15 +294,13 @@ calcularCostoTotalReceta(): number {
         next: (respuesta) => {
           this.snackBar.open(`✅ ${respuesta.mensaje}`, 'Excelente', { duration: 5000 });
           
-          // Si hubo filas con errores (ej. ID de material que no existe en el inventario)
           if (respuesta.errores && respuesta.errores.length > 0) {
             console.warn('Detalle de errores:', respuesta.errores);
             alert(`Se importó el catálogo, pero ignoramos algunas filas con errores:\n\n${respuesta.errores.join('\n')}`);
           }
 
-          // 👇 Asegúrate de que esta función se llame igual que la tuya para recargar la tabla
           this.cargarProductos(); 
-          event.target.value = ''; // Limpiamos el botón por si quieren subir otro Excel luego
+          event.target.value = ''; 
         },
         error: (err) => {
           console.error(err);
@@ -323,9 +312,6 @@ calcularCostoTotalReceta(): number {
     }
   }
 
-  // ==========================================
-  // GENERACIÓN DE REPORTES (EXCEL Y PDF)
-  // ==========================================
   generarReporte(formato: 'excel' | 'pdf'): void {
     const productos = this.dataSource.data;
     
@@ -336,19 +322,15 @@ calcularCostoTotalReceta(): number {
 
     this.snackBar.open('⏳ Recopilando recetas y calculando costos...', '', { duration: 2500 });
 
-    // 1. Creamos un arreglo de peticiones HTTP (una por cada producto) para traer su receta
     const peticionesRecetas = productos.map(prod => 
       this.recetaService.getReceta(prod.id_producto!).pipe(
-        catchError(() => of([])) // Si un producto falla o no tiene receta, devolvemos un arreglo vacío
+        catchError(() => of([])) 
       )
     );
 
-    // 2. forkJoin ejecuta todas las peticiones a la vez y espera a que terminen
-    // 2. forkJoin ejecuta todas las peticiones a la vez y espera a que terminen
     forkJoin(peticionesRecetas).subscribe({
       next: (todasLasRecetas) => {
         
-        // 3. Ya tenemos todas las recetas, ahora armamos la tabla final
         const datosLimpios = productos.map((prod, index) => {
           const recetaDelProducto = todasLasRecetas[index];
           
@@ -357,30 +339,23 @@ calcularCostoTotalReceta(): number {
 
           if (recetaDelProducto && recetaDelProducto.length > 0) {
             
-            // Recorremos cada ítem de la receta
             const detallesMapeados = recetaDelProducto.map((r: any) => {
               
-              // 👇 MAGIA AQUÍ: Buscamos el material en la lista que ya tienes cargada en el componente 👇
               const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
               
               const nombreMat = materialBD ? materialBD.nombre : 'Material Desconocido';
               const precioMat = materialBD ? Number(materialBD.precio_unitario || 0) : 0;
               
-              // Aseguramos capturar la cantidad, sin importar si viene de Python o de Angular
               const cantidadMat = Number(r.cantidad_requerida || r.cantidad_necesaria || 0);
 
-              // Vamos sumando el costo
               costoTotal += (cantidadMat * precioMat);
 
-              // Retornamos el texto para la columna de Excel
               return `${nombreMat} (${cantidadMat})`;
             });
 
-            // Unimos todos los materiales con una barrita
             recetaTexto = detallesMapeados.join(' | ');
           }
 
-          // Este objeto será una Fila en nuestro Excel/PDF
           return {
             'ID': prod.id_producto,
             'Nombre del Producto': prod.nombre,
@@ -391,7 +366,6 @@ calcularCostoTotalReceta(): number {
           };
         });
 
-        // 4. Mandamos a descargar según el botón que presionó el usuario
         if (formato === 'excel') {
           this.reportesService.exportarExcel(datosLimpios, 'Catalogo_Frigometal');
         } else {
@@ -406,11 +380,8 @@ calcularCostoTotalReceta(): number {
     });
   }
 
-
-
   iniciarEdicionMaterial(item: any): void {
     this.idEditandoReceta = item.id_estructura; 
-    // Usamos la cantidad que traiga el backend (dependiendo de cómo lo llamaste)
     this.cantidadEditada = item.cantidad_necesaria || item.cantidad_requerida || 0;
   }
 
@@ -431,25 +402,18 @@ calcularCostoTotalReceta(): number {
       next: () => {
         this.snackBar.open('✅ Cantidad actualizada', 'OK', { duration: 3000 });
         this.idEditandoReceta = null;
-        this.cargarRecetaDelProducto(); // Refrescamos la lista para ver el nuevo subtotal
+        this.cargarRecetaDelProducto(); 
       },
       error: (err) => this.snackBar.open('❌ Error al actualizar', 'Cerrar', { duration: 3000 })
     });
   }
 
- // ==========================================
-  // 👇 FUNCIÓN ACTUALIZADA: IMPRIMIR RECETA TÉCNICA 👇
-  // ==========================================
- // ==========================================
-  // 👇 FUNCIÓN ACTUALIZADA: IMPRIMIR RECETA PARA TALLER/BODEGA 👇
-  // ==========================================
   imprimirReceta(): void {
     if (!this.productoSeleccionado || this.recetaActual.length === 0) {
       this.snackBar.open('⚠️ No hay materiales en la receta para imprimir', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    // 1. CUADRO DE PREGUNTA AL USUARIO
     const opSeleccionada = window.prompt(
       '🖨️ Ingrese el Número de OP (Máquina) para imprimir en esta receta:', 
       this.ultimaOPDetectada.toString()
@@ -459,14 +423,12 @@ calcularCostoTotalReceta(): number {
 
     const numeroOP = opSeleccionada.trim() || 'S/N';
 
-    // 👇 2. ORDENAMOS LA RECETA ALFABÉTICAMENTE POR NOMBRE DE MATERIAL 👇
     const recetaOrdenada = [...this.recetaActual].sort((a, b) => {
       const nombreA = this.obtenerNombreMaterial(a.id_material).toLowerCase();
       const nombreB = this.obtenerNombreMaterial(b.id_material).toLowerCase();
       return nombreA.localeCompare(nombreB);
     });
 
-    // 3. Armamos las filas de los materiales (SIN PRECIOS)
     let filasMateriales = '';
     recetaOrdenada.forEach(item => {
       const nombreMat = this.obtenerNombreMaterial(item.id_material);
@@ -485,10 +447,8 @@ calcularCostoTotalReceta(): number {
     const tiempoFab = this.productoSeleccionado.tiempo_fabricacion_horas;
     const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
     
-    // 👇 CAPTURAMOS LOS PARÁMETROS DEL PRODUCTO 👇
     const parametrosProd = this.productoSeleccionado.parametro || 'No se registraron especificaciones adicionales para este equipo.';
 
-    // 4. Generamos el PDF
     const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
     if (ventanaImpresion) {
       ventanaImpresion.document.write(`
@@ -513,7 +473,6 @@ calcularCostoTotalReceta(): number {
               th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 15px; }
               tr:nth-child(even) { background-color: #f2f2f2; }
               
-              /* 👇 ESTILOS DE LA SECCIÓN DE PARÁMETROS 👇 */
               .parametros-box { margin-top: 20px; padding: 15px; border: 2px dashed #1976d2; background-color: #e3f2fd; border-radius: 8px; }
               .parametros-box h3 { margin: 0 0 8px 0; color: #1565c0; font-size: 16px; text-transform: uppercase; }
               .parametros-box p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; font-weight: 500; }
