@@ -43,13 +43,11 @@
 
         <h3 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Datos del Cliente</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <!-- 👇 NUEVO CAMPO DE CLIENTE CON BUSCADOR 👇 -->
         <div style="flex: 2; display: flex; gap: 5px; align-items: flex-start; min-width: 250px;">
           <mat-form-field appearance="outline" style="flex: 1;">
             <mat-label>Nombre / Razón Social</mat-label>
             <mat-select [(ngModel)]="nuevaOrden.cliente_nombre" (ngModelChange)="seleccionarCliente($event)">
               
-              <!-- Buscador interno -->
               <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
                 <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
                   <mat-label>Buscar por nombre, comercial o RUC...</mat-label>
@@ -58,11 +56,9 @@
                 </mat-form-field>
               </div>
 
-              <!-- Lista iterada -->
               @for (c of clientesFiltrados; track c.id_cliente) {
                 <mat-option [value]="c.nombre">
                   {{ c.nombre }} 
-                  <!-- Mostramos el nombre comercial en azul para que sea fácil identificarlo -->
                   <span *ngIf="c.nombre_comercial" style="color: #1976d2; font-size: 0.85em;"> | {{c.nombre_comercial}}</span>
                   <span style="color: gray; font-size: 0.8em;"> ({{ c.id_cliente }})</span>
                 </mat-option>
@@ -74,8 +70,7 @@
             </mat-select>
           </mat-form-field>
 
-          <!-- Botón para refrescar la lista -->
-          <button mat-icon-button color="primary" (click)="cargarClientesDirectorio()" matTooltip="Refrescar lista de clientes" style="margin-top: 10px;">
+          <button mat-icon-button color="primary" (click)="cargarClientesDirectorio()" title="Refrescar lista de clientes" style="margin-top: 10px;">
             <mat-icon>refresh</mat-icon>
           </button>
         </div>
@@ -149,7 +144,10 @@
                 </div>
                 <div style="display: flex; gap: 5px;">
                   
-                  <!-- BOTÓN PARA VER Y EDITAR COSTOS DE RECETA -->
+                  <button mat-icon-button style="color: #ff9800;" (click)="sincronizarReceta(i)" title="Sincronizar Costos con el Catálogo" *ngIf="!nuevaOrden.finalizada && equipo.id_producto">
+                    <mat-icon>sync</mat-icon>
+                  </button>
+
                   <button mat-icon-button style="color: #2e7d32;" (click)="verRecetaEquipo(i)" title="Ajustar Costos Reales" *ngIf="equipo.receta_historica && equipo.receta_historica.length > 0">
                     <mat-icon>request_quote</mat-icon>
                   </button>
@@ -165,7 +163,6 @@
             }
           </div>
 
-          <!-- FORMULARIO PARA AÑADIR NUEVO EQUIPO -->
           <div *ngIf="!nuevaOrden.finalizada" style="display: flex; gap: 15px; align-items: center; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap;">
             
             <mat-form-field appearance="outline" style="width: 80px; margin-bottom: -1.25em;">
@@ -173,7 +170,6 @@
               <input matInput type="number" [(ngModel)]="nuevoEquipo.cantidad" min="1" (change)="recalcularCostoNuevoEquipo()">
             </mat-form-field>
 
-            <!-- 👇 AQUÍ AHORA ES UN SELECTOR DE PRODUCTOS 👇 -->
             <mat-form-field appearance="outline" style="flex: 3; min-width: 250px; margin-bottom: -1.25em;">
               <mat-label>Seleccionar Producto del Catálogo</mat-label>
               <mat-select [(ngModel)]="nuevoEquipo.id_producto" (selectionChange)="seleccionarProductoCatalogo($event.value)">
@@ -210,9 +206,6 @@
           </div>
         </div>
 
-        <!-- ========================================================= -->
-        <!-- PANEL FLOTANTE PARA EDITAR COSTOS REALES (FOTO HISTÓRICA) -->
-        <!-- ========================================================= -->
         @if (recetaViendo) {
           <div style="background-color: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #aed581; padding-bottom: 10px; margin-bottom: 15px;">
@@ -238,7 +231,6 @@
                 <td style="padding: 10px; font-weight: bold;">{{mat.nombre_material}}</td>
                 <td style="padding: 10px; text-align: center; color: gray;">{{mat.cantidad_requerida}}</td>
                 <td style="padding: 10px; text-align: center;">
-                  <!-- 👇 INPUT EDITABLE PARA LA CANTIDAD REALMENTE CONSUMIDA 👇 -->
                   <input type="number" [(ngModel)]="mat.cantidad_real" (ngModelChange)="recalcularCostoHistorico(indexEquipoViendoReceta)" 
                          [disabled]="nuevaOrden.finalizada"
                          style="width: 70px; padding: 5px; border: 1px solid #1976d2; border-radius: 4px; text-align: center; font-weight: bold; color: #1976d2;"

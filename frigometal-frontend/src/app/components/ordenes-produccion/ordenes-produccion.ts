@@ -16,7 +16,6 @@ import { OrdenProduccionService } from '../../services/orden-produccion';
 import { RecetaService } from '../../services/receta';
 import { MaterialService } from '../../services/material';
 import { Producto, ProductoService } from '../../services/producto';
-// Agrega esta línea arriba con tus otros imports:
 import { ProgramacionService } from '../../services/programacion';
 import { ClienteService } from '../../services/cliente';
 
@@ -45,7 +44,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  // 👇 NUEVA VARIABLE PARA SABER SI ESTAMOS EDITANDO UN EQUIPO 👇
   indexEditandoEquipo: number | null = null;
 
   nuevaOrden: any = this.obtenerModeloVacio();
@@ -60,8 +58,8 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
 
   constructor(
     private ordenService: OrdenProduccionService,
-    private productoService: ProductoService,     // 👈 NUEVO
-    private recetaService: RecetaService,         // 👈 NUEVO
+    private productoService: ProductoService,
+    private recetaService: RecetaService,
     private materialService: MaterialService,
     private programacionService: ProgramacionService,
     private clienteService: ClienteService,
@@ -76,7 +74,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       this.cargarClientesDirectorio();
     });
 
-    // Traemos los materiales para poder ponerles nombre en la receta
     this.materialService.getMateriales().subscribe(datos => {
       this.materialesBodega = datos;
     });
@@ -89,7 +86,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
   }
-
 
   cargarClientesDirectorio(): void {
     this.clienteService.getClientes().subscribe({
@@ -105,11 +101,10 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return this.clientesDirectorio.filter(c => 
       (c.nombre && c.nombre.toLowerCase().includes(filtro)) || 
       (c.id_cliente && c.id_cliente.includes(filtro)) ||
-      (c.nombre_comercial && c.nombre_comercial.toLowerCase().includes(filtro)) // 👈 Busca por nombre comercial
+      (c.nombre_comercial && c.nombre_comercial.toLowerCase().includes(filtro))
     );
   }
 
-  // 👇 NUEVA FUNCIÓN: Filtro inteligente para los productos en OP 👇
   get productosFiltrados(): Producto[] {
     if (!this.filtroProductos) return this.productosCatalogo;
     const filtro = this.filtroProductos.toLowerCase();
@@ -123,10 +118,7 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   seleccionarCliente(nombreCliente: string): void {
     const cliente = this.clientesDirectorio.find(c => c.nombre === nombreCliente);
     if (cliente) {
-      // Autocompletamos los campos del formulario de la OP. 
-      // ⚠️ NOTA: Verifica que estos nombres (cliente_cedula, cliente_direccion, etc.) 
-      // coincidan exactamente con cómo los llamaste en tu nuevaOrden.
-      this.nuevaOrden.cliente_cedula = cliente.id_cliente || ''; // Para el campo Cédula/RUC
+      this.nuevaOrden.cliente_cedula = cliente.id_cliente || ''; 
       this.nuevaOrden.cliente_direccion = cliente.direccion || '';
       this.nuevaOrden.cliente_telefono = cliente.telefono || '';
       this.nuevaOrden.cliente_email = cliente.correo || '';
@@ -154,11 +146,8 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     };
   }
 
-  // 👇 LÓGICA DEL CONSECUTIVO AUTOMÁTICO 👇
   calcularSiguienteOP(): number {
     let maxOP = 0;
-
-    // 1. Buscamos el mayor número en las órdenes que ya están en la base de datos
     this.dataSource.data.forEach(orden => {
       if (orden.equipos) {
         orden.equipos.forEach((e: any) => {
@@ -168,13 +157,11 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       }
     });
 
-    // 2. Buscamos en los equipos que se están agregando ahorita a esta nueva orden
     this.nuevaOrden.equipos.forEach((e: any) => {
       const op = Number(e.orden_produccion) || 0;
       if (op > maxOP) maxOP = op;
     });
 
-    // Si no hay nada, empieza en 1, si no, le suma 1 al mayor encontrado
     return maxOP === 0 ? 1 : maxOP + 1;
   }
 
@@ -183,7 +170,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     if (!this.mostrarFormulario) {
       this.cancelarEdicion();
     } else {
-      // Al abrir el formulario, jalamos el siguiente OP automático
       this.nuevoEquipo.orden_produccion = this.calcularSiguienteOP();
     }
   }
@@ -212,7 +198,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.nuevaOrden = { ...orden };
     if (!this.nuevaOrden.equipos) this.nuevaOrden.equipos = [];
     
-    // Sugerimos el siguiente OP por si quiere agregarle un equipo más a esta orden vieja
     this.nuevoEquipo.orden_produccion = this.calcularSiguienteOP();
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -223,25 +208,19 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     const abono = Number(this.nuevaOrden.valor_abono) || 0;
     this.nuevaOrden.saldo = precio - abono;
   }
-  // ==========================================
-  // 👇 INTEGRACIÓN CON CATÁLOGOS Y COSTOS 👇
-  // ==========================================
 
-  // 1. Cuando seleccionamos un producto de la lista, jalamos su receta
   seleccionarProductoCatalogo(idProducto: number): void {
     const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
     if (!prod) return;
 
     this.nuevoEquipo.id_producto = prod.id_producto;
     this.nuevoEquipo.nombre_producto = prod.nombre;
-    this.nuevoEquipo.descripcion = prod.nombre; // Por si hay OPs antiguas
+    this.nuevoEquipo.descripcion = prod.nombre;
 
     this.snackBar.open('⏳ Cargando receta base...', '', { duration: 1500 });
 
     this.recetaService.getReceta(prod.id_producto!).subscribe({
       next: (receta) => {
-        // Armamos la "Foto Histórica" de los materiales con los precios actuales
-        // Armamos la "Foto Histórica" de los materiales
         this.nuevoEquipo.receta_historica = receta.map((r: any) => {
           const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
           const precioBase = materialBD ? Number(materialBD.precio_unitario) : 0;
@@ -250,9 +229,9 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
           return {
             id_material: r.id_material,
             nombre_material: materialBD ? materialBD.nombre : 'Material Desconocido',
-            cantidad_requerida: cantOriginal, // La receta dice "2"
-            cantidad_real: cantOriginal,      // 👈 Por defecto, asumimos que usó "2", pero es editable
-            precio_unitario: precioBase,      // El precio base bloqueado
+            cantidad_requerida: cantOriginal,
+            cantidad_real: cantOriginal, 
+            precio_unitario: precioBase, 
             subtotal: cantOriginal * precioBase
           };
         });
@@ -262,6 +241,42 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       error: () => {
         this.nuevoEquipo.receta_historica = [];
         this.snackBar.open('⚠️ Este producto no tiene receta configurada', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  // 👇 NUEVA FUNCIÓN: Sincroniza una receta que quedó en 0 👇
+  sincronizarReceta(index: number): void {
+    const equipo = this.nuevaOrden.equipos[index];
+    if (!equipo.id_producto) {
+      this.snackBar.open('⚠️ Este equipo no está enlazado a un producto del catálogo', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.snackBar.open('⏳ Sincronizando receta desde bodega...', '', { duration: 1500 });
+
+    this.recetaService.getReceta(equipo.id_producto).subscribe({
+      next: (receta) => {
+        equipo.receta_historica = receta.map((r: any) => {
+          const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
+          const precioBase = materialBD ? Number(materialBD.precio_unitario) : 0;
+          const cantOriginal = Number(r.cantidad_necesaria || r.cantidad_requerida || 0);
+          
+          return {
+            id_material: r.id_material,
+            nombre_material: materialBD ? materialBD.nombre : 'Material Desconocido',
+            cantidad_requerida: cantOriginal,
+            cantidad_real: cantOriginal,
+            precio_unitario: precioBase,
+            subtotal: cantOriginal * precioBase
+          };
+        });
+
+        this.recalcularCostoHistorico(index);
+        this.snackBar.open('✅ Receta actualizada. Recuerda presionar "ACTUALIZAR ORDEN" para guardar los cambios.', 'Entendido', { duration: 5000 });
+      },
+      error: () => {
+        this.snackBar.open('⚠️ Este producto sigue sin tener receta en bodega', 'Cerrar', { duration: 3000 });
       }
     });
   }
@@ -281,7 +296,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     
     let total = 0;
     equipo.receta_historica.forEach((mat: any) => {
-      // 👇 Ahora multiplicamos la cantidad que ellos editan por el precio fijo 👇
       mat.subtotal = Number(mat.cantidad_real) * Number(mat.precio_unitario);
       total += mat.subtotal;
     });
@@ -291,7 +305,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   verRecetaEquipo(index: number): void {
     this.indexEquipoViendoReceta = index;
     this.recetaViendo = this.nuevaOrden.equipos[index];
-    // Hacemos scroll suave hasta abajo para ver el panel de costos
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
   }
 
@@ -300,7 +313,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.recetaViendo = null;
   }
 
-  // 👇 NUEVAS FUNCIONES PARA LOS EQUIPOS 👇
   agregarEquipo(): void {
     if (this.nuevoEquipo.descripcion.trim() === '') {
       this.snackBar.open('⚠️ Escribe la descripción del equipo', 'Cerrar', { duration: 3000 });
@@ -308,15 +320,12 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     }
 
     if (this.indexEditandoEquipo !== null) {
-      // Modo Actualizar Equipo Existente
       this.nuevaOrden.equipos[this.indexEditandoEquipo] = { ...this.nuevoEquipo };
       this.indexEditandoEquipo = null;
     } else {
-      // Modo Añadir Nuevo Equipo
       this.nuevaOrden.equipos.push({ ...this.nuevoEquipo });
     }
 
-    // Limpiamos y preparamos automáticamente el siguiente número consecutivo
     this.nuevoEquipo = { 
       cantidad: 1, 
       descripcion: '', 
@@ -326,13 +335,11 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
 
   editarEquipo(index: number): void {
     this.indexEditandoEquipo = index;
-    // Copiamos el equipo al formulario
     this.nuevoEquipo = { ...this.nuevaOrden.equipos[index] };
   }
 
   eliminarEquipo(index: number): void {
     this.nuevaOrden.equipos.splice(index, 1);
-    // Si eliminó el equipo que justo estaba editando, limpiamos la edición
     if (this.indexEditandoEquipo === index) {
       this.indexEditandoEquipo = null;
       this.nuevoEquipo = { cantidad: 1, descripcion: '', orden_produccion: this.calcularSiguienteOP() };
@@ -348,10 +355,20 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.snackBar.open('⏳ Guardando Orden...', '', { duration: 2000 });
 
     const payload = { ...this.nuevaOrden };
-    if (payload.fecha_pedido) payload.fecha_pedido = new Date(payload.fecha_pedido).toISOString().split('T')[0];
-    if (payload.fecha_inicio) payload.fecha_inicio = new Date(payload.fecha_inicio).toISOString().split('T')[0];
-    if (payload.fecha_entrega) payload.fecha_entrega = new Date(payload.fecha_entrega).toISOString().split('T')[0];
-    if (payload.fecha_abono) payload.fecha_abono = new Date(payload.fecha_abono).toISOString().split('T')[0];
+    
+    const formatearFecha = (fecha: any) => {
+      if (!fecha) return null;
+      if (typeof fecha === 'string') return fecha.split('T')[0];
+      const d = new Date(fecha);
+      const month = ('0' + (d.getMonth() + 1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
+      return `${d.getFullYear()}-${month}-${day}`;
+    };
+
+    payload.fecha_pedido = formatearFecha(payload.fecha_pedido);
+    payload.fecha_inicio = formatearFecha(payload.fecha_inicio);
+    payload.fecha_entrega = formatearFecha(payload.fecha_entrega);
+    payload.fecha_abono = formatearFecha(payload.fecha_abono);
 
     if (this.modoEdicion && this.idEditando) {
       this.ordenService.actualizarOrden(this.idEditando, payload).subscribe({
@@ -382,10 +399,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // ==========================================
-  // 👇 CÁLCULOS INDIVIDUALES POR EQUIPO 👇
-  // ==========================================
-
   calcularCostoTeoricoEquipo(equipo: any): number {
     if (!equipo || !equipo.receta_historica) return 0;
     let costoReceta = 0;
@@ -398,25 +411,10 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   }
 
   calcularCostoRealEquipo(equipo: any): number {
-    // costo_total_equipo ya tiene la suma de la receta con las cantidades reales
     const costoUnitario = Number(equipo.costo_total_equipo) || 0;
     return costoUnitario * (Number(equipo.cantidad) || 1);
   }
 
-  // ==========================================
-  // 👇 CÁLCULO DE TIEMPO EN TALLER (DESGLOSADO) 👇
-  // ==========================================
-
-  // Función auxiliar de minutos (Mantienes la que ya tenías)
-  private calcularMinutos(fIni?: string, hIni?: string, fFin?: string, hFin?: string): number {
-    if (!fIni || !hIni || !fFin || !hFin) return 0;
-    const inicio = new Date(`${fIni}T${hIni}`);
-    const fin = new Date(`${fFin}T${hFin}`);
-    if (fin >= inicio) return (fin.getTime() - inicio.getTime()) / 60000;
-    return 0;
-  }
-
-  // 👇 NUEVO: Función para normalizar los turnos (igual que en Control de Planta) 👇
   private normalizarTurnos(data: any): any[] {
     if (!data) return [];
     if (data.turnos) return data.turnos; 
@@ -450,13 +448,20 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return turnos;
   }
 
-  // 1. Calcula los minutos exactos de UN SOLO equipo
+  private calcularMinutos(fIni?: string, hIni?: string, fFin?: string, hFin?: string): number {
+    if (!fIni || !hIni || !fFin || !hFin) return 0;
+    const inicio = new Date(`${fIni}T${hIni}`);
+    const fin = new Date(`${fFin}T${hFin}`);
+    if (fin >= inicio) return (fin.getTime() - inicio.getTime()) / 60000;
+    return 0;
+  }
+
   private calcularMinutosEquipo(equipo: any): number {
     if (!equipo || this.ordenesPlanta.length === 0) return 0;
     let totalMinutos = 0;
     const procesos = [ 
       'Corte Laser', 'Plegado', 'Estructura', 'Armado', 'Poliuretano', 
-      'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final', 'Reproceso' // 👈 Agregamos 'Reproceso' aquí también
+      'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final', 'Reproceso' 
     ];
     
     const numOpMaquina = String(equipo.orden_produccion);
@@ -466,7 +471,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       procesos.forEach(proc => {
         const data = plantaMatch.seguimiento_procesos[proc];
         if (data) {
-          // 👇 AHORA USAMOS LA LISTA DINÁMICA DE TURNOS 👇
           const turnos = this.normalizarTurnos(data);
           turnos.forEach((t: any) => {
             totalMinutos += this.calcularMinutos(t.fecha_inicio, t.hora_inicio, t.fecha_fin, t.hora_fin);
@@ -477,7 +481,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return totalMinutos;
   }
 
-  // 2. Transforma los minutos a texto (Ej: "2h 30m") para la lista individual
   calcularTiempoEquipo(equipo: any): string {
     const mins = this.calcularMinutosEquipo(equipo);
     const horas = Math.floor(mins / 60);
@@ -485,7 +488,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return `${horas}h ${minutos}m`;
   }
 
-  // 3. Suma todos los minutos de la OP y da el gran total
   calcularTiempoTotalOP(orden: any): string {
     if (!orden || !orden.equipos) return '0h 0m';
     let totalMinutos = 0;
@@ -499,9 +501,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return `${horas}h ${minutos}m`;
   }
 
-  // ==========================================
-  // 👇 SELLAR / FINALIZAR ORDEN DE PRODUCCIÓN 👇
-  // ==========================================
   finalizarOrden(orden: any): void {
     const confirmar = confirm(`⚠️ ¿Estás seguro de FINALIZAR la OP ${orden.numero_op}?\n\nAl hacerlo, los productos, cantidades y costos quedarán BLOQUEADOS permanentemente para proteger la información financiera. (Podrás seguir editando datos del cliente).`);
     
@@ -511,7 +510,7 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       this.ordenService.actualizarOrden(orden.id_orden, { finalizada: true }).subscribe({
         next: () => {
           this.snackBar.open('🔒 Orden Finalizada y Sellada con éxito', 'Cerrar', { duration: 4000 });
-          this.cargarOrdenes(); // Recarga la tabla para mostrar el candado
+          this.cargarOrdenes(); 
         },
         error: (err) => {
           this.snackBar.open('❌ Error al finalizar la orden', 'Cerrar', { duration: 3000 });
