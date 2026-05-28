@@ -213,9 +213,16 @@
                 <h3 style="margin: 0; color: #33691e;">Ajuste de Costos Reales de Producción</h3>
                 <span style="color: #558b2f; font-size: 0.9em;">Equipo: <strong>{{recetaViendo.nombre_producto}}</strong> (OP: {{recetaViendo.orden_produccion}})</span>
               </div>
-              <div style="text-align: right; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #aed581;">
-                <span style="font-size: 0.8em; color: gray; display: block;">COSTO TOTAL</span>
-                <strong style="color: #2e7d32; font-size: 1.3em;">${{recetaViendo.costo_total_equipo | number:'1.2-2'}}</strong>
+              
+              <div style="display: flex; gap: 15px; align-items: center;">
+                <button mat-stroked-button color="primary" (click)="imprimirRecetaEquipo()" title="Imprimir Hoja de Taller" style="border-color: #1976d2; font-weight: bold; background: white;">
+                  <mat-icon>print</mat-icon> Imprimir
+                </button>
+                
+                <div style="text-align: right; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #aed581;">
+                  <span style="font-size: 0.8em; color: gray; display: block;">COSTO TOTAL</span>
+                  <strong style="color: #2e7d32; font-size: 1.3em;">${{recetaViendo.costo_total_equipo | number:'1.2-2'}}</strong>
+                </div>
               </div>
             </div>
 
@@ -298,27 +305,27 @@
     </mat-card>
   }
 
-  <div class="mat-elevation-z8" style="width: 100%; overflow-x: auto; border-radius: 8px; background-color: white;">
+  <div class="mat-elevation-z8" style="width: 100%; max-height: 600px; overflow: auto; border-radius: 8px; background-color: white;">
     
     <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_op" matSortDirection="desc" style="width: 100%; min-width: 1400px;">
       
       <ng-container matColumnDef="numero_op">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Nº OP </th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold; background-color: white;"> Nº OP </th>
         <td mat-cell *matCellDef="let orden" style="font-weight: bold;"> {{orden.numero_op}} </td>
       </ng-container>
 
       <ng-container matColumnDef="cliente">
-        <th mat-header-cell *matHeaderCellDef> Cliente </th>
+        <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Cliente </th>
         <td mat-cell *matCellDef="let orden"> {{orden.cliente_nombre}} </td>
       </ng-container>
 
       <ng-container matColumnDef="fecha_entrega">
-        <th mat-header-cell *matHeaderCellDef> Fecha Entrega </th>
+        <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Fecha Entrega </th>
         <td mat-cell *matCellDef="let orden"> {{orden.fecha_entrega || 'N/A'}} </td>
       </ng-container>
 
       <ng-container matColumnDef="costo_teorico">
-          <th mat-header-cell *matHeaderCellDef> Desglose Teórico </th>
+          <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Desglose Teórico </th>
           <td mat-cell *matCellDef="let orden" style="color: gray; font-size: 0.85em; padding: 10px 5px;">
             <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
               {{eq.cantidad}}x {{eq.nombre_producto || eq.descripcion}}: <strong style="color: #555;">${{ calcularCostoTeoricoEquipo(eq) | number:'1.2-2' }}</strong>
@@ -327,7 +334,7 @@
         </ng-container>
 
         <ng-container matColumnDef="costo_real">
-          <th mat-header-cell *matHeaderCellDef> Desglose Real </th>
+          <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Desglose Real </th>
           <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px;">
             <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;"
                  [ngStyle]="{'color': calcularCostoRealEquipo(eq) > calcularCostoTeoricoEquipo(eq) ? '#d32f2f' : '#2e7d32'}">
@@ -337,12 +344,12 @@
         </ng-container>
 
       <ng-container matColumnDef="precio">
-        <th mat-header-cell *matHeaderCellDef> Precio Total </th>
+        <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Precio Total </th>
         <td mat-cell *matCellDef="let orden"> ${{orden.precio_total | number:'1.2-2'}} </td>
       </ng-container>
 
       <ng-container matColumnDef="tiempo_taller">
-          <th mat-header-cell *matHeaderCellDef> Tiempo Invertido </th>
+          <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Tiempo Invertido </th>
           <td mat-cell *matCellDef="let orden" style="font-size: 0.85em; padding: 10px 5px; color: #1565c0; background-color: #f5f9ff;">
             
             <div *ngFor="let eq of orden.equipos" style="margin-bottom: 6px; white-space: nowrap;">
@@ -363,7 +370,7 @@
         </ng-container>
 
       <ng-container matColumnDef="saldo">
-        <th mat-header-cell *matHeaderCellDef> Saldo Pendiente </th>
+        <th mat-header-cell *matHeaderCellDef style="background-color: white;"> Saldo Pendiente </th>
         <td mat-cell *matCellDef="let orden">
           <span [style.color]="orden.saldo > 0 ? '#c62828' : '#2e7d32'" style="font-weight: 500;">
             ${{orden.saldo | number:'1.2-2'}}
@@ -372,7 +379,7 @@
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones </th>
+          <th mat-header-cell *matHeaderCellDef style="text-align: right; background-color: white;"> Acciones </th>
           <td mat-cell *matCellDef="let orden" style="text-align: right;">
             
             <button mat-icon-button color="primary" (click)="editarOrden(orden)" title="Editar Orden">
@@ -388,16 +395,15 @@
           </td>
         </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+      <tr mat-header-row *matHeaderRowDef="columnasMostradas; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" colspan="6" style="text-align: center; padding: 20px; color: gray;">
+        <td class="mat-cell" colspan="9" style="text-align: center; padding: 20px; color: gray;">
           No hay órdenes de producción registradas.
         </td>
       </tr>
     </table>
     
   </div>
-
 </div>
