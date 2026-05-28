@@ -173,8 +173,12 @@
       
       <div style="display: flex; gap: 15px; align-items: center;">
         
-        <button mat-stroked-button color="primary" (click)="imprimirReceta()" title="Imprimir PDF de la Receta" style="border-color: #1976d2; font-weight: bold;">
-          <mat-icon>print</mat-icon> Imprimir Receta
+        <button mat-stroked-button style="color: #f57c00; border-color: #f57c00; font-weight: bold;" (click)="imprimirRecetaSinCostos()" title="Imprimir Lista de Materiales (Sin Costos)">
+          <mat-icon>receipt</mat-icon> Solo Materiales
+        </button>
+
+        <button mat-stroked-button color="primary" (click)="imprimirReceta()" title="Imprimir PDF de la Receta (Con Costos)" style="border-color: #1976d2; font-weight: bold;">
+          <mat-icon>print</mat-icon> Imprimir Completa
         </button>
 
         <div style="background: #e8f5e9; padding: 10px 25px; border-radius: 8px; border: 1px solid #2e7d32; text-align: right;">

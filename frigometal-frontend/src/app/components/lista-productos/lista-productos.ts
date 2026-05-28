@@ -117,7 +117,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // 👇 NUEVA FUNCIÓN PARA ELIMINAR EL PRODUCTO 👇
   eliminarProducto(prod: Producto): void {
     const confirmacion = confirm(`⚠️ ¿Estás seguro de eliminar el producto "${prod.nombre}" del catálogo?\n\nEsta acción no se puede deshacer.`);
     
@@ -125,8 +124,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
       this.productoService.eliminarProducto(prod.id_producto).subscribe({
         next: () => {
           this.snackBar.open('🗑️ Producto eliminado exitosamente', 'OK', { duration: 3000 });
-          this.cargarProductos(); // Refrescamos la tabla
-          // Si estaba viendo la receta de ese producto justo ahora, la cerramos
+          this.cargarProductos(); 
           if (this.productoSeleccionado?.id_producto === prod.id_producto) {
             this.cerrarReceta();
           }
@@ -536,4 +534,117 @@ calcularCostoTotalReceta(): number {
       ventanaImpresion.document.close();
     }
   }
+
+  // 👇 NUEVA FUNCIÓN: Imprime la lista de materiales pero SIN los costos financieros 👇
+  imprimirRecetaSinCostos(): void {
+    if (!this.productoSeleccionado || this.recetaActual.length === 0) {
+      this.snackBar.open('⚠️ No hay materiales en la receta para imprimir', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const recetaOrdenada = [...this.recetaActual].sort((a, b) => {
+      const nombreA = this.obtenerNombreMaterial(a.id_material).toLowerCase();
+      const nombreB = this.obtenerNombreMaterial(b.id_material).toLowerCase();
+      return nombreA.localeCompare(nombreB);
+    });
+
+    let filasMateriales = '';
+    recetaOrdenada.forEach(item => {
+      const nombreMat = this.obtenerNombreMaterial(item.id_material);
+      const unidad = this.obtenerUnidadMedida(item.id_material);
+      const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
+
+      filasMateriales += `
+        <tr>
+          <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">${nombreMat}</td>
+          <td style="text-align: center; padding: 10px; border: 1px solid #ccc; font-weight: bold; font-size: 1.1em;">${cantidad} ${unidad}</td>
+        </tr>
+      `;
+    });
+
+    const nombreProducto = this.productoSeleccionado.nombre;
+    const tiempoFab = this.productoSeleccionado.tiempo_fabricacion_horas;
+    const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
+    const parametrosProd = this.productoSeleccionado.parametro || 'No se registraron especificaciones adicionales para este equipo.';
+
+    const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
+    if (ventanaImpresion) {
+      ventanaImpresion.document.write(`
+        <html>
+          <head>
+            <title>Lista de Materiales - ${nombreProducto}</title>
+            <style>
+              body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; margin: 0; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
+              .header img { height: 60px; }
+              .header-text { text-align: right; }
+              .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
+              .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
+              
+              .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid #f57c00; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+              .product-info h2 { margin: 0 0 10px 0; color: #f57c00; font-size: 18px; text-transform: uppercase; }
+              .product-info p { margin: 4px 0; font-size: 14px; }
+              
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+              th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 15px; }
+              tr:nth-child(even) { background-color: #f2f2f2; }
+              
+              .parametros-box { margin-top: 20px; padding: 15px; border: 2px dashed #1976d2; background-color: #e3f2fd; border-radius: 8px; }
+              .parametros-box h3 { margin: 0 0 8px 0; color: #1565c0; font-size: 16px; text-transform: uppercase; }
+              .parametros-box p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; font-weight: 500; }
+
+              @media print {
+                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <img src="/logo.png" alt="Frigo Metal" onerror="this.style.display='none'">
+              <div class="header-text">
+                <h1>FRIGO METAL</h1>
+                <p>Lista de Materiales (Bodega y Producción)</p>
+                <p><b>Fecha:</b> ${new Date().toLocaleDateString('es-ES')}</p>
+              </div>
+            </div>
+
+            <div class="product-info">
+              <h2>${nombreProducto}</h2>
+              <p><b>Tiempo de Fabricación Estimado:</b> ${tiempoFab} horas</p>
+              <p><b>Clasificación:</b> ${tipoProd}</p>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 75%; text-align: left; padding-left: 15px;">MATERIAL REQUERIDO</th>
+                  <th style="width: 25%;">CANTIDAD</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filasMateriales}
+              </tbody>
+            </table>
+
+            <div class="parametros-box">
+              <h3>Especificaciones Técnicas / Parámetros:</h3>
+              <p>${parametrosProd}</p>
+            </div>
+
+            <div style="clear: both; margin-top: 50px; font-size: 11px; color: gray; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
+              Documento interno de uso exclusivo para el área de producción y bodega. (Versión sin información financiera)
+            </div>
+
+            <script>
+              window.onload = function() {
+                setTimeout(function() { window.print(); window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      ventanaImpresion.document.close();
+    }
+  }
+
 }
