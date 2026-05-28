@@ -1670,58 +1670,21 @@ def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = 
 def obtener_proformas(db: Session = Depends(get_db)):
     return db.query(models.Proforma).order_by(models.Proforma.id_proforma.desc()).all()
 
-@app.post("/proformas/{id_proforma}/generar-op")
-def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
-    proforma = db.query(models.Proforma).filter(models.Proforma.id_proforma == id_proforma).first()
-    if not proforma:
-        raise HTTPException(status_code=404, detail="Proforma no encontrada")
-
-    # 1. Evitamos generar la misma OP dos veces (usamos numero_pedido en lugar de id_pedido)
-    op_existente = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.numero_pedido == str(proforma.numero_proforma)).first()
-    if op_existente:
-        raise HTTPException(status_code=400, detail="Esta proforma ya fue enviada a Producción anteriormente.")
-
-    # 2. ESCÁNER PROFUNDO DE CONSECUTIVO
-    todas_las_ops = db.query(models.OrdenProduccion).all()
-    max_op = 0
-    
-    for op in todas_las_ops:
-        # Revisamos el OP Padre
-        num_general_str = re.sub(r'\D', '', str(op.numero_op))
-        num_general = int(num_general_str) if num_general_str else 0
-        if num_general > max_op: max_op = num_general
+# 👇 ESTA ES LA FUNCIÓN QUE PROBABLEMENTE FALTABA (CREAR NUEVA) 👇
+@app.post("/proformas/", response_model=schemas.ProformaResponse)
+def crear_proforma(proforma: schemas.ProformaCreate, db: Session = Depends(get_db)):
+    try:
+        # AHORA SOLO CREAMOS LA PROFORMA (Se queda en Standby)
+        nueva_proforma = models.Proforma(**proforma.model_dump())
+        db.add(nueva_proforma)
+        db.commit()
+        db.refresh(nueva_proforma)
+        return nueva_proforma
         
-        # Revisamos los equipos internos
-        if op.equipos:
-            for equipo in op.equipos:
-                num_eq = int(equipo.get("orden_produccion", 0))
-                if num_eq > max_op: max_op = num_eq
-    
-    siguiente_numero_op = max_op + 1
-
-    # 3. Creamos la Orden de Producción real
-    orden_nueva = models.OrdenProduccion(
-        numero_op=str(siguiente_numero_op),
-        numero_pedido=str(proforma.numero_proforma), # 👈 CORRECCIÓN A LA COLUMNA REAL
-        cliente_nombre=proforma.cliente_nombre,
-        cliente_direccion=proforma.cliente_direccion,
-        fecha_pedido=proforma.fecha_emision,
-        descripcion_pedido=proforma.trabajo,
-        equipos=[{
-            "cantidad": d.get("cantidad", 1), 
-            "descripcion": d.get("descripcion", ""), 
-            "id_producto": d.get("id_producto"), 
-            "orden_produccion": siguiente_numero_op 
-        } for d in proforma.detalles],
-        precio_total=proforma.precio_total,
-        saldo=proforma.precio_total,
-        vista_en_dashboard=False 
-    )
-    
-    db.add(orden_nueva)
-    db.commit()
-    
-    return {"mensaje": "Orden de Producción enviada al taller", "numero_op": siguiente_numero_op}
+    except Exception as e:
+        db.rollback()
+        print(f"🚨 ERROR FATAL EN BD: {str(e)}") 
+        raise HTTPException(status_code=400, detail=f"Error interno: {str(e)}")
 
 @app.put("/proformas/{id_proforma}", response_model=schemas.ProformaResponse)
 def actualizar_proforma(id_proforma: int, proforma_update: schemas.ProformaUpdate, db: Session = Depends(get_db)):
@@ -1741,7 +1704,6 @@ def actualizar_proforma(id_proforma: int, proforma_update: schemas.ProformaUpdat
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error interno: {str(e)}")
 
-# 👇 NUEVO: ENDPOINT PARA ELIMINAR PROFORMA 👇
 @app.delete("/proformas/{id_proforma}")
 def eliminar_proforma(id_proforma: int, db: Session = Depends(get_db)):
     proforma = db.query(models.Proforma).filter(models.Proforma.id_proforma == id_proforma).first()
@@ -1752,29 +1714,26 @@ def eliminar_proforma(id_proforma: int, db: Session = Depends(get_db)):
     db.commit()
     return {"mensaje": "Proforma eliminada con éxito"}
 
-# 👇 NUEVO: ENDPOINT EXCLUSIVO PARA GENERAR LA OP CUANDO EL CLIENTE APRUEBE 👇
 @app.post("/proformas/{id_proforma}/generar-op")
 def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
     proforma = db.query(models.Proforma).filter(models.Proforma.id_proforma == id_proforma).first()
     if not proforma:
         raise HTTPException(status_code=404, detail="Proforma no encontrada")
 
-    # 1. Evitamos generar la misma OP dos veces (usamos id_pedido como enlace)
-    op_existente = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.id_pedido == id_proforma).first()
+    # Evitamos generar la misma OP dos veces (usando numero_pedido)
+    op_existente = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.numero_pedido == str(proforma.numero_proforma)).first()
     if op_existente:
         raise HTTPException(status_code=400, detail="Esta proforma ya fue enviada a Producción anteriormente.")
 
-    # 2. ESCÁNER PROFUNDO DE CONSECUTIVO (Igual que en Angular, pero en Python)
+    # ESCÁNER PROFUNDO DE CONSECUTIVO
     todas_las_ops = db.query(models.OrdenProduccion).all()
     max_op = 0
     
     for op in todas_las_ops:
-        # Revisamos el OP Padre
         num_general_str = re.sub(r'\D', '', str(op.numero_op))
         num_general = int(num_general_str) if num_general_str else 0
         if num_general > max_op: max_op = num_general
         
-        # Revisamos los equipos internos
         if op.equipos:
             for equipo in op.equipos:
                 num_eq = int(equipo.get("orden_produccion", 0))
@@ -1782,10 +1741,10 @@ def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
     
     siguiente_numero_op = max_op + 1
 
-    # 3. Creamos la Orden de Producción
+    # Creamos la Orden de Producción
     orden_nueva = models.OrdenProduccion(
         numero_op=str(siguiente_numero_op),
-        id_pedido=proforma.id_proforma, # 👈 Dejamos la huella para saber de qué proforma vino
+        numero_pedido=str(proforma.numero_proforma), 
         cliente_nombre=proforma.cliente_nombre,
         cliente_direccion=proforma.cliente_direccion,
         fecha_pedido=proforma.fecha_emision,
@@ -1794,7 +1753,7 @@ def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
             "cantidad": d.get("cantidad", 1), 
             "descripcion": d.get("descripcion", ""), 
             "id_producto": d.get("id_producto"), 
-            "orden_produccion": siguiente_numero_op # El equipo lleva el número correcto
+            "orden_produccion": siguiente_numero_op 
         } for d in proforma.detalles],
         precio_total=proforma.precio_total,
         saldo=proforma.precio_total,
