@@ -30,6 +30,10 @@ export class ProductoService {
     return this.http.put<Producto>(urlFinal, producto);
   }
 
+  eliminarProducto(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}${id}`);
+  }
+  
   importarCatalogoExcel(archivo: File): Observable<any> {
     const formData = new FormData();
     formData.append('file', archivo); 

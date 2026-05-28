@@ -691,6 +691,24 @@ async def importar_materiales_excel(file: UploadFile = File(...), db: Session = 
         db.rollback() 
         raise HTTPException(status_code=500, detail=f"Error leyendo el Excel: {str(e)}")
     
+
+@app.delete("/productos/{id_producto}")
+def eliminar_producto(id_producto: int, db: Session = Depends(get_db)):
+    producto = db.query(models.Producto).filter(models.Producto.id_producto == id_producto).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    try:
+        db.delete(producto)
+        db.commit()
+        return {"mensaje": "Producto eliminado con éxito"}
+    except Exception as e:
+        db.rollback()
+        # Si el producto está enlazado a recetas o proformas, la BD rechazará el borrado
+        raise HTTPException(
+            status_code=400, 
+            detail="No se puede eliminar este producto porque ya está siendo utilizado en Recetas, Proformas u Órdenes de Producción."
+        )
 # Ejemplo para Materiales
 
 @app.put("/materiales/{id_material}", response_model=schemas.MaterialResponse)

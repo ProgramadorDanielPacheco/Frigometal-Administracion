@@ -117,6 +117,28 @@ export class ListaProductos implements OnInit, AfterViewInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // 👇 NUEVA FUNCIÓN PARA ELIMINAR EL PRODUCTO 👇
+  eliminarProducto(prod: Producto): void {
+    const confirmacion = confirm(`⚠️ ¿Estás seguro de eliminar el producto "${prod.nombre}" del catálogo?\n\nEsta acción no se puede deshacer.`);
+    
+    if (confirmacion && prod.id_producto) {
+      this.productoService.eliminarProducto(prod.id_producto).subscribe({
+        next: () => {
+          this.snackBar.open('🗑️ Producto eliminado exitosamente', 'OK', { duration: 3000 });
+          this.cargarProductos(); // Refrescamos la tabla
+          // Si estaba viendo la receta de ese producto justo ahora, la cerramos
+          if (this.productoSeleccionado?.id_producto === prod.id_producto) {
+            this.cerrarReceta();
+          }
+        },
+        error: (err) => {
+          const mensajeError = err.error?.detail || 'Error al eliminar el producto';
+          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 6000 });
+        }
+      });
+    }
+  }
+
   guardarProducto(): void {
     if (!this.nuevoProducto.nombre || this.nuevoProducto.tiempo_fabricacion_horas <= 0) {
       this.snackBar.open('⚠️ Completa los datos correctamente', 'Cerrar', { duration: 3000 });
@@ -423,9 +445,7 @@ calcularCostoTotalReceta(): number {
     const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
     const parametrosProd = this.productoSeleccionado.parametro || 'No se registraron especificaciones adicionales para este equipo.';
     
-    // Capturamos el costo total
     const costoTotal = this.calcularCostoTotalReceta();
-    // Lo formateamos para que tenga la coma de los miles (Ej: 1,384.86)
     const costoFormateado = costoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
@@ -442,26 +462,13 @@ calcularCostoTotalReceta(): number {
               .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
               .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
               
-              /* 👇 Estilos para dividir la zona superior 👇 */
               .top-section { display: flex; justify-content: space-between; align-items: stretch; gap: 20px; margin-bottom: 20px; }
               
               .product-info { flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
               .product-info h2 { margin: 0 0 10px 0; color: #2e7d32; font-size: 18px; text-transform: uppercase; }
               .product-info p { margin: 4px 0; font-size: 14px; }
               
-              /* 👇 ESTILOS DEL NUEVO RECUADRO VERDE DE COSTOS 👇 */
-              .costo-box { 
-                background-color: #e8f5e9 !important; 
-                border: 2px solid #2e7d32; 
-                border-radius: 12px; 
-                padding: 15px 30px; 
-                text-align: center; 
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
-              }
+              .costo-box { background-color: #e8f5e9 !important; border: 2px solid #2e7d32; border-radius: 12px; padding: 15px 30px; text-align: center; display: flex; flex-direction: column; justify-content: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               .costo-box-title { color: #2e7d32; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
               .costo-box-value { color: #1b5e20; font-size: 34px; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
 
@@ -488,7 +495,6 @@ calcularCostoTotalReceta(): number {
               </div>
             </div>
 
-            <!-- 👇 Nueva estructura con el cuadro de costos alineado a la derecha 👇 -->
             <div class="top-section">
               <div class="product-info">
                 <h2>${nombreProducto}</h2>
