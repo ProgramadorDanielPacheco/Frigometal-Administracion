@@ -67,7 +67,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
 
   idEditandoReceta: number | null = null;
   cantidadEditada: number = 0;
-  ultimaOPDetectada: number = 1;
 
   constructor(
     private productoService: ProductoService,
@@ -83,18 +82,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.cargarProductos();
     this.materialService.getMateriales().subscribe(datos => this.materialesBodega = datos);
     this.cargarMaterialesBodega();
-    this.ordenService.getOrdenes().subscribe(ordenes => {
-      let maxOP = 0;
-      ordenes.forEach((orden: any) => {
-        if (orden.equipos) {
-          orden.equipos.forEach((equipo: any) => {
-            const op = Number(equipo.orden_produccion) || 0;
-            if (op > maxOP) maxOP = op;
-          });
-        }
-      });
-      this.ultimaOPDetectada = maxOP > 0 ? maxOP : 1;
-    });
   }
 
   ngAfterViewInit() {
@@ -187,16 +174,13 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '' };
   }
 
-  // 👇 FUNCIÓN CORREGIDA PARA HACER SCROLL INSTANTÁNEO 👇
   abrirReceta(prod: Producto): void {
     this.productoSeleccionado = prod;
     this.cargarMaterialesBodega(); 
     this.cargarRecetaDelProducto();
     
-    // Obligamos a Angular a dibujar el HTML inmediatamente
     this.cdr.detectChanges(); 
     
-    // Ahora que el HTML existe, bajamos directo a ese ID
     setTimeout(() => {
       const panelReceta = document.getElementById('panel-receta-tecnica');
       if (panelReceta) {
@@ -414,15 +398,6 @@ calcularCostoTotalReceta(): number {
       return;
     }
 
-    const opSeleccionada = window.prompt(
-      '🖨️ Ingrese el Número de OP (Máquina) para imprimir en esta receta:', 
-      this.ultimaOPDetectada.toString()
-    );
-
-    if (opSeleccionada === null) return; 
-
-    const numeroOP = opSeleccionada.trim() || 'S/N';
-
     const recetaOrdenada = [...this.recetaActual].sort((a, b) => {
       const nombreA = this.obtenerNombreMaterial(a.id_material).toLowerCase();
       const nombreB = this.obtenerNombreMaterial(b.id_material).toLowerCase();
@@ -446,15 +421,19 @@ calcularCostoTotalReceta(): number {
     const nombreProducto = this.productoSeleccionado.nombre;
     const tiempoFab = this.productoSeleccionado.tiempo_fabricacion_horas;
     const tipoProd = this.productoSeleccionado.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)';
-    
     const parametrosProd = this.productoSeleccionado.parametro || 'No se registraron especificaciones adicionales para este equipo.';
+    
+    // Capturamos el costo total
+    const costoTotal = this.calcularCostoTotalReceta();
+    // Lo formateamos para que tenga la coma de los miles (Ej: 1,384.86)
+    const costoFormateado = costoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
     if (ventanaImpresion) {
       ventanaImpresion.document.write(`
         <html>
           <head>
-            <title>Receta Taller OP-${numeroOP} - ${nombreProducto}</title>
+            <title>Receta Técnica - ${nombreProducto}</title>
             <style>
               body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; margin: 0; }
               .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
@@ -463,12 +442,29 @@ calcularCostoTotalReceta(): number {
               .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
               .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
               
-              .numero-op { color: #d32f2f; font-size: 24px; font-weight: 900; margin: 5px 0; display: block; }
+              /* 👇 Estilos para dividir la zona superior 👇 */
+              .top-section { display: flex; justify-content: space-between; align-items: stretch; gap: 20px; margin-bottom: 20px; }
               
-              .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+              .product-info { flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 6px solid #2e7d32; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
               .product-info h2 { margin: 0 0 10px 0; color: #2e7d32; font-size: 18px; text-transform: uppercase; }
-              .product-info p { margin: 3px 0; font-size: 14px; }
+              .product-info p { margin: 4px 0; font-size: 14px; }
               
+              /* 👇 ESTILOS DEL NUEVO RECUADRO VERDE DE COSTOS 👇 */
+              .costo-box { 
+                background-color: #e8f5e9 !important; 
+                border: 2px solid #2e7d32; 
+                border-radius: 12px; 
+                padding: 15px 30px; 
+                text-align: center; 
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+              }
+              .costo-box-title { color: #2e7d32; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+              .costo-box-value { color: #1b5e20; font-size: 34px; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
+
               table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
               th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 15px; }
               tr:nth-child(even) { background-color: #f2f2f2; }
@@ -487,16 +483,23 @@ calcularCostoTotalReceta(): number {
               <img src="/logo.png" alt="Frigo Metal" onerror="this.style.display='none'">
               <div class="header-text">
                 <h1>FRIGO METAL</h1>
-                <span class="numero-op">OP N° ${numeroOP}</span>
-                <p>Hoja de Despacho Bodega y Taller</p>
+                <p>Receta de Producción y Costos</p>
                 <p><b>Fecha:</b> ${new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
 
-            <div class="product-info">
-              <h2>${nombreProducto}</h2>
-              <p><b>Tiempo de Fabricación Estimado:</b> ${tiempoFab} horas</p>
-              <p><b>Clasificación:</b> ${tipoProd}</p>
+            <!-- 👇 Nueva estructura con el cuadro de costos alineado a la derecha 👇 -->
+            <div class="top-section">
+              <div class="product-info">
+                <h2>${nombreProducto}</h2>
+                <p><b>Tiempo de Fabricación Estimado:</b> ${tiempoFab} horas</p>
+                <p><b>Clasificación:</b> ${tipoProd}</p>
+              </div>
+              
+              <div class="costo-box">
+                <div class="costo-box-title">COSTO TOTAL DE PRODUCCIÓN</div>
+                <div class="costo-box-value">$${costoFormateado}</div>
+              </div>
             </div>
 
             <table>
@@ -514,10 +517,6 @@ calcularCostoTotalReceta(): number {
             <div class="parametros-box">
               <h3>Especificaciones Técnicas / Parámetros:</h3>
               <p>${parametrosProd}</p>
-            </div>
-
-            <div style="clear: both; margin-top: 50px; font-size: 11px; color: gray; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
-              Documento interno de uso exclusivo para el área de producción y bodega. (Versión sin información financiera)
             </div>
 
             <script>
