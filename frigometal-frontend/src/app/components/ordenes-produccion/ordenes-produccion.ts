@@ -41,6 +41,8 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   idEditando: number | null = null;
   clientesDirectorio: any[] = [];
   filtroClientes: string = '';
+  // 👇 NUEVA VARIABLE PARA CONTROLAR EL CANDADO DE LA OP 👇
+  opDesbloqueado: boolean = false;
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -188,11 +190,28 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       this.nuevoEquipo.orden_produccion = consecutivo;
     }
   }
+  // 👇 NUEVA FUNCIÓN DE SEGURIDAD PARA DESBLOQUEAR EL NÚMERO DE OP 👇
+  solicitarCambioOP(): void {
+    const confirmacion = confirm('⚠️ ATENCIÓN: El número de OP se genera automáticamente para mantener el orden.\n\n¿Estás completamente seguro de que deseas modificarlo manualmente?');
+    
+    if (confirmacion) {
+      const clave = window.prompt('🔒 Por seguridad, ingresa la contraseña de administrador para autorizar este cambio:');
+      
+      // Aquí validamos la contraseña (puedes cambiar 'admin123' por tu clave real)
+      if (clave === 'admin123') { 
+        this.opDesbloqueado = true;
+        this.snackBar.open('🔓 Campo de OP desbloqueado', 'OK', { duration: 3000 });
+      } else if (clave !== null) {
+        this.snackBar.open('❌ Contraseña incorrecta. Acción denegada.', 'Cerrar', { duration: 4000 });
+      }
+    }
+  }
 
   cancelarEdicion(): void {
     this.modoEdicion = false;
     this.idEditando = null;
     this.indexEditandoEquipo = null;
+    this.opDesbloqueado = false; // 👈 VOLVEMOS A CERRAR EL CANDADO AQUÍ
     this.nuevaOrden = this.obtenerModeloVacio();
     this.nuevoEquipo = { 
       cantidad: 1, 
