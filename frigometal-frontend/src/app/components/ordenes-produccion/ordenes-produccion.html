@@ -26,20 +26,15 @@
       <mat-card-content>
         <div style="display: flex; gap: 15px; margin-bottom: 10px;">
           
-          <!-- 👇 CAMPO DE OP CON CANDADO DE SEGURIDAD 👇 -->
           <mat-form-field appearance="outline" style="flex: 1;">
               <mat-label>Orden de Producción (OP)</mat-label>
-              <!-- Le añadimos [readonly] atado a nuestra nueva variable -->
               <input matInput [(ngModel)]="nuevaOrden.numero_op" [readonly]="!opDesbloqueado" placeholder="Ej. OP-001">
-              
-              <!-- Botón de Candado Cerrado (Abre el Prompt) -->
-              <button mat-icon-button matSuffix (click)="solicitarCambioOP()" *ngIf="!opDesbloqueado" matTooltip="Desbloquear para editar" style="color: gray;">
+              <button mat-icon-button matSuffix (click)="solicitarCambioOP()" *ngIf="!opDesbloqueado" title="Desbloquear para editar" style="color: gray;">
                   <mat-icon>lock</mat-icon>
               </button>
-              
-              <!-- Ícono de Candado Abierto (Solo visual) -->
-              <mat-icon matSuffix *ngIf="opDesbloqueado" style="color: #2e7d32;" matTooltip="Campo desbloqueado">lock_open</mat-icon>
+              <mat-icon matSuffix *ngIf="opDesbloqueado" style="color: #2e7d32;" title="Campo desbloqueado">lock_open</mat-icon>
           </mat-form-field>
+
           <mat-form-field appearance="outline" style="flex: 1;">
             <mat-label>Número de Pedido</mat-label>
             <input matInput [(ngModel)]="nuevaOrden.numero_pedido">
@@ -236,6 +231,40 @@
               </div>
             </div>
 
+            <div *ngIf="!nuevaOrden.finalizada" style="display: flex; gap: 15px; align-items: center; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #c5e1a5; margin-bottom: 15px; flex-wrap: wrap;">
+              
+              <mat-form-field appearance="outline" style="flex: 3; min-width: 250px; margin-bottom: -1.25em;">
+                <mat-label>Añadir Material Extra a esta OP</mat-label>
+                <mat-select [(ngModel)]="nuevoMaterialOP.id_material">
+                  <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                    <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                      <mat-label>Buscar material en bodega...</mat-label>
+                      <input matInput [(ngModel)]="filtroMaterialesOP" autocomplete="off">
+                      <mat-icon matSuffix>search</mat-icon>
+                    </mat-form-field>
+                  </div>
+
+                  @for (mat of materialesFiltradosOP; track mat.id_material) {
+                    <mat-option [value]="mat.id_material">
+                      {{ mat.nombre }} <span style="color: green; font-size: 0.8em;">(${{mat.precio_unitario}} / {{mat.unidad_medida}})</span>
+                    </mat-option>
+                  }
+                  @if (materialesFiltradosOP.length === 0) {
+                    <mat-option disabled>No se encontraron materiales</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1.25em;">
+                <mat-label>Cant. Real</mat-label>
+                <input matInput type="number" [(ngModel)]="nuevoMaterialOP.cantidad_real" min="0.1" step="0.1">
+              </mat-form-field>
+
+              <button mat-stroked-button style="color: #2e7d32; border-color: #2e7d32; height: 52px;" (click)="agregarMaterialExtraOP()">
+                <mat-icon>add_circle</mat-icon> Añadir
+              </button>
+            </div>
+
            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
               <tr style="background: #dcedc8; color: #33691e; text-align: left;">
                 <th style="padding: 10px;">Material Requerido</th>
@@ -243,9 +272,13 @@
                 <th style="padding: 10px; text-align: center;">Cant. REAL Usada</th>
                 <th style="padding: 10px; text-align: right;">Costo Unitario ($)</th>
                 <th style="padding: 10px; text-align: right;">Subtotal</th>
+                <th style="padding: 10px; text-align: center; width: 40px;" *ngIf="!nuevaOrden.finalizada"></th>
               </tr>
-              <tr *ngFor="let mat of recetaViendo.receta_historica" style="border-bottom: 1px solid #c5e1a5;">
-                <td style="padding: 10px; font-weight: bold;">{{mat.nombre_material}}</td>
+              <tr *ngFor="let mat of recetaViendo.receta_historica; let idxMat = index" style="border-bottom: 1px solid #c5e1a5;">
+                <td style="padding: 10px; font-weight: bold;">
+                  {{mat.nombre_material}}
+                  <span *ngIf="mat.cantidad_requerida === 0" style="color: #ff9800; font-size: 0.8em; margin-left: 5px;">(Extra)</span>
+                </td>
                 <td style="padding: 10px; text-align: center; color: gray;">{{mat.cantidad_requerida}}</td>
                 <td style="padding: 10px; text-align: center;">
                   <input type="number" [(ngModel)]="mat.cantidad_real" (ngModelChange)="recalcularCostoHistorico(indexEquipoViendoReceta)" 
@@ -258,6 +291,10 @@
                 </td>
                 <td style="padding: 10px; text-align: right; color: #2e7d32; font-weight: bold;">
                   ${{mat.subtotal | number:'1.2-2'}}
+                </td>
+                
+                <td style="padding: 10px; text-align: center;" *ngIf="!nuevaOrden.finalizada">
+                  <mat-icon style="color: #d32f2f; cursor: pointer; font-size: 18px;" (click)="eliminarMaterialOP(idxMat)" title="Eliminar material">delete</mat-icon>
                 </td>
               </tr>
             </table>
@@ -416,4 +453,5 @@
     </table>
     
   </div>
+
 </div>
