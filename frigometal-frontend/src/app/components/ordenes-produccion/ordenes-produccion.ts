@@ -55,11 +55,9 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   materialesBodega: any[] = [];
   ordenesPlanta: any[] = [];
   
-  // Variables para la receta visualizada
   recetaViendo: any = null; 
   indexEquipoViendoReceta: number | null = null;
   
-  // 👇 NUEVAS VARIABLES PARA MATERIALES EXTRA 👇
   filtroMaterialesOP: string = '';
   nuevoMaterialOP: any = { id_material: null, cantidad_real: 1 };
 
@@ -122,7 +120,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     );
   }
 
-  // 👇 NUEVO: GETTER PARA FILTRAR MATERIALES DE BODEGA 👇
   get materialesFiltradosOP(): any[] {
     if (!this.filtroMaterialesOP) return this.materialesBodega;
     const filtro = this.filtroMaterialesOP.toLowerCase();
@@ -348,7 +345,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.nuevoMaterialOP = { id_material: null, cantidad_real: 1 };
   }
 
-  // 👇 NUEVA FUNCIÓN PARA AÑADIR MATERIAL EXTRA EN UNA OP 👇
   agregarMaterialExtraOP(): void {
     if (this.indexEquipoViendoReceta === null || !this.recetaViendo) return;
     if (!this.nuevoMaterialOP.id_material || this.nuevoMaterialOP.cantidad_real <= 0) {
@@ -362,7 +358,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     const precioBase = Number(materialBD.precio_unitario) || 0;
     const cantReal = Number(this.nuevoMaterialOP.cantidad_real);
 
-    // Revisamos si ya estaba en la receta extra
     const existe = this.recetaViendo.receta_historica.find((r: any) => r.id_material === materialBD.id_material);
     if (existe) {
       existe.cantidad_real += cantReal;
@@ -371,7 +366,7 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
       this.recetaViendo.receta_historica.push({
         id_material: materialBD.id_material,
         nombre_material: materialBD.nombre,
-        cantidad_requerida: 0, // Ponemos 0 porque NO forma parte de la receta original teórica
+        cantidad_requerida: 0, 
         cantidad_real: cantReal,
         precio_unitario: precioBase,
         subtotal: cantReal * precioBase
@@ -381,12 +376,10 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.recalcularCostoHistorico(this.indexEquipoViendoReceta);
     this.snackBar.open('✅ Material extra añadido a esta OP', 'OK', { duration: 2000 });
     
-    // Limpiamos los campos visuales
     this.nuevoMaterialOP = { id_material: null, cantidad_real: 1 };
     this.filtroMaterialesOP = '';
   }
 
-  // 👇 NUEVA FUNCIÓN PARA ELIMINAR CUALQUIER MATERIAL DE LA OP 👇
   eliminarMaterialOP(indexMaterial: number): void {
     if (this.indexEquipoViendoReceta === null || !this.recetaViendo) return;
     this.recetaViendo.receta_historica.splice(indexMaterial, 1);
@@ -425,7 +418,9 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
 
       filasMateriales += `
         <tr>
-          <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">${item.nombre_material}</td>
+          <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">
+            ${item.nombre_material} ${item.cantidad_requerida === 0 ? '<span style="color: #ff9800; font-size: 0.8em; margin-left: 5px;">(Extra)</span>' : ''}
+          </td>
           <td style="text-align: center; padding: 10px; border: 1px solid #ccc; font-weight: bold; font-size: 1.1em;">${cantidad} ${unidad}</td>
         </tr>
       `;
@@ -507,6 +502,123 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
             <div class="parametros-box">
               <h3>Especificaciones Técnicas / Parámetros:</h3>
               <p>${parametrosProd}</p>
+            </div>
+
+            <script>
+              window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };
+            </script>
+          </body>
+        </html>
+      `);
+      ventanaImpresion.document.close();
+    }
+  }
+
+  // 👇 NUEVA FUNCIÓN: Imprimir sin costos (Solo Materiales) 👇
+  imprimirRecetaEquipoSinCostos(): void {
+    if (!this.recetaViendo || !this.recetaViendo.receta_historica) {
+      this.snackBar.open('⚠️ No hay datos para imprimir', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const equipo = this.recetaViendo;
+    const numeroOP = equipo.orden_produccion || 'S/N';
+    const nombreProducto = equipo.nombre_producto || equipo.descripcion;
+    
+    const prodCatalogo = this.productosCatalogo.find(p => p.id_producto === equipo.id_producto);
+    const tiempoFab = prodCatalogo ? prodCatalogo.tiempo_fabricacion_horas : 'N/A';
+    const tipoProd = prodCatalogo ? (prodCatalogo.es_estandar ? 'Estándar (En Serie)' : 'A Medida (Especial)') : 'N/A';
+    const parametrosProd = prodCatalogo?.parametro || 'No se registraron especificaciones adicionales para este equipo.';
+
+    const recetaOrdenada = [...equipo.receta_historica].sort((a, b) => {
+      const nombreA = (a.nombre_material || '').toLowerCase();
+      const nombreB = (b.nombre_material || '').toLowerCase();
+      return nombreA.localeCompare(nombreB);
+    });
+
+    let filasMateriales = '';
+    recetaOrdenada.forEach(item => {
+      const materialBD = this.materialesBodega.find(m => m.id_material === item.id_material);
+      const unidad = materialBD ? materialBD.unidad_medida : '';
+      const cantidad = item.cantidad_real || item.cantidad_requerida || 0;
+
+      filasMateriales += `
+        <tr>
+          <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">
+            ${item.nombre_material} ${item.cantidad_requerida === 0 ? '<span style="color: #ff9800; font-size: 0.8em; margin-left: 5px;">(Extra)</span>' : ''}
+          </td>
+          <td style="text-align: center; padding: 10px; border: 1px solid #ccc; font-weight: bold; font-size: 1.1em;">${cantidad} ${unidad}</td>
+        </tr>
+      `;
+    });
+
+    const ventanaImpresion = window.open('', '_blank', 'width=900,height=700');
+    if (ventanaImpresion) {
+      ventanaImpresion.document.write(`
+        <html>
+          <head>
+            <title>Lista de Materiales OP-${numeroOP} - ${nombreProducto}</title>
+            <style>
+              body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; margin: 0; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1976d2; padding-bottom: 15px; margin-bottom: 20px; }
+              .header img { height: 60px; }
+              .header-text { text-align: right; }
+              .header-text h1 { margin: 0; color: #1976d2; font-size: 22px; font-weight: bold; font-style: italic; }
+              .header-text p { margin: 5px 0 0 0; font-size: 13px; color: #666; }
+              
+              .numero-op { color: #d32f2f; font-size: 24px; font-weight: 900; margin: 5px 0; display: block; }
+              
+              .product-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 6px solid #f57c00; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+              .product-info h2 { margin: 0 0 10px 0; color: #f57c00; font-size: 18px; text-transform: uppercase; }
+              .product-info p { margin: 4px 0; font-size: 14px; }
+              
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+              th { background-color: #1976d2; color: white; padding: 12px; text-align: center; border: 1px solid #0d47a1; font-size: 15px; }
+              tr:nth-child(even) { background-color: #f2f2f2; }
+              
+              .parametros-box { margin-top: 20px; padding: 15px; border: 2px dashed #1976d2; background-color: #e3f2fd; border-radius: 8px; }
+              .parametros-box h3 { margin: 0 0 8px 0; color: #1565c0; font-size: 16px; text-transform: uppercase; }
+              .parametros-box p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; font-weight: 500; }
+
+              @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <img src="/logo.png" alt="Frigo Metal" onerror="this.style.display='none'">
+              <div class="header-text">
+                <h1>FRIGO METAL</h1>
+                <span class="numero-op">OP N° ${numeroOP}</span>
+                <p>Lista de Materiales (Bodega y Producción)</p>
+                <p><b>Fecha:</b> ${new Date().toLocaleDateString('es-ES')}</p>
+              </div>
+            </div>
+
+            <div class="product-info">
+              <h2>${nombreProducto}</h2>
+              <p><b>Tiempo de Fabricación Estimado:</b> ${tiempoFab} ${tiempoFab !== 'N/A' ? 'horas' : ''}</p>
+              <p><b>Clasificación:</b> ${tipoProd}</p>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 75%; text-align: left; padding-left: 15px;">MATERIAL REQUERIDO</th>
+                  <th style="width: 25%;">CANTIDAD</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filasMateriales}
+              </tbody>
+            </table>
+
+            <div class="parametros-box">
+              <h3>Especificaciones Técnicas / Parámetros:</h3>
+              <p>${parametrosProd}</p>
+            </div>
+
+            <div style="clear: both; margin-top: 50px; font-size: 11px; color: gray; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
+              Documento interno de uso exclusivo para el área de producción y bodega. (Versión sin información financiera)
             </div>
 
             <script>

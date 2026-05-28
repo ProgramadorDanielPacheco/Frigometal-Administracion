@@ -220,8 +220,13 @@
               </div>
               
               <div style="display: flex; gap: 15px; align-items: center;">
-                <button mat-stroked-button color="primary" (click)="imprimirRecetaEquipo()" title="Imprimir Hoja de Taller" style="border-color: #1976d2; font-weight: bold; background: white;">
-                  <mat-icon>print</mat-icon> Imprimir
+                <!-- 👇 NUEVO BOTÓN PARA IMPRIMIR SIN COSTOS 👇 -->
+                <button mat-stroked-button style="color: #f57c00; border-color: #f57c00; font-weight: bold; background: white;" (click)="imprimirRecetaEquipoSinCostos()" title="Imprimir Lista de Materiales (Sin Costos)">
+                  <mat-icon>receipt</mat-icon> Solo Materiales
+                </button>
+
+                <button mat-stroked-button color="primary" (click)="imprimirRecetaEquipo()" title="Imprimir Hoja de Taller (Con Costos)" style="border-color: #1976d2; font-weight: bold; background: white;">
+                  <mat-icon>print</mat-icon> Imprimir Completa
                 </button>
                 
                 <div style="text-align: right; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #aed581;">
