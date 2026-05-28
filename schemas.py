@@ -420,7 +420,7 @@ class OrdenProduccionUpdate(BaseModel):
     recibido_por: Optional[str] = None
     fecha_pedido: Optional[date] = None
     fecha_inicio: Optional[date] = None
-    fecha_entrega: Optional[date] = None
+    fecha_entrega: Optional[date] = None # 👈 CORREGIDO: Quítale el "_prevista"
     descripcion_pedido: Optional[str] = None
     equipos: Optional[List[EquipoDetalle]] = None
     precio_total: Optional[float] = None
