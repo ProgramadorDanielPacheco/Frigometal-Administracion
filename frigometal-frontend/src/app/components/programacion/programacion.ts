@@ -40,7 +40,6 @@ export class ProgramacionComponent implements OnInit {
   mostrarFormulario: boolean = false;
   opEditando: OrdenPlanta | null = null;
 
-  // 👇 AGREGAMOS 'Reproceso' AL FINAL DE LA LISTA 👇
   listaProcesos: string[] = [
     'Corte Laser', 'Plegado', 'Estructura', 'Armado', 'Poliuretano', 
     'Vidrios', 'Puertas', 'Refrigeracion', 'Electrico', 'Armado Final', 'Reproceso'
@@ -48,16 +47,13 @@ export class ProgramacionComponent implements OnInit {
 
   estadosPlanta: string[] = ['EN COLA', 'EN PROGRESO', 'PAUSADO', 'TERMINADO'];
 
-  // ==========================================
-  // 👇 VARIABLES DEL REPORTE 👇
-  // ==========================================
+  // Variables del reporte
   mostrarReporte: boolean = false;
   fechaInicioReporte: Date | null = null;
   fechaFinReporte: Date | null = null;
   trabajadorReporte: string = 'TODOS'; 
   reporteProcesos: { proceso: string, totalMinutos: number, totalTexto: string }[] = [];
   
-  // 👇 NUEVA VARIABLE PARA EL GRAN TOTAL DEL TRABAJADOR 👇
   granTotalTextoTrabajador: string = '';
   maximoMinutosReporte: number = 1;
 
@@ -126,9 +122,6 @@ export class ProgramacionComponent implements OnInit {
     this.opEditando = JSON.parse(JSON.stringify(orden));
     if (!this.opEditando!.seguimiento_procesos) this.opEditando!.seguimiento_procesos = {};
 
-    // 👇 SOLUCIÓN DE ZONA HORARIA 👇
-    // Si la base de datos nos manda un string "2026-05-22", le agregamos "T00:00:00" 
-    // para obligar al Datepicker de Angular a leerlo en el huso horario local de Ecuador.
     if (this.opEditando!.fecha_entrega_prevista) {
       this.opEditando!.fecha_entrega_prevista = new Date(this.opEditando!.fecha_entrega_prevista + 'T00:00:00') as any;
     }
@@ -165,6 +158,43 @@ export class ProgramacionComponent implements OnInit {
     return 0;
   }
 
+  // 👇 NUEVA FUNCIÓN PARA EL PROMEDIO HISTÓRICO 👇
+  obtenerTextoPromedioHistorico(idProducto: number): string {
+    if (!this.dataSource || !this.dataSource.data) return 'Calculando...';
+    
+    // Filtramos solo las órdenes de este producto que ya se TERMINARON
+    const ordenesTerminadas = this.dataSource.data.filter(
+      o => o.id_producto === idProducto && o.estado === 'TERMINADO'
+    );
+
+    if (ordenesTerminadas.length === 0) return 'Sin historial previo';
+
+    let totalMinutosHistorial = 0;
+
+    ordenesTerminadas.forEach(orden => {
+      let minutosDeEstaOrden = 0;
+      this.listaProcesos.forEach(proceso => {
+        const data = orden.seguimiento_procesos?.[proceso];
+        if (data) {
+          const turnos = this.normalizarTurnos(data);
+          turnos.forEach(t => {
+            minutosDeEstaOrden += this.calcularMinutos(t.fecha_inicio, t.hora_inicio, t.fecha_fin, t.hora_fin);
+          });
+        }
+      });
+      totalMinutosHistorial += minutosDeEstaOrden;
+    });
+
+    if (totalMinutosHistorial === 0) return 'Sin historial previo';
+
+    // Sacamos el promedio
+    const promedioMinutos = totalMinutosHistorial / ordenesTerminadas.length;
+    const horas = Math.floor(promedioMinutos / 60);
+    const minutos = Math.round(promedioMinutos % 60);
+
+    return `${horas}h ${minutos}m (Basado en ${ordenesTerminadas.length} OP terminadas)`;
+  }
+
   cerrarHojaTrabajo(): void {
     this.mostrarFormulario = false;
     this.opEditando = null;
@@ -188,21 +218,17 @@ export class ProgramacionComponent implements OnInit {
     }
   }
 
- guardarHojaTrabajo(): void {
+  guardarHojaTrabajo(): void {
     if (!this.opEditando || !this.opEditando.id_op) return;
 
     this.snackBar.open('⏳ Guardando progreso en taller...', '', { duration: 2000 });
 
     const payload = { ...this.opEditando };
     
-    // 👇 SOLUCIÓN DE GUARDADO 👇
-    // Función extractora que evita que "toISOString" nos atrase un día
     const formatearFecha = (fecha: any) => {
       if (!fecha) return null;
-      // Si el calendario ya nos da un string válido, lo usamos directo
       if (typeof fecha === 'string') return fecha.split('T')[0]; 
       
-      // Si nos da un objeto Date local, sacamos los números manualmente
       const d = new Date(fecha);
       const month = ('0' + (d.getMonth() + 1)).slice(-2);
       const day = ('0' + d.getDate()).slice(-2);
@@ -227,10 +253,10 @@ export class ProgramacionComponent implements OnInit {
 
   obtenerColorEstado(estado: string): string {
     switch (estado) {
-      case 'TERMINADO': return '#2e7d32'; // Verde
-      case 'EN PROGRESO': return '#1565c0'; // Azul
-      case 'PAUSADO': return '#c62828'; // Rojo
-      default: return '#e65100'; // Naranja para EN COLA
+      case 'TERMINADO': return '#2e7d32'; 
+      case 'EN PROGRESO': return '#1565c0'; 
+      case 'PAUSADO': return '#c62828'; 
+      default: return '#e65100'; 
     }
   }
 
@@ -251,26 +277,18 @@ export class ProgramacionComponent implements OnInit {
     return `${horas}h ${minutos}m`;
   }
 
-  // ==========================================
-  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
-  // ==========================================
-  // ==========================================
-  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO) 👇
-  // ==========================================
   imprimirHojaTrabajo(): void {
     if (!this.opEditando) return;
 
     const productoNombre = this.obtenerNombreProducto(this.opEditando.id_producto);
     const orden = this.opEditando;
     
-    // Calculamos el tiempo total
     const tiempoTotal = this.calcularTiempoTotalOrden(orden);
 
-    // 👇 NUEVO: Función para formatear fechas a dd/mm/aaaa en el PDF 👇
     const formatearFechaVista = (fecha: any) => {
       if (!fecha) return '';
       const d = new Date(fecha);
-      if (isNaN(d.getTime())) return fecha; // Si por alguna razón falla, devuelve el texto original
+      if (isNaN(d.getTime())) return fecha; 
       const dia = ('0' + d.getDate()).slice(-2);
       const mes = ('0' + (d.getMonth() + 1)).slice(-2);
       const anio = d.getFullYear();
@@ -298,7 +316,6 @@ export class ProgramacionComponent implements OnInit {
         `;
       } else {
         turnos.forEach((t: any, index: number) => {
-          // Formateamos también las fechas de los turnos para que se vean limpias
           const fIniTurno = formatearFechaVista(t.fecha_inicio);
           const fFinTurno = formatearFechaVista(t.fecha_fin);
 
@@ -346,7 +363,6 @@ export class ProgramacionComponent implements OnInit {
               .yellow-box { background-color: #ffeb3b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               .logo { max-height: 35px; float: right; }
               
-              /* 👇 Estilos para el cuadro azul del final 👇 */
               .caja-tiempo {
                 margin-top: 25px;
                 background-color: #e3f2fd !important;
@@ -434,7 +450,7 @@ export class ProgramacionComponent implements OnInit {
       this.trabajadorReporte = 'TODOS'; 
       this.reporteProcesos = [];
       this.granTotalTextoTrabajador = ''; 
-      this.maximoMinutosReporte = 1; // 👈 Lo limpiamos aquí
+      this.maximoMinutosReporte = 1; 
     }
   }
 
@@ -469,33 +485,30 @@ export class ProgramacionComponent implements OnInit {
     });
 
     this.reporteProcesos = [];
-    let sumaGranTotalMinutos = 0; // 👈 Variable auxiliar para sumar el gran total
+    let sumaGranTotalMinutos = 0; 
 
     mapaTiempos.forEach((minutos, proceso) => {
-      sumaGranTotalMinutos += minutos; // 👈 Vamos sumando todo
+      sumaGranTotalMinutos += minutos; 
 
       const horas = Math.floor(minutos / 60);
       const mins = Math.round(minutos % 60);
       this.reporteProcesos.push({ proceso: proceso, totalMinutos: minutos, totalTexto: `${horas}h ${mins}m` });
     });
 
-    // 👇 Calculamos y guardamos el Gran Total SOLO si se seleccionó a un trabajador específico 👇
     if (this.trabajadorReporte !== 'TODOS') {
       const horasTotales = Math.floor(sumaGranTotalMinutos / 60);
       const minsTotales = Math.round(sumaGranTotalMinutos % 60);
       this.granTotalTextoTrabajador = `${horasTotales}h ${minsTotales}m`;
     } else {
-      this.granTotalTextoTrabajador = ''; // Si es 'TODOS', lo dejamos vacío para que se oculte
+      this.granTotalTextoTrabajador = ''; 
     }
 
     if (this.reporteProcesos.length > 0) {
       this.maximoMinutosReporte = Math.max(...this.reporteProcesos.map(r => r.totalMinutos));
-      if (this.maximoMinutosReporte === 0) this.maximoMinutosReporte = 1; // Evitamos división por cero
+      if (this.maximoMinutosReporte === 0) this.maximoMinutosReporte = 1; 
     }
   
   }
-
-  
 
   private sumarSiEnRango(fIni: string | undefined, hIni: string | undefined, fFin: string | undefined, hFin: string | undefined, inicioRango: Date, finRango: Date, proceso: string, mapaTiempos: Map<string, number>) {
     if (!fIni || !hIni || !fFin || !hFin) return;

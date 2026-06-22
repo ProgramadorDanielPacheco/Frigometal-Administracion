@@ -52,6 +52,10 @@
           <mat-form-field appearance="fill" style="flex: 2;">
             <mat-label>Producto a Fabricar</mat-label>
             <input matInput [value]="obtenerNombreProducto(opEditando.id_producto)" readonly style="font-weight: 500;">
+            <mat-hint style="color: #f57c00; font-weight: 500;">
+              <mat-icon style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;">history</mat-icon>
+              Tiempo prom. histórico: <strong>{{ obtenerTextoPromedioHistorico(opEditando.id_producto) }}</strong>
+            </mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="fill" style="flex: 1;">
