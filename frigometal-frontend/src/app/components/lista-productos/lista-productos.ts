@@ -429,11 +429,18 @@ calcularCostoTotalReceta(): number {
       const nombreMat = this.obtenerNombreMaterial(item.id_material);
       const unidad = this.obtenerUnidadMedida(item.id_material);
       const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
+      
+      // 👇 Obtenemos los valores financieros usando tus funciones existentes 👇
+      const precioUnitario = this.obtenerPrecioMaterial(item.id_material);
+      const subtotal = this.calcularSubtotal(item);
 
+      // 👇 Agregamos las nuevas columnas a cada fila 👇
       filasMateriales += `
         <tr>
           <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">${nombreMat}</td>
           <td style="text-align: center; padding: 10px; border: 1px solid #ccc; font-weight: bold; font-size: 1.1em;">${cantidad} ${unidad}</td>
+          <td style="text-align: right; padding: 10px; border: 1px solid #ccc;">$${precioUnitario.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right; padding: 10px; border: 1px solid #ccc; font-weight: bold; color: #2e7d32;">$${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `;
     });
@@ -508,9 +515,12 @@ calcularCostoTotalReceta(): number {
 
             <table>
               <thead>
+                <!-- 👇 Ajustamos los anchos y agregamos los nuevos títulos de las columnas 👇 -->
                 <tr>
-                  <th style="width: 75%; text-align: left; padding-left: 15px;">MATERIAL REQUERIDO</th>
-                  <th style="width: 25%;">CANTIDAD</th>
+                  <th style="width: 50%; text-align: left; padding-left: 15px;">MATERIAL REQUERIDO</th>
+                  <th style="width: 15%;">CANTIDAD</th>
+                  <th style="width: 15%; text-align: right; padding-right: 15px;">P. UNITARIO</th>
+                  <th style="width: 20%; text-align: right; padding-right: 15px;">SUBTOTAL</th>
                 </tr>
               </thead>
               <tbody>
