@@ -292,10 +292,6 @@
                 }
               </div>
             </div>
-            
-
-
-
           }
         </mat-card-content>
       </mat-card>
@@ -331,10 +327,11 @@
         </td>
       </ng-container>
 
+      <!-- 👇 AQUÍ ESTÁ LA MAGIA DEL ESTADO ARREGLADO 👇 -->
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef> Estado Taller </th>
-        <td mat-cell *matCellDef="let orden"> 
-          <span [style.color]="obtenerColorEstado(orden.estado)" style="font-weight: bold; border: 1px solid; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado Taller </th>
+        <td mat-cell *matCellDef="let orden" style="text-align: center;"> 
+          <span [style.color]="obtenerColorEstado(orden.estado)" style="font-weight: bold; border: 1px solid; padding: 4px 12px; border-radius: 20px; font-size: 0.80rem; white-space: nowrap; display: inline-block;">
             {{orden.estado}}
           </span>
         </td>
