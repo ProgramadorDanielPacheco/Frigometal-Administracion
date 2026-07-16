@@ -297,10 +297,12 @@
       </mat-card>
     }
 
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+    <!-- 👇 AQUÍ AÑADIMOS EL ORDENAMIENTO (matSort) 👇 -->
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_op" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
       
       <ng-container matColumnDef="numero_op">
-        <th mat-header-cell *matHeaderCellDef> OP Nº </th>
+        <!-- 👇 AÑADIMOS mat-sort-header 👇 -->
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> OP Nº </th>
         <td mat-cell *matCellDef="let orden" style="font-weight: bold; font-size: 1.1rem;"> {{orden.numero_op}} </td>
       </ng-container>
 
@@ -327,7 +329,6 @@
         </td>
       </ng-container>
 
-      <!-- 👇 AQUÍ ESTÁ LA MAGIA DEL ESTADO ARREGLADO 👇 -->
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado Taller </th>
         <td mat-cell *matCellDef="let orden" style="text-align: center;"> 

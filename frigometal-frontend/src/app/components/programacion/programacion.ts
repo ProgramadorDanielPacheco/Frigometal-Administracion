@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -12,6 +12,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatIconModule } from "@angular/material/icon";
 import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 import { Usuario, UsuarioService } from '../../services/usuario';
 import { OrdenPlanta, ProgramacionService, ProcesoTaller } from '../../services/programacion';
@@ -24,19 +25,22 @@ import { ReportesService } from '../../services/reportes';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule,
     MatSelectModule, MatInputModule, MatButtonModule, MatTableModule, 
-    MatSnackBarModule, MatIconModule, MatDatepickerModule, MatNativeDateModule
+    MatSnackBarModule, MatIconModule, MatDatepickerModule, MatNativeDateModule,
+    MatSortModule 
   ],
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }],
   templateUrl: './programacion.html',
   styleUrls: ['./programacion.scss']
 })
-export class ProgramacionComponent implements OnInit {
+export class ProgramacionComponent implements OnInit, AfterViewInit {
   
   trabajadores: Usuario[] = [];
   productos: any[] = [];
   dataSource = new MatTableDataSource<OrdenPlanta>([]);
   columnasMostradas: string[] = ['numero_op', 'cliente', 'producto', 'cantidad', 'tiempo_total', 'estado', 'acciones'];
   
+  @ViewChild(MatSort) sort!: MatSort;
+
   mostrarFormulario: boolean = false;
   opEditando: OrdenPlanta | null = null;
 
@@ -70,6 +74,21 @@ export class ProgramacionComponent implements OnInit {
     this.usuarioService.getUsuarios().subscribe(datos => this.trabajadores = datos);
     this.productoService.getProductos().subscribe(datos => this.productos = datos);
     this.cargarOrdenes();
+  }
+
+  ngAfterViewInit(): void {
+    this.dataSource.sort = this.sort;
+    
+    // Lógica para extraer solo los números de la OP y ordenarlos de forma matemática
+    this.dataSource.sortingDataAccessor = (item, property) => {
+      switch(property) {
+        case 'numero_op':
+          const num = parseInt(String(item.numero_op).replace(/\D/g, ''), 10);
+          return isNaN(num) ? 0 : num;
+        default:
+          return (item as any)[property];
+      }
+    };
   }
 
   cargarOrdenes(): void {
@@ -158,11 +177,9 @@ export class ProgramacionComponent implements OnInit {
     return 0;
   }
 
-  // 👇 NUEVA FUNCIÓN PARA EL PROMEDIO HISTÓRICO 👇
   obtenerTextoPromedioHistorico(idProducto: number): string {
     if (!this.dataSource || !this.dataSource.data) return 'Calculando...';
     
-    // Filtramos solo las órdenes de este producto que ya se TERMINARON
     const ordenesTerminadas = this.dataSource.data.filter(
       o => o.id_producto === idProducto && o.estado === 'TERMINADO'
     );
@@ -187,7 +204,6 @@ export class ProgramacionComponent implements OnInit {
 
     if (totalMinutosHistorial === 0) return 'Sin historial previo';
 
-    // Sacamos el promedio
     const promedioMinutos = totalMinutosHistorial / ordenesTerminadas.length;
     const horas = Math.floor(promedioMinutos / 60);
     const minutos = Math.round(promedioMinutos % 60);
