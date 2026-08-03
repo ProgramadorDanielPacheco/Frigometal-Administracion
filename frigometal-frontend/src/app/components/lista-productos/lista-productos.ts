@@ -13,14 +13,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list'; 
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 import { Producto, ProductoService } from '../../services/producto'; 
 import { Material, MaterialService } from '../../services/material';
 import { RecetaDetalle, RecetaService } from '../../services/receta';
 import { ReportesService } from '../../services/reportes';
-import { MatMenuModule } from '@angular/material/menu';
 import { OrdenProduccionService } from '../../services/orden-produccion';
-import { MatSort, MatSortModule } from '@angular/material/sort';
 
 @Component({
   selector: 'app-lista-productos',
@@ -62,11 +62,15 @@ export class ListaProductos implements OnInit, AfterViewInit {
   
   idMaterialSeleccionado: number | null = null;
   cantidadNecesaria: number = 1;
-
   filtroMateriales: string = '';
-
   idEditandoReceta: number | null = null;
   cantidadEditada: number = 0;
+
+  // 👇 VARIABLES PARA CLONAR RECETAS 👇
+  mostrarMenuClonar: boolean = false;
+  tipoClonacion: 'EXISTENTE' | 'NUEVO' = 'EXISTENTE';
+  productosVaciosParaClonar: Producto[] = [];
+  clonacionData = { id_producto_destino: null, nombre_nuevo_producto: '' };
 
   constructor(
     private productoService: ProductoService,
@@ -180,13 +184,13 @@ export class ListaProductos implements OnInit, AfterViewInit {
   }
 
   get materialesFiltrados(): Material[] {
-  if (!this.filtroMateriales) {
-    return this.materialesBodega;
+    if (!this.filtroMateriales) {
+      return this.materialesBodega;
+    }
+    return this.materialesBodega.filter(mat => 
+      mat.nombre.toLowerCase().includes(this.filtroMateriales.toLowerCase())
+    );
   }
-  return this.materialesBodega.filter(mat => 
-    mat.nombre.toLowerCase().includes(this.filtroMateriales.toLowerCase())
-  );
-}
 
   limpiarFormulario(): void {
     this.modoEdicion = false;
@@ -198,6 +202,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.productoSeleccionado = prod;
     this.cargarMaterialesBodega(); 
     this.cargarRecetaDelProducto();
+    this.mostrarMenuClonar = false; // Cerramos el menú por si estaba abierto
     
     this.cdr.detectChanges(); 
     
@@ -212,6 +217,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
   cerrarReceta(): void {
     this.productoSeleccionado = null;
     this.recetaActual = [];
+    this.mostrarMenuClonar = false;
   }
 
   cargarRecetaDelProducto(): void {
@@ -224,6 +230,54 @@ export class ListaProductos implements OnInit, AfterViewInit {
       });
     }
   }
+
+  // 👇 LÓGICA DE DUPLICACIÓN 👇
+  iniciarClonacion(): void {
+    this.mostrarMenuClonar = !this.mostrarMenuClonar;
+    if (this.mostrarMenuClonar) {
+      this.clonacionData = { id_producto_destino: null, nombre_nuevo_producto: '' };
+      // Llamamos al backend para ver a quién le podemos pegar la receta
+      this.productoService.getProductosVacios().subscribe(datos => {
+        // Excluimos el producto actual para evitar clonarse a sí mismo
+        this.productosVaciosParaClonar = datos.filter(p => p.id_producto !== this.productoSeleccionado?.id_producto);
+      });
+    }
+  }
+
+  ejecutarClonacion(): void {
+    if (!this.productoSeleccionado?.id_producto) return;
+
+    if (this.tipoClonacion === 'EXISTENTE' && !this.clonacionData.id_producto_destino) {
+      this.snackBar.open('⚠️ Selecciona un producto destino', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (this.tipoClonacion === 'NUEVO' && !this.clonacionData.nombre_nuevo_producto.trim()) {
+      this.snackBar.open('⚠️ Escribe el nombre del nuevo producto', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const payload = this.tipoClonacion === 'EXISTENTE' 
+      ? { id_producto_destino: this.clonacionData.id_producto_destino } 
+      : { nombre_nuevo_producto: this.clonacionData.nombre_nuevo_producto };
+
+    this.snackBar.open('⏳ Clonando receta de producción...', '', { duration: 2000 });
+
+    this.recetaService.duplicarReceta(this.productoSeleccionado.id_producto, payload).subscribe({
+      next: (resp) => {
+        this.snackBar.open(`✅ ${resp.mensaje || 'Receta duplicada exitosamente'}`, 'Genial', { duration: 4000 });
+        this.mostrarMenuClonar = false;
+        if (this.tipoClonacion === 'NUEVO') {
+          this.cargarProductos(); // Refrescamos tabla para ver el nuevo producto
+        }
+      },
+      error: (err) => {
+        const errorMsg = err.error?.detail || 'Error al clonar receta';
+        this.snackBar.open(`❌ ${errorMsg}`, 'Cerrar', { duration: 4000 });
+      }
+    });
+  }
+  // 👆 FIN LÓGICA DE DUPLICACIÓN 👆
+
 
   agregarIngrediente(): void {
     if (!this.productoSeleccionado?.id_producto || !this.idMaterialSeleccionado || this.cantidadNecesaria <= 0) {
@@ -264,24 +318,24 @@ export class ListaProductos implements OnInit, AfterViewInit {
   }
 
   obtenerUnidadMedida(idMaterial: number): string {
-  const material = this.materialesBodega.find(m => m.id_material === idMaterial);
-  return material ? material.unidad_medida : '';
-}
+    const material = this.materialesBodega.find(m => m.id_material === idMaterial);
+    return material ? material.unidad_medida : '';
+  }
 
-obtenerPrecioMaterial(idMaterial: number): number {
-  const material = this.materialesBodega.find(m => m.id_material === idMaterial);
-  return material ? Number(material.precio_unitario) : 0;
-}
+  obtenerPrecioMaterial(idMaterial: number): number {
+    const material = this.materialesBodega.find(m => m.id_material === idMaterial);
+    return material ? Number(material.precio_unitario) : 0;
+  }
 
-calcularSubtotal(item: any): number {
-  const precio = this.obtenerPrecioMaterial(item.id_material);
-  const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
-  return precio * cantidad;
-}
+  calcularSubtotal(item: any): number {
+    const precio = this.obtenerPrecioMaterial(item.id_material);
+    const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
+    return precio * cantidad;
+  }
 
-calcularCostoTotalReceta(): number {
-  return this.recetaActual.reduce((total, item) => total + this.calcularSubtotal(item), 0);
-}
+  calcularCostoTotalReceta(): number {
+    return this.recetaActual.reduce((total, item) => total + this.calcularSubtotal(item), 0);
+  }
 
   onArchivoSeleccionado(event: any): void {
     const archivo: File = event.target.files[0];
@@ -342,21 +396,14 @@ calcularCostoTotalReceta(): number {
           let costoTotal = 0;
 
           if (recetaDelProducto && recetaDelProducto.length > 0) {
-            
             const detallesMapeados = recetaDelProducto.map((r: any) => {
-              
               const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
-              
               const nombreMat = materialBD ? materialBD.nombre : 'Material Desconocido';
               const precioMat = materialBD ? Number(materialBD.precio_unitario || 0) : 0;
-              
               const cantidadMat = Number(r.cantidad_requerida || r.cantidad_necesaria || 0);
-
               costoTotal += (cantidadMat * precioMat);
-
               return `${nombreMat} (${cantidadMat})`;
             });
-
             recetaTexto = detallesMapeados.join(' | ');
           }
 
@@ -399,9 +446,7 @@ calcularCostoTotalReceta(): number {
       this.snackBar.open('⚠️ La cantidad debe ser mayor a 0', 'Cerrar', { duration: 3000 });
       return;
     }
-
     const payload = { cantidad_necesaria: this.cantidadEditada };
-
     this.recetaService.actualizarMaterial(item.id_estructura, payload).subscribe({
       next: () => {
         this.snackBar.open('✅ Cantidad actualizada', 'OK', { duration: 3000 });
@@ -430,11 +475,9 @@ calcularCostoTotalReceta(): number {
       const unidad = this.obtenerUnidadMedida(item.id_material);
       const cantidad = item.cantidad_necesaria || item.cantidad_requerida || 0;
       
-      // 👇 Obtenemos los valores financieros usando tus funciones existentes 👇
       const precioUnitario = this.obtenerPrecioMaterial(item.id_material);
       const subtotal = this.calcularSubtotal(item);
 
-      // 👇 Agregamos las nuevas columnas a cada fila 👇
       filasMateriales += `
         <tr>
           <td style="text-align: left; padding: 10px; border: 1px solid #ccc;">${nombreMat}</td>
@@ -515,7 +558,6 @@ calcularCostoTotalReceta(): number {
 
             <table>
               <thead>
-                <!-- 👇 Ajustamos los anchos y agregamos los nuevos títulos de las columnas 👇 -->
                 <tr>
                   <th style="width: 50%; text-align: left; padding-left: 15px;">MATERIAL REQUERIDO</th>
                   <th style="width: 15%;">CANTIDAD</th>
@@ -545,7 +587,6 @@ calcularCostoTotalReceta(): number {
     }
   }
 
-  // 👇 NUEVA FUNCIÓN: Imprime la lista de materiales pero SIN los costos financieros 👇
   imprimirRecetaSinCostos(): void {
     if (!this.productoSeleccionado || this.recetaActual.length === 0) {
       this.snackBar.open('⚠️ No hay materiales en la receta para imprimir', 'Cerrar', { duration: 3000 });

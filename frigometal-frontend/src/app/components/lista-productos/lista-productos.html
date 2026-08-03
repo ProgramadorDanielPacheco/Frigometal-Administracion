@@ -173,6 +173,11 @@
       
       <div style="display: flex; gap: 15px; align-items: center;">
         
+        <!-- 👇 NUEVO BOTÓN: CLONAR RECETA 👇 -->
+        <button mat-flat-button color="accent" (click)="iniciarClonacion()" title="Duplicar esta receta">
+          <mat-icon>file_copy</mat-icon> Duplicar Receta
+        </button>
+
         <button mat-stroked-button style="color: #f57c00; border-color: #f57c00; font-weight: bold;" (click)="imprimirRecetaSinCostos()" title="Imprimir Lista de Materiales (Sin Costos)">
           <mat-icon>receipt</mat-icon> Solo Materiales
         </button>
@@ -191,6 +196,54 @@
         </button>
       </div>
     </div>
+
+    <!-- 👇 PANEL FLOTANTE DE CLONACIÓN 👇 -->
+    @if(mostrarMenuClonar) {
+      <div style="background-color: #e3f2fd; padding: 20px; border-bottom: 1px solid #90caf9; display: flex; flex-direction: column; gap: 15px;">
+        <h3 style="margin: 0; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+          <mat-icon>queue</mat-icon> Clonar Receta a otro Producto
+        </h3>
+        
+        <div style="display: flex; gap: 15px; align-items: center;">
+          <mat-form-field appearance="outline" style="width: 250px;">
+            <mat-label>¿Dónde quieres copiarla?</mat-label>
+            <mat-select [(ngModel)]="tipoClonacion">
+              <mat-option value="EXISTENTE">A un Producto Vacío Existente</mat-option>
+              <mat-option value="NUEVO">Crear Producto Nuevo desde Cero</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          @if(tipoClonacion === 'EXISTENTE') {
+            <mat-form-field appearance="outline" style="flex: 1;">
+              <mat-label>Selecciona el producto destino</mat-label>
+              <mat-select [(ngModel)]="clonacionData.id_producto_destino">
+                @for (prod of productosVaciosParaClonar; track prod.id_producto) {
+                  <mat-option [value]="prod.id_producto">
+                    {{prod.nombre}} <span style="color: gray; font-size: 0.8em;">(ID: {{prod.id_producto}})</span>
+                  </mat-option>
+                }
+                @if(productosVaciosParaClonar.length === 0) {
+                  <mat-option disabled>No hay productos vacíos disponibles</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline" style="flex: 1;">
+              <mat-label>Escribe el nombre del NUEVO producto</mat-label>
+              <input matInput [(ngModel)]="clonacionData.nombre_nuevo_producto" placeholder="Ej: Copia de {{productoSeleccionado.nombre}}">
+            </mat-form-field>
+          }
+
+          <button mat-raised-button color="primary" style="height: 52px; margin-bottom: 1.25em;" (click)="ejecutarClonacion()">
+            <mat-icon>save_alt</mat-icon> Clonar Ahora
+          </button>
+          
+          <button mat-icon-button color="warn" style="margin-bottom: 1.25em;" (click)="mostrarMenuClonar = false" title="Cancelar clonación">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
 
     <mat-card-content style="padding: 20px; display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start;">
       

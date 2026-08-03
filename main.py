@@ -612,6 +612,22 @@ def actualizar_producto(id_producto: int, producto_actualizado: schemas.Producto
     
     return producto_db
 
+# 👇 NUEVO 1: Endpoint para buscar productos sin receta (o con 1 material) 👇
+@app.get("/productos-vacios/", response_model=List[schemas.ProductoResponse])
+def obtener_productos_vacios(db: Session = Depends(get_db)):
+    # Buscamos todos los productos y contamos cuántos materiales tienen en la tabla Estructura
+    productos_con_conteo = db.query(
+        models.Producto, 
+        func.count(models.EstructuraProducto.id_estructura).label('total_materiales')
+    ).outerjoin(
+        models.EstructuraProducto, models.Producto.id_producto == models.EstructuraProducto.id_producto
+    ).group_by(models.Producto.id_producto).having(
+        func.count(models.EstructuraProducto.id_estructura) <= 1
+    ).all()
+    
+    # Extraemos solo los productos de la consulta
+    return [p.Producto for p in productos_con_conteo]
+
 @app.post("/materiales/", response_model=schemas.MaterialResponse)
 def crear_material(material: schemas.MaterialCreate, db: Session = Depends(get_db)):
     nuevo_material = models.Material(**material.model_dump())
@@ -803,6 +819,59 @@ def actualizar_cantidad_receta(id_estructura: int, datos_update: schemas.Estruct
         "id_material": detalle_db.id_material,
         "cantidad_necesaria": detalle_db.cantidad_requerida
     }
+
+# 👇 NUEVO 2: Endpoint maestro para duplicar la receta 👇
+@app.post("/estructura-producto/{id_producto_origen}/duplicar")
+def duplicar_receta(id_producto_origen: int, request_data: dict, db: Session = Depends(get_db)):
+    # Extraemos los datos enviados por Angular
+    # Puede venir "id_producto_destino" (Opción 1) o "nombre_nuevo_producto" (Opción 2)
+    id_producto_destino = request_data.get("id_producto_destino")
+    nombre_nuevo_producto = request_data.get("nombre_nuevo_producto")
+    
+    # 1. Buscamos la receta original (Origen)
+    receta_original = db.query(models.EstructuraProducto).filter(
+        models.EstructuraProducto.id_producto == id_producto_origen
+    ).all()
+    
+    if not receta_original:
+        raise HTTPException(status_code=400, detail="El producto origen no tiene una receta para copiar.")
+        
+    # 2. Si eligió crear un producto nuevo (Opción 2)
+    if nombre_nuevo_producto:
+        producto_origen = db.query(models.Producto).filter(models.Producto.id_producto == id_producto_origen).first()
+        
+        nuevo_producto = models.Producto(
+            nombre=nombre_nuevo_producto.upper(),
+            tiempo_fabricacion_horas=producto_origen.tiempo_fabricacion_horas,
+            es_estandar=producto_origen.es_estandar,
+            parametro=f"Copia de {producto_origen.nombre}"
+        )
+        db.add(nuevo_producto)
+        db.flush() # Guardamos temporalmente para generar el ID
+        id_producto_destino = nuevo_producto.id_producto
+        
+    elif not id_producto_destino:
+        raise HTTPException(status_code=400, detail="Debes especificar un destino o un nombre nuevo.")
+    
+    # 3. Borramos la receta actual del producto destino (por si tenía 1 material basura)
+    db.query(models.EstructuraProducto).filter(
+        models.EstructuraProducto.id_producto == id_producto_destino
+    ).delete()
+    
+    # 4. Clonamos los materiales uno por uno
+    nuevos_materiales = []
+    for item in receta_original:
+        nuevo_item = models.EstructuraProducto(
+            id_producto=id_producto_destino,
+            id_material=item.id_material,
+            cantidad_requerida=item.cantidad_requerida
+        )
+        nuevos_materiales.append(nuevo_item)
+        
+    db.add_all(nuevos_materiales)
+    db.commit()
+    
+    return {"mensaje": f"Receta duplicada exitosamente. Se copiaron {len(nuevos_materiales)} materiales."}
 
 # ==========================================
 # RUTAS PARA PEDIDOS Y DESCUENTO DE STOCK (LA MAGIA)

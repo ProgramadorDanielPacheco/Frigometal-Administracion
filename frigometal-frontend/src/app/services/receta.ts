@@ -31,6 +31,10 @@ export class RecetaService {
     return this.http.delete(`${this.apiUrl}${idEstructura}`);
   }
 
+  duplicarReceta(idProductoOrigen: number, datosDestino: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}${idProductoOrigen}/duplicar`, datosDestino);
+  }
+
   actualizarMaterial(idEstructura: number, datos: any): Observable<any> {
     // Asegúrate de que la URL apunte a 'estructura-producto' (o la variable de entorno que uses para esta ruta)
     return this.http.put(`${this.apiUrl}${idEstructura}`, datos); 

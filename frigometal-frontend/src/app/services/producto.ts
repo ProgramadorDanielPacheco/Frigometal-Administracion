@@ -20,6 +20,11 @@ export class ProductoService {
     return this.http.get<Producto[]>(this.apiUrl);
   }
 
+  getProductosVacios(): Observable<Producto[]> {
+    // 👇 Ajusta la URL base según tu configuración de Vercel 👇
+    return this.http.get<Producto[]>('https://frigometal-administracion.vercel.app/productos-vacios/');
+  }
+
   crearProducto(producto: Producto): Observable<Producto> {
     return this.http.post<Producto>(this.apiUrl, producto);
   }
