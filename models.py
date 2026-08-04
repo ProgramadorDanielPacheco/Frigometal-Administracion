@@ -200,6 +200,7 @@ class KpiIngreso(Base):
     id = Column(Integer, primary_key=True, index=True)
     semana = Column(Integer, nullable=False)
     anio = Column(Integer, nullable=False)
+    negocio = Column(String(50), default="PRINCIPAL", nullable=False) # 👈 NUEVO
     meta = Column(Numeric(10, 2), nullable=False)
     ingresos = Column(Numeric(10, 2), nullable=False)
     egresos = Column(Numeric(10, 2), nullable=False)
@@ -210,6 +211,7 @@ class KpiProductividad(Base):
     id = Column(Integer, primary_key=True, index=True)
     semana = Column(Integer, nullable=False)
     anio = Column(Integer, nullable=False)
+    negocio = Column(String(50), default="PRINCIPAL", nullable=False) # 👈 NUEVO
     meta_planchas = Column(Numeric(10,2), nullable=False)
     planchas_usadas = Column(Numeric(10,2), nullable=False)
 
@@ -218,6 +220,7 @@ class KpiVentas(Base):
     id = Column(Integer, primary_key=True, index=True)
     semana = Column(Integer, nullable=False)
     anio = Column(Integer, nullable=False)
+    negocio = Column(String(50), default="PRINCIPAL", nullable=False) # 👈 NUEVO
     meta = Column(Numeric(10, 2), nullable=False)
     ingresos = Column(Numeric(10, 2), nullable=False)
 
@@ -226,6 +229,7 @@ class KpiGastos(Base):
     id = Column(Integer, primary_key=True, index=True)
     semana = Column(Integer, nullable=False)
     anio = Column(Integer, nullable=False)
+    negocio = Column(String(50), default="PRINCIPAL", nullable=False) # 👈 NUEVO
     meta = Column(Numeric(10, 2), nullable=False)
     gastos = Column(Numeric(10, 2), nullable=False)
 
@@ -234,10 +238,11 @@ class KpiCuentasCobrar(Base):
     id = Column(Integer, primary_key=True, index=True)
     semana = Column(Integer, nullable=False)
     anio = Column(Integer, nullable=False)
+    negocio = Column(String(50), default="PRINCIPAL", nullable=False) # 👈 NUEVO
     meta = Column(Numeric(10, 2), nullable=False)
     nombre_persona = Column(String(255), nullable=False)
     monto = Column(Numeric(10, 2), nullable=False)
-    tipo_movimiento = Column(String(50), default="Deuda") # 👈 NUEVO
+    tipo_movimiento = Column(String(50), default="Deuda")
 
 class Proforma(Base):
     __tablename__ = "proformas"

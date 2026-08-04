@@ -437,6 +437,7 @@ class OrdenProduccionResponse(OrdenProduccionBase):
 class KpiIngresoBase(BaseModel):
     semana: int
     anio: int
+    negocio: str = "PRINCIPAL" # 👈 NUEVO
     meta: float
     ingresos: float
     egresos: float
@@ -447,67 +448,65 @@ class KpiIngresoCreate(KpiIngresoBase):
 class KpiIngresoResponse(KpiIngresoBase):
     id: int
     neto: float
-    class Config:
-        from_attributes = True
+    class Config: from_attributes = True
 
 class KpiProductividadBase(BaseModel):
     semana: int
     anio: int
+    negocio: str = "PRINCIPAL" # 👈 NUEVO
     meta_planchas: float
     planchas_usadas: float
 
-class KpiProductividadCreate(KpiProductividadBase):
+class KpiProductividadCreate(KpiProductividadBase): 
     pass
 
 class KpiProductividadResponse(KpiProductividadBase):
     id: int
-    class Config:
-        from_attributes = True
+    class Config: from_attributes = True
 
 class KpiVentasBase(BaseModel):
     semana: int
     anio: int
+    negocio: str = "PRINCIPAL" # 👈 NUEVO
     meta: float
     ingresos: float
 
-
-class KpiVentasCreate(KpiVentasBase):
+class KpiVentasCreate(KpiVentasBase): 
     pass
 
 class KpiVentasResponse(KpiVentasBase):
     id: int
-    class Config:
-        from_attributes = True
+    class Config: from_attributes = True
 
 class KpiGastosBase(BaseModel):
     semana: int
     anio: int
+    negocio: str = "PRINCIPAL" # 👈 NUEVO
     meta: float
     gastos: float
 
-class KpiGastosCreate(KpiGastosBase):
+class KpiGastosCreate(KpiGastosBase): 
     pass
 
 class KpiGastosResponse(KpiGastosBase):
     id: int
-    class Config:
-        from_attributes = True
+    class Config: from_attributes = True
 
 class KpiCuentasCobrarBase(BaseModel):
     semana: int
     anio: int
+    negocio: str = "PRINCIPAL" # 👈 NUEVO
     meta: float
     nombre_persona: str
     monto: float
-    tipo_movimiento: str = "Deuda" # 👈 NUEVO
+    tipo_movimiento: str = "Deuda"
 
-class KpiCuentasCobrarCreate(KpiCuentasCobrarBase):
+class KpiCuentasCobrarCreate(KpiCuentasCobrarBase): 
     pass
 
 class KpiCuentasCobrarResponse(KpiCuentasCobrarBase):
     id: int
-    class Config:
-        from_attributes = True
+    class Config: from_attributes = True
 
 class ProformaDetalle(BaseModel):
     cantidad: int

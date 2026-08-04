@@ -1627,119 +1627,93 @@ def actualizar_orden(id_orden: int, orden_update: schemas.OrdenProduccionUpdate,
     return orden_db
 
 @app.get("/kpis/ingresos", response_model=List[schemas.KpiIngresoResponse])
-def get_kpi_ingresos(db: Session = Depends(get_db)):
-    return db.query(models.KpiIngreso).order_by(models.KpiIngreso.anio.asc(), models.KpiIngreso.semana.asc()).all()
+def get_kpi_ingresos(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
+    return db.query(models.KpiIngreso).filter(models.KpiIngreso.negocio == negocio).order_by(models.KpiIngreso.anio.asc(), models.KpiIngreso.semana.asc()).all()
 
 @app.post("/kpis/ingresos", response_model=schemas.KpiIngresoResponse)
 def crear_kpi_ingresos(kpi: schemas.KpiIngresoCreate, db: Session = Depends(get_db)):
     neto = kpi.ingresos - kpi.egresos
-    # Verificamos si ya existe la semana para actualizarla o crearla
-    db_kpi = db.query(models.KpiIngreso).filter(models.KpiIngreso.semana == kpi.semana, models.KpiIngreso.anio == kpi.anio).first()
-    
+    db_kpi = db.query(models.KpiIngreso).filter(models.KpiIngreso.semana == kpi.semana, models.KpiIngreso.anio == kpi.anio, models.KpiIngreso.negocio == kpi.negocio).first()
     if db_kpi:
-        db_kpi.meta = kpi.meta
-        db_kpi.ingresos = kpi.ingresos
-        db_kpi.egresos = kpi.egresos
-        db_kpi.neto = neto
+        db_kpi.meta = kpi.meta; db_kpi.ingresos = kpi.ingresos; db_kpi.egresos = kpi.egresos; db_kpi.neto = neto
     else:
         db_kpi = models.KpiIngreso(**kpi.model_dump(), neto=neto)
         db.add(db_kpi)
-    
-    db.commit()
-    db.refresh(db_kpi)
+    db.commit(); db.refresh(db_kpi)
     return db_kpi
 
 @app.get("/kpis/productividad", response_model=List[schemas.KpiProductividadResponse])
-def get_kpi_productividad(db: Session = Depends(get_db)):
-    return db.query(models.KpiProductividad).order_by(models.KpiProductividad.anio.asc(), models.KpiProductividad.semana.asc()).all()
+def get_kpi_productividad(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
+    return db.query(models.KpiProductividad).filter(models.KpiProductividad.negocio == negocio).order_by(models.KpiProductividad.anio.asc(), models.KpiProductividad.semana.asc()).all()
 
 @app.post("/kpis/productividad", response_model=schemas.KpiProductividadResponse)
 def crear_kpi_productividad(kpi: schemas.KpiProductividadCreate, db: Session = Depends(get_db)):
-    db_kpi = db.query(models.KpiProductividad).filter(models.KpiProductividad.semana == kpi.semana, models.KpiProductividad.anio == kpi.anio).first()
-    
+    db_kpi = db.query(models.KpiProductividad).filter(models.KpiProductividad.semana == kpi.semana, models.KpiProductividad.anio == kpi.anio, models.KpiProductividad.negocio == kpi.negocio).first()
     if db_kpi:
-        db_kpi.meta_planchas = kpi.meta_planchas
-        db_kpi.planchas_usadas = kpi.planchas_usadas
+        db_kpi.meta_planchas = kpi.meta_planchas; db_kpi.planchas_usadas = kpi.planchas_usadas
     else:
         db_kpi = models.KpiProductividad(**kpi.model_dump())
         db.add(db_kpi)
-        
-    db.commit()
-    db.refresh(db_kpi)
+    db.commit(); db.refresh(db_kpi)
     return db_kpi
 
-
 @app.get("/kpis/ventas", response_model=List[schemas.KpiVentasResponse])
-def get_kpi_ventas(db: Session = Depends(get_db)):
-    return db.query(models.KpiVentas).order_by(models.KpiVentas.anio.asc(), models.KpiVentas.semana.asc()).all()
+def get_kpi_ventas(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
+    return db.query(models.KpiVentas).filter(models.KpiVentas.negocio == negocio).order_by(models.KpiVentas.anio.asc(), models.KpiVentas.semana.asc()).all()
 
 @app.post("/kpis/ventas", response_model=schemas.KpiVentasResponse)
 def crear_kpi_ventas(kpi: schemas.KpiVentasCreate, db: Session = Depends(get_db)):
-    # Verificamos si ya existe la semana para actualizarla o crearla
-    db_kpi = db.query(models.KpiVentas).filter(models.KpiVentas.semana == kpi.semana, models.KpiVentas.anio == kpi.anio).first()
-    
+    db_kpi = db.query(models.KpiVentas).filter(models.KpiVentas.semana == kpi.semana, models.KpiVentas.anio == kpi.anio, models.KpiVentas.negocio == kpi.negocio).first()
     if db_kpi:
-        db_kpi.meta = kpi.meta
-        db_kpi.ingresos = kpi.ingresos
+        db_kpi.meta = kpi.meta; db_kpi.ingresos = kpi.ingresos
     else:
         db_kpi = models.KpiVentas(**kpi.model_dump())
         db.add(db_kpi)
-    
-    db.commit()
-    db.refresh(db_kpi)
+    db.commit(); db.refresh(db_kpi)
     return db_kpi
 
 @app.get("/kpis/gastos", response_model=List[schemas.KpiGastosResponse])
-def get_kpi_gastos(db: Session = Depends(get_db)):
-    return db.query(models.KpiGastos).order_by(models.KpiGastos.anio.asc(), models.KpiGastos.semana.asc()).all()
+def get_kpi_gastos(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
+    return db.query(models.KpiGastos).filter(models.KpiGastos.negocio == negocio).order_by(models.KpiGastos.anio.asc(), models.KpiGastos.semana.asc()).all()
 
 @app.post("/kpis/gastos", response_model=schemas.KpiGastosResponse)
 def crear_kpi_gastos(kpi: schemas.KpiGastosCreate, db: Session = Depends(get_db)):
-    db_kpi = db.query(models.KpiGastos).filter(models.KpiGastos.semana == kpi.semana, models.KpiGastos.anio == kpi.anio).first()
-    
+    db_kpi = db.query(models.KpiGastos).filter(models.KpiGastos.semana == kpi.semana, models.KpiGastos.anio == kpi.anio, models.KpiGastos.negocio == kpi.negocio).first()
     if db_kpi:
-        db_kpi.meta = kpi.meta
-        db_kpi.gastos = kpi.gastos
+        db_kpi.meta = kpi.meta; db_kpi.gastos = kpi.gastos
     else:
         db_kpi = models.KpiGastos(**kpi.model_dump())
         db.add(db_kpi)
-    
-    db.commit()
-    db.refresh(db_kpi)
+    db.commit(); db.refresh(db_kpi)
     return db_kpi
 
 @app.get("/kpis/cuentas-cobrar", response_model=List[schemas.KpiCuentasCobrarResponse])
-def get_kpi_cuentas_cobrar(db: Session = Depends(get_db)):
-    # Los ordenamos por año, semana y luego por ID para que salgan en orden de ingreso
-    return db.query(models.KpiCuentasCobrar).order_by(models.KpiCuentasCobrar.anio.asc(), models.KpiCuentasCobrar.semana.asc(), models.KpiCuentasCobrar.id.asc()).all()
+def get_kpi_cuentas_cobrar(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
+    return db.query(models.KpiCuentasCobrar).filter(models.KpiCuentasCobrar.negocio == negocio).order_by(models.KpiCuentasCobrar.anio.asc(), models.KpiCuentasCobrar.semana.asc(), models.KpiCuentasCobrar.id.asc()).all()
 
 @app.post("/kpis/cuentas-cobrar", response_model=schemas.KpiCuentasCobrarResponse)
 def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = Depends(get_db)):
-    
-    # 👇 NUEVA LÓGICA: SOBREESCRITURA TOTAL (EL BOTÓN DE DIOS) 👇
     if kpi.tipo_movimiento == "Correccion":
-        # 1. Eliminamos todo el historial (errores, abonos, deudas) de esa persona en ESA semana
         db.query(models.KpiCuentasCobrar).filter(
             models.KpiCuentasCobrar.semana == kpi.semana, 
             models.KpiCuentasCobrar.anio == kpi.anio,
-            models.KpiCuentasCobrar.nombre_persona == kpi.nombre_persona
+            models.KpiCuentasCobrar.nombre_persona == kpi.nombre_persona,
+            models.KpiCuentasCobrar.negocio == kpi.negocio # 👈 Filtro por negocio
         ).delete(synchronize_session=False)
         db.commit()
         
-        # 2. Insertamos el valor que escribiste como una "Deuda" limpia y absoluta
         kpi.tipo_movimiento = "Deuda"
         db_kpi = models.KpiCuentasCobrar(**kpi.model_dump())
         db.add(db_kpi)
-        db.commit()
-        db.refresh(db_kpi)
+        db.commit(); db.refresh(db_kpi)
         return db_kpi
 
-    # 👇 LÓGICA NORMAL (SUMAR DEUDAS Y ABONOS) 👇
     db_kpi = db.query(models.KpiCuentasCobrar).filter(
         models.KpiCuentasCobrar.semana == kpi.semana, 
         models.KpiCuentasCobrar.anio == kpi.anio,
         models.KpiCuentasCobrar.nombre_persona == kpi.nombre_persona,
-        models.KpiCuentasCobrar.tipo_movimiento == kpi.tipo_movimiento 
+        models.KpiCuentasCobrar.tipo_movimiento == kpi.tipo_movimiento,
+        models.KpiCuentasCobrar.negocio == kpi.negocio # 👈 Filtro por negocio
     ).first()
     
     if db_kpi:
@@ -1749,8 +1723,7 @@ def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = 
         db_kpi = models.KpiCuentasCobrar(**kpi.model_dump())
         db.add(db_kpi)
     
-    db.commit()
-    db.refresh(db_kpi)
+    db.commit(); db.refresh(db_kpi)
     return db_kpi
 
 @app.get("/proformas/", response_model=List[schemas.ProformaResponse])

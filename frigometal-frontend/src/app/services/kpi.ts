@@ -8,19 +8,18 @@ export class KpiService {
 
   constructor(private http: HttpClient) { }
 
-  getIngresos(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}ingresos`); }
+  getIngresos(negocio: string): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}ingresos?negocio=${negocio}`); }
   guardarIngresos(data: any): Observable<any> { return this.http.post(`${this.apiUrl}ingresos`, data); }
 
-  getProductividad(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}productividad`); }
+  getProductividad(negocio: string): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}productividad?negocio=${negocio}`); }
   guardarProductividad(data: any): Observable<any> { return this.http.post(`${this.apiUrl}productividad`, data); }
 
-  getVentas(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}ventas`); }
+  getVentas(negocio: string): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}ventas?negocio=${negocio}`); }
   guardarVentas(data: any): Observable<any> { return this.http.post(`${this.apiUrl}ventas`, data); }
 
-  getGastos(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}gastos`); }
+  getGastos(negocio: string): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}gastos?negocio=${negocio}`); }
   guardarGastos(data: any): Observable<any> { return this.http.post(`${this.apiUrl}gastos`, data); }
 
-  getCuentasCobrar(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}cuentas-cobrar`); }
+  getCuentasCobrar(negocio: string): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}cuentas-cobrar?negocio=${negocio}`); }
   guardarCuentasCobrar(data: any): Observable<any> { return this.http.post(`${this.apiUrl}cuentas-cobrar`, data); }
-
 }

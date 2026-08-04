@@ -1,7 +1,32 @@
 <div style="padding: 40px; max-width: 1200px; margin: auto;">
-  <div style="margin-bottom: 30px;">
+  
+  <div style="margin-bottom: 20px;">
     <h2 style="font-family: Roboto, sans-serif; font-weight: 400; color: #333; margin: 0;">Métricas de Rendimiento (KPIs)</h2>
     <p style="color: gray; margin-top: 5px;">Sistema de gestión para el año {{anioActual}}.</p>
+  </div>
+
+  <!-- 👇 NUEVO: SELECTOR DE EMPRESAS (PESTAÑAS) 👇 -->
+  <div style="display: flex; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; flex-wrap: wrap;">
+    <button mat-raised-button 
+            [color]="negocioActual === 'PRINCIPAL' ? 'primary' : ''" 
+            (click)="cambiarNegocio('PRINCIPAL')" 
+            style="font-weight: bold; border-radius: 20px; padding: 0 25px;">
+      <mat-icon>business</mat-icon> FRIGOMETAL (Principal)
+    </button>
+
+    <button mat-raised-button 
+            [color]="negocioActual === 'IMPORFRIGOMETAL' ? 'primary' : ''" 
+            (click)="cambiarNegocio('IMPORFRIGOMETAL')" 
+            style="font-weight: bold; border-radius: 20px; padding: 0 25px;">
+      <mat-icon>public</mat-icon> IMPORFRIGOMETAL
+    </button>
+
+    <button mat-raised-button 
+            [color]="negocioActual === 'FRIGORIA' ? 'primary' : ''" 
+            (click)="cambiarNegocio('FRIGORIA')" 
+            style="font-weight: bold; border-radius: 20px; padding: 0 25px;">
+      <mat-icon>ac_unit</mat-icon> FRIGORIA
+    </button>
   </div>
 
   <div style="display: flex; flex-direction: column; gap: 40px;">
@@ -194,7 +219,6 @@
         </button>
       </div>
       
-      <!-- 👇 CONTENEDOR CON SCROLL HORIZONTAL (CUENTAS POR COBRAR) 👇 -->
       <div style="width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 15px; background-color: white;">
         <div [style.width]="anchoGraficoCuentas" style="position: relative; height: 350px;">
           <canvas id="canvasCuentas"></canvas>
@@ -213,7 +237,6 @@
           </button>
         </div>
 
-        <!-- 👇 CONTENEDOR CON SCROLL HORIZONTAL (HISTORIAL DE ABONOS) 👇 -->
         <div style="width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 15px; background-color: white;">
           <div [style.width]="anchoGraficoAbonos" style="position: relative; height: 350px;">
             <canvas id="canvasAbonos"></canvas>

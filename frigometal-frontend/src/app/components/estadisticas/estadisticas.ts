@@ -12,9 +12,8 @@ import { Chart, registerables } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon'; // 👈 AÑADIR ESTO
+import { MatIconModule } from '@angular/material/icon'; 
 
-// 👇 MAGIA 1: CARGAMOS EL LOGO PARA LA MARCA DE AGUA 👇
 const logoFrigometal = new Image();
 logoFrigometal.src = '/logo.png'; 
 
@@ -24,13 +23,13 @@ const watermarkPlugin = {
     if (logoFrigometal.complete && logoFrigometal.naturalHeight !== 0) {
       const { ctx, chartArea: { top, left, width, height } } = chart;
       ctx.save();
-      ctx.globalAlpha = 0.15; // 15% de opacidad
+      ctx.globalAlpha = 0.15; 
       
-      const imgWidth = width * 0.4; // El logo ocupará el 40% del ancho del gráfico
+      const imgWidth = width * 0.4; 
       const imgHeight = (logoFrigometal.height / logoFrigometal.width) * imgWidth;
       
-      const x = left + (width - imgWidth) / 2; // Centrado horizontal
-      const y = top + (height - imgHeight) / 2; // Centrado vertical
+      const x = left + (width - imgWidth) / 2; 
+      const y = top + (height - imgHeight) / 2; 
       
       ctx.drawImage(logoFrigometal, x, y, imgWidth, imgHeight);
       ctx.restore();
@@ -38,7 +37,6 @@ const watermarkPlugin = {
   }
 };
 
-// Registramos ambos plugins
 Chart.register(...registerables, annotationPlugin, watermarkPlugin);
 
 @Component({
@@ -54,13 +52,16 @@ export class EstadisticasComponent implements OnInit {
 
   anioActual: number = new Date().getFullYear();
   
+  // 👇 NUEVA VARIABLE PARA CONTROLAR EL NEGOCIO 👇
+  negocioActual: string = 'PRINCIPAL';
+
   semanaIngresos: number = 0;
   semanaProductividad: number = 0;
   semanaVentas: number = 0;
-  semanaGastos: number = 0; // 👈 NUEVO
-
+  semanaGastos: number = 0; 
   semanaCuentas: number = 0;
-  formCuentas = { meta: 0, nombre_persona: '', monto: 0, tipo_movimiento: 'Deuda' }; // 👈 AÑADIDO // 👈 Incluye nombre_persona
+
+  formCuentas = { meta: 0, nombre_persona: '', monto: 0, tipo_movimiento: 'Deuda' }; 
   graficoCuentas: any;
   historialCuentas: any[] = [];
   anchoGraficoCuentas: string = '100%';
@@ -69,25 +70,19 @@ export class EstadisticasComponent implements OnInit {
   formIngresos = { meta: 0, ingresos: 0, egresos: 0 };
   formProductividad = { meta_planchas: 0, planchas_usadas: 0 };
   formVentas = { meta: 0, ingresos: 0 };
-  formGastos = { meta: 0, gastos: 0 }; // 👈 NUEVO
+  formGastos = { meta: 0, gastos: 0 }; 
 
   graficoIngresos: any;
   graficoProductividad: any;
   graficoVentas: any;
-  graficoGastos: any; // 👈 NUEVO
+  graficoGastos: any; 
   graficoAbonos: any;
 
   historialIngresos: any[] = [];
   historialProductividad: any[] = [];
   historialVentas: any[] = [];
-  historialGastos: any[] = []; // 👈 NUEVO
+  historialGastos: any[] = []; 
 
-  // ==========================================
-  // 👇 PLUGIN CORREGIDO: DIBUJO INTELIGENTE DE NÚMEROS 👇
-  // ==========================================
-  // ==========================================
-  // 👇 PLUGIN CORREGIDO: NÚMEROS NEGROS EN BARRAS NEGATIVAS 👇
-  // ==========================================
   textOnTopPlugin = {
     id: 'textOnTop',
     afterDatasetsDraw(chart: any) {
@@ -108,17 +103,14 @@ export class EstadisticasComponent implements OnInit {
           let yPos;
           
           if (data < 0) {
-            // 1. Barras negativas: Texto AFUERA (debajo de la barra)
             yPos = bar.y + 15;
-            ctx.fillStyle = '#333'; // 👈 CORRECCIÓN: Volvemos al gris oscuro/negro
+            ctx.fillStyle = '#333'; 
           } else if (espacioDisponibleSobreBarra < margenNecesario) {
-            // 2. Barras positivas MUY ALTAS: Texto ADENTRO
             yPos = bar.y + 15;
-            ctx.fillStyle = '#333'; // Blanco para contraste dentro de la barra verde gigante
+            ctx.fillStyle = '#333'; 
           } else {
-            // 3. Barras positivas normales: Texto AFUERA
             yPos = bar.y - 8;
-            ctx.fillStyle = '#333'; // Gris oscuro/negro
+            ctx.fillStyle = '#333'; 
           }
 
           let valorRedondeado = Number(data) % 1 === 0 ? data : Number(data).toFixed(2);
@@ -142,13 +134,19 @@ export class EstadisticasComponent implements OnInit {
     this.cargarGraficos();
   }
 
+  // 👇 NUEVA FUNCIÓN PARA CAMBIAR ENTRE PESTAÑAS 👇
+  cambiarNegocio(nuevoNegocio: string): void {
+    this.negocioActual = nuevoNegocio;
+    this.snackBar.open(`Cargando datos de ${nuevoNegocio}...`, '', { duration: 1500 });
+    this.cargarGraficos();
+  }
+
   calcularSemanaDelAno(fecha: Date): number {
     const primerDiaAno = new Date(fecha.getFullYear(), 0, 1);
     const dias = Math.floor((fecha.getTime() - primerDiaAno.getTime()) / (24 * 60 * 60 * 1000));
     return Math.ceil((fecha.getDay() + 1 + dias) / 7);
   }
 
-  // MÉTODOS DE BÚSQUEDA...
   buscarIngresosPorSemana(): void {
     const data = this.historialIngresos.find(d => d.semana === this.semanaIngresos);
     this.formIngresos = data ? { meta: data.meta, ingresos: data.ingresos, egresos: data.egresos } : { meta: this.historialIngresos.length ? this.historialIngresos[this.historialIngresos.length - 1].meta : 0, ingresos: 0, egresos: 0 };
@@ -164,14 +162,13 @@ export class EstadisticasComponent implements OnInit {
     this.formVentas = data ? { meta: data.meta, ingresos: data.ingresos } : { meta: this.historialVentas.length ? this.historialVentas[this.historialVentas.length - 1].meta : 0, ingresos: 0 };
   }
 
-  buscarGastosPorSemana(): void { // 👈 NUEVO
+  buscarGastosPorSemana(): void { 
     const data = this.historialGastos.find(d => d.semana === this.semanaGastos);
     this.formGastos = data ? { meta: data.meta, gastos: data.gastos } : { meta: this.historialGastos.length ? this.historialGastos[this.historialGastos.length - 1].meta : 0, gastos: 0 };
   }
 
   buscarCuentasPorSemana(): void {
     const data = this.historialCuentas.find(d => d.semana === this.semanaCuentas);
-    // Solo autocompletamos la Meta. Dejamos el nombre y el monto vacíos para que sea fácil agregar a otra persona.
     if (data) {
       this.formCuentas.meta = data.meta;
     } else {
@@ -180,10 +177,13 @@ export class EstadisticasComponent implements OnInit {
   }
 
   cargarGraficos(): void {
-    // 1. INGRESOS
-    this.kpiService.getIngresos().subscribe(datos => {
+    // 👇 AHORA TODAS LAS PETICIONES USAN EL NEGOCIO ACTUAL 👇
+    this.kpiService.getIngresos(this.negocioActual).subscribe(datos => {
       this.historialIngresos = datos; this.buscarIngresosPorSemana();
-      if (datos.length === 0) return;
+      if (datos.length === 0) {
+        if (this.graficoIngresos) this.graficoIngresos.destroy(); // Limpiar si está vacío
+        return;
+      }
       const labels = datos.map(d => `Sem ${d.semana}`);
       const netos = datos.map(d => Number(d.neto));
       const metaFija = datos[datos.length - 1].meta;
@@ -201,10 +201,12 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
-    // 2. PRODUCTIVIDAD
-    this.kpiService.getProductividad().subscribe(datos => {
+    this.kpiService.getProductividad(this.negocioActual).subscribe(datos => {
       this.historialProductividad = datos; this.buscarProductividadPorSemana();
-      if (datos.length === 0) return;
+      if (datos.length === 0) {
+        if (this.graficoProductividad) this.graficoProductividad.destroy();
+        return;
+      }
       const labels = datos.map(d => `Sem ${d.semana}`);
       const usadas = datos.map(d => d.planchas_usadas);
       const metaFija = datos[datos.length - 1].meta_planchas;
@@ -218,10 +220,12 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
-    // 3. VENTAS
-    this.kpiService.getVentas().subscribe(datos => {
+    this.kpiService.getVentas(this.negocioActual).subscribe(datos => {
       this.historialVentas = datos; this.buscarVentasPorSemana();
-      if (datos.length === 0) return;
+      if (datos.length === 0) {
+        if (this.graficoVentas) this.graficoVentas.destroy();
+        return;
+      }
       const labels = datos.map(d => `Sem ${d.semana}`);
       const ingresos = datos.map(d => Number(d.ingresos));
       const metaFija = datos[datos.length - 1].meta;
@@ -239,28 +243,26 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
-    // ==========================================
-    // 4. GRÁFICO DE GASTOS (NUEVO CON LÓGICA INVERSA)
-    // ==========================================
-    this.kpiService.getGastos().subscribe(datos => {
+    this.kpiService.getGastos(this.negocioActual).subscribe(datos => {
       this.historialGastos = datos; this.buscarGastosPorSemana();
-      if (datos.length === 0) return;
+      if (datos.length === 0) {
+        if (this.graficoGastos) this.graficoGastos.destroy();
+        return;
+      }
 
       const labels = datos.map(d => `Sem ${d.semana}`);
       const gastosArr = datos.map(d => Number(d.gastos));
       const metaFija = datos[datos.length - 1].meta;
 
-      // 👇 LÓGICA INVERSA DE COLORES 👇
       const colores: string[] = datos.map(d => {
-        if (Number(d.gastos) > Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; // Malo (Rojo)
-        if (Number(d.gastos) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; // Al límite (Amarillo)
-        return 'rgba(76, 175, 80, 0.8)'; // Bueno (Verde)
+        if (Number(d.gastos) > Number(d.meta)) return 'rgba(244, 67, 54, 0.8)'; 
+        if (Number(d.gastos) === Number(d.meta)) return 'rgba(255, 193, 7, 0.8)'; 
+        return 'rgba(76, 175, 80, 0.8)'; 
       });
       
       const acumulado = parseFloat(datos.reduce((a, c) => a + Number(c.gastos), 0).toFixed(2));
       labels.push('ACUMULADO'); gastosArr.push(acumulado);
       
-      // Evaluamos el acumulado con la lógica inversa
       if (acumulado > metaFija) { colores.push('rgba(244, 67, 54, 1)'); } 
       else if (acumulado === metaFija) { colores.push('rgba(255, 193, 7, 1)'); } 
       else { colores.push('rgba(76, 175, 80, 1)'); }
@@ -273,23 +275,19 @@ export class EstadisticasComponent implements OnInit {
       });
     });
 
-   // ==========================================
-    // 5. GRÁFICO DE CUENTAS POR COBRAR Y ABONOS
-    // ==========================================
-    this.kpiService.getCuentasCobrar().subscribe(datos => {
+    this.kpiService.getCuentasCobrar(this.negocioActual).subscribe(datos => {
       this.historialCuentas = datos; this.buscarCuentasPorSemana();
-      if (datos.length === 0) return;
+      if (datos.length === 0) {
+        if (this.graficoCuentas) this.graficoCuentas.destroy();
+        if (this.graficoAbonos) this.graficoAbonos.destroy();
+        return;
+      }
 
-     // ==========================================
-      // 👇 PARTE A: GRÁFICO DE DEUDA VIVA (PIZARRA ACTUALIZADA) 👇
-      // ==========================================
       let saldosPorPersona: { [key: string]: { saldo: number, meta: number, ultimaSemana: number } } = {};
       let metaGlobalFija = datos.length > 0 ? Number(datos[datos.length - 1].meta) : 0;
 
-      // Ordenamos para procesar la historia correctamente
       const historialOrdenado = [...datos].sort((a, b) => a.semana - b.semana);
 
-      // 1. Calculamos el saldo final exacto de cada cliente
       historialOrdenado.forEach(d => {
         const nombre = d.nombre_persona.toUpperCase().trim();
         const monto = Number(d.monto);
@@ -307,12 +305,10 @@ export class EstadisticasComponent implements OnInit {
           saldosPorPersona[nombre].saldo += monto;
         }
         
-        // Mantenemos la meta actualizada a la última que se haya ingresado
         saldosPorPersona[nombre].meta = Number(d.meta);
-        saldosPorPersona[nombre].ultimaSemana = d.semana; // Guardamos en qué semana fue su último movimiento
+        saldosPorPersona[nombre].ultimaSemana = d.semana; 
       });
 
-      // 2. Filtramos: SOLO los que realmente deben plata HOY (> 0)
       const clientesConDeuda = Object.entries(saldosPorPersona)
         .filter(([nombre, datos]) => datos.saldo > 0)
         .map(([nombre, datos]) => ({
@@ -322,21 +318,18 @@ export class EstadisticasComponent implements OnInit {
            ultimaSemana: datos.ultimaSemana
         }));
 
-      // 3. Preparamos las etiquetas, montos y colores para el gráfico
-      const labels = clientesConDeuda.map(c => [`Sem ${c.ultimaSemana}`, c.nombre]); // Mostramos en qué semana fue su último movimiento
+      const labels = clientesConDeuda.map(c => [`Sem ${c.ultimaSemana}`, c.nombre]); 
       const montosArr = clientesConDeuda.map(c => c.saldo);
       
       const colores: string[] = clientesConDeuda.map(c => {
-        if (c.saldo > c.meta) return 'rgba(244, 67, 54, 0.8)'; // Superó la meta (Rojo)
-        if (c.saldo === c.meta) return 'rgba(255, 193, 7, 0.8)'; // Al límite (Amarillo)
-        return 'rgba(76, 175, 80, 0.8)'; // Bien (Verde)
+        if (c.saldo > c.meta) return 'rgba(244, 67, 54, 0.8)'; 
+        if (c.saldo === c.meta) return 'rgba(255, 193, 7, 0.8)'; 
+        return 'rgba(76, 175, 80, 0.8)'; 
       });
 
-      // 4. Calculamos la Cartera Viva Global (La suma de lo que todos deben hoy)
       const acumuladoReal = clientesConDeuda.reduce((sum, c) => sum + c.saldo, 0);
       const netoAcumulado = parseFloat(acumuladoReal.toFixed(2));
 
-      // Añadimos la columna del gran total al final
       labels.push(['ACUMULADO', 'DEUDA VIVA']);
       montosArr.push(netoAcumulado);
       
@@ -344,7 +337,6 @@ export class EstadisticasComponent implements OnInit {
       else if (netoAcumulado === metaGlobalFija) { colores.push('rgba(255, 193, 7, 1)'); } 
       else { colores.push('rgba(76, 175, 80, 1)'); }
 
-      // 5. Dibujamos el gráfico con el ancho dinámico
       const anchoCalculado = labels.length * 70;
       this.anchoGraficoCuentas = anchoCalculado > 1000 ? `${anchoCalculado}px` : '100%';
       
@@ -388,160 +380,89 @@ export class EstadisticasComponent implements OnInit {
         });
       }, 0);
       
-
-      // 👇 NUEVO: GRÁFICO 6 - HISTORIAL DE ABONOS 👇
-
-      // ==========================================
-
       const abonosAgrupados: { [key: string]: { semana: number, nombre: string, total: number } } = {};
 
-
-
-      // Filtramos SOLO los movimientos que sean 'Abono'
-
       datos.filter(d => d.tipo_movimiento === 'Abono').forEach(d => {
-
         const nombreLimpio = d.nombre_persona.toUpperCase().trim();
-
         const key = `${d.semana}-${nombreLimpio}`;
-
         const monto = Number(d.monto);
 
-
-
         if (!abonosAgrupados[key]) {
-
           abonosAgrupados[key] = { semana: d.semana, nombre: d.nombre_persona, total: 0 };
-
         }
-
-        abonosAgrupados[key].total += monto; // Sumamos en positivo para ver la barra crecer hacia arriba
-
+        abonosAgrupados[key].total += monto; 
       });
-
-
 
       const datosAbonos = Object.values(abonosAgrupados).sort((a, b) => a.semana - b.semana);
-
-
-
       const labelsAbonos = datosAbonos.map(d => [`Sem ${d.semana}`, d.nombre]);
-
       const montosAbonos = datosAbonos.map(d => parseFloat(d.total.toFixed(2)));
-
-     
-
-      // Todo en verde porque son ingresos reales a caja
-
       const coloresAbonos = datosAbonos.map(d => 'rgba(76, 175, 80, 0.8)');
-
-
-
       const acumuladoAbonos = parseFloat(datosAbonos.reduce((a, c) => a + c.total, 0).toFixed(2));
 
-
-
       if (datosAbonos.length > 0) {
-
         labelsAbonos.push(['ACUMULADO', 'TOTAL INGRESADO']);
-
         montosAbonos.push(acumuladoAbonos);
-
-        coloresAbonos.push('rgba(76, 175, 80, 1)'); // Verde más fuerte para el acumulado
-
+        coloresAbonos.push('rgba(76, 175, 80, 1)'); 
       }
 
-
-
       const anchoCalculadoAbonos = labelsAbonos.length * 70;
-
       this.anchoGraficoAbonos = anchoCalculadoAbonos > 1000 ? `${anchoCalculadoAbonos}px` : '100%';
 
-
-
       if (this.graficoAbonos) this.graficoAbonos.destroy();
-
       this.graficoAbonos = new Chart('canvasAbonos', {
-
         type: 'bar',
-
         data: {
-
           labels: labelsAbonos,
-
           datasets: [{
-
             label: 'Abonos Recibidos ($)',
-
             data: montosAbonos,
-
             backgroundColor: coloresAbonos,
-
             borderColor: coloresAbonos.map(c => c.replace('0.8', '1')),
-
             borderWidth: 2,
-
             barThickness: 'flex',
-
             maxBarThickness: 90
-
           }]
-
         },
-
         options: {
-
           responsive: true,
-
           maintainAspectRatio: false,
-
           plugins: {
-
             legend: { display: false }
-
           }
-
         },
-
         plugins: [this.textOnTopPlugin]
-
       });
-
     });
-
-  
   }
 
-  // MÉTODOS DE GUARDADO
-  guardarIngresos(): void { this.kpiService.guardarIngresos({ semana: this.semanaIngresos, anio: this.anioActual, ...this.formIngresos }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
-  guardarProductividad(): void { this.kpiService.guardarProductividad({ semana: this.semanaProductividad, anio: this.anioActual, ...this.formProductividad }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
-  guardarVentas(): void { this.kpiService.guardarVentas({ semana: this.semanaVentas, anio: this.anioActual, ...this.formVentas }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  // 👇 AÑADIMOS EL NEGOCIO ACTUAL AL GUARDAR 👇
+  guardarIngresos(): void { this.kpiService.guardarIngresos({ negocio: this.negocioActual, semana: this.semanaIngresos, anio: this.anioActual, ...this.formIngresos }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  guardarProductividad(): void { this.kpiService.guardarProductividad({ negocio: this.negocioActual, semana: this.semanaProductividad, anio: this.anioActual, ...this.formProductividad }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  guardarVentas(): void { this.kpiService.guardarVentas({ negocio: this.negocioActual, semana: this.semanaVentas, anio: this.anioActual, ...this.formVentas }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
   
-  guardarGastos(): void { // 👈 NUEVO
-    this.kpiService.guardarGastos({ semana: this.semanaGastos, anio: this.anioActual, ...this.formGastos }).subscribe(() => { 
+  guardarGastos(): void { 
+    this.kpiService.guardarGastos({ negocio: this.negocioActual, semana: this.semanaGastos, anio: this.anioActual, ...this.formGastos }).subscribe(() => { 
       this.snackBar.open(`✅ Gastos Sem. ${this.semanaGastos} registrados con éxito`, 'OK', { duration: 3000 }); 
       this.cargarGraficos(); 
     }); 
   }
 
-  // 👇 NUEVA FUNCIÓN: Calcula cuánto debe exactamente el cliente hasta HOY 👇
   obtenerSaldoActualCliente(nombreCliente: string): number {
     let saldo = 0;
     const nombreLimpio = nombreCliente.toUpperCase().trim();
     
-    // Ordenamos el historial para recorrerlo cronológicamente
     const historialOrdenado = [...this.historialCuentas].sort((a, b) => a.semana - b.semana);
 
     historialOrdenado.forEach(d => {
       if (d.nombre_persona.toUpperCase().trim() === nombreLimpio) {
         const monto = Number(d.monto);
         if (d.tipo_movimiento === 'Correccion') {
-          saldo = monto; // Se sobreescribe
+          saldo = monto; 
         } else if (d.tipo_movimiento === 'Abono') {
-          saldo -= monto; // Se resta
+          saldo -= monto; 
           if (saldo < 0) saldo = 0;
         } else {
-          saldo += monto; // Se suma
+          saldo += monto; 
         }
       }
     });
@@ -563,45 +484,35 @@ export class EstadisticasComponent implements OnInit {
       return;
     }
 
-    // 1. Averiguamos cuánto debe este cliente en este momento
     const saldoActual = this.obtenerSaldoActualCliente(nombre);
 
-    // ==========================================
-    // 👇 2. EL GUARDIA DE SEGURIDAD (VALIDACIONES) 👇
-    // ==========================================
     if (this.formCuentas.tipo_movimiento === 'Deuda') {
       
-      // CASO 1: Intentan registrar exactamente lo mismo que ya debe (Semana 13 debe $15 -> Semana 14 registran $15 de nuevo)
       if (saldoActual > 0 && montoIngresado === saldoActual) {
         this.snackBar.open(`✋ ${nombre} ya debe $${saldoActual}. Si no sacó nada nuevo, NO registres nada. El sistema ya lo sabe.`, 'Entendido', { duration: 7000 });
-        return; // 🛑 Detenemos el guardado
+        return; 
       }
 
-      // CASO 2: El cliente debía $100, pagó $50 y el usuario intenta registrar el saldo ($50) como una nueva Deuda.
       if (saldoActual > 0 && montoIngresado < saldoActual) {
          const mensaje = `⚠️ CUIDADO: ${nombre} ya debe $${saldoActual}.\n\nSi guardas esto como DEUDA, se sumará y deberá$${saldoActual + montoIngresado}.\n\n¿Su saldo REAL es $${montoIngresado}?\nSi es así, cancela esto y usa la opción "Corregir Total (=)".\n\n¿Deseas continuar y SUMARLOS de todas formas?`;
          
          const confirmacion = confirm(mensaje);
          if (!confirmacion) {
-           return; // 🛑 Detenemos el guardado si el usuario se da cuenta de su error
+           return; 
          }
       }
     }
 
-    // Si todo está correcto o el usuario confirmó la advertencia, guardamos en la Base de Datos
-    this.kpiService.guardarCuentasCobrar({ semana: this.semanaCuentas, anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
-      this.snackBar.open(`✅ Cuenta de ${nombre} registrada`, 'OK', { duration: 3000 }); 
+    // 👇 Añadimos el negocioActual 👇
+    this.kpiService.guardarCuentasCobrar({ negocio: this.negocioActual, semana: this.semanaCuentas, anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
+      this.snackBar.open(`✅ Cuenta de ${nombre} registrada en ${this.negocioActual}`, 'OK', { duration: 3000 }); 
       
-      // Limpiamos solo el nombre y el monto
       this.formCuentas.nombre_persona = '';
       this.formCuentas.monto = 0;
       this.cargarGraficos(); 
     }); 
   }
 
-  // ==========================================
-  // LÓGICA DE IMPRESIÓN DE GRÁFICOS
-  // ==========================================
   imprimirGrafico(canvasId: string, titulo: string): void {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
     if (!canvas) {
@@ -609,10 +520,8 @@ export class EstadisticasComponent implements OnInit {
       return;
     }
 
-    // Tomamos una "foto" en alta calidad del gráfico
     const dataUrl = canvas.toDataURL('image/png', 1.0);
 
-    // Abrimos una ventana emergente para la impresión
     const ventanaImpresion = window.open('', '_blank', 'width=1000,height=700');
     if (ventanaImpresion) {
       ventanaImpresion.document.write(`
@@ -625,7 +534,6 @@ export class EstadisticasComponent implements OnInit {
               h2 { color: #333; margin: 0; font-size: 24px; text-transform: uppercase; }
               p { color: #666; margin-top: 5px; }
               img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; }
-              /* Forzamos a que la hoja se imprima en horizontal (Landscape) */
               @media print {
                 @page { size: landscape; margin: 1cm; }
                 body { padding: 0; }
@@ -635,12 +543,11 @@ export class EstadisticasComponent implements OnInit {
           </head>
           <body>
             <div class="header">
-              <h2>${titulo}</h2>
-              <p>Frigometal Cia. Ltda. - Reporte Generado el ${new Date().toLocaleDateString('es-ES')}</p>
+              <h2>${titulo} - ${this.negocioActual}</h2>
+              <p>Reporte Generado el ${new Date().toLocaleDateString('es-ES')}</p>
             </div>
             <img src="${dataUrl}" alt="${titulo}" />
             <script>
-              // Esperamos un momento a que la imagen cargue bien y lanzamos la impresión
               window.onload = function() {
                 setTimeout(function() {
                   window.print();
