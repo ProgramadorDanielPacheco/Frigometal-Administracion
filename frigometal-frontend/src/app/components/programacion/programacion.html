@@ -254,17 +254,33 @@
               </tbody>
             </table>
 
-            @if (trabajadorReporte !== 'TODOS' && granTotalTextoTrabajador) {
-              <div style="margin-top: 20px; background-color: #e3f2fd; border: 2px dashed #1976d2; padding: 15px 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <!-- 👇 NUEVOS RECUADROS PARA LOS DOS TOTALES 👇 -->
+            <div style="display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap;">
+              
+              <!-- Total General -->
+              <div style="flex: 1; background-color: #e3f2fd; border: 2px dashed #1976d2; padding: 15px 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; min-width: 250px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <mat-icon style="color: #1565c0; font-size: 30px; width: 30px; height: 30px;">engineering</mat-icon>
-                  <span style="color: #1565c0; font-size: 1.2rem; font-weight: 500;">
-                    Tiempo Total de <strong>{{ trabajadorReporte }}</strong> en la semana:
+                  <span style="color: #1565c0; font-size: 1.1rem; font-weight: 500;">
+                    Tiempo Total <br><span style="font-size: 0.85em; opacity: 0.8;">{{ trabajadorReporte !== 'TODOS' ? '(' + trabajadorReporte + ')' : '(Toda la Planta)' }}</span>
                   </span>
                 </div>
-                <strong style="color: #0d47a1; font-size: 1.8rem;">{{ granTotalTextoTrabajador }}</strong>
+                <strong style="color: #0d47a1; font-size: 1.6rem;">{{ totalGeneralTexto }}</strong>
               </div>
-            }
+
+              <!-- Total Sin Reproceso -->
+              <div style="flex: 1; background-color: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; min-width: 250px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <mat-icon style="color: #2e7d32; font-size: 30px; width: 30px; height: 30px;">verified</mat-icon>
+                  <span style="color: #2e7d32; font-size: 1.1rem; font-weight: 500;">
+                    Tiempo Efectivo <br><span style="font-size: 0.85em; opacity: 0.8;">(Sin Reproceso)</span>
+                  </span>
+                </div>
+                <strong style="color: #1b5e20; font-size: 1.6rem;">{{ totalSinReprocesoTexto }}</strong>
+              </div>
+
+            </div>
+            <!-- 👆 FIN NUEVOS RECUADROS 👇 -->
 
             <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
               <h4 style="color: #1976d2; margin-top: 0; margin-bottom: 20px; font-weight: bold; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
@@ -297,11 +313,9 @@
       </mat-card>
     }
 
-    <!-- 👇 AQUÍ AÑADIMOS EL ORDENAMIENTO (matSort) 👇 -->
     <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_op" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
       
       <ng-container matColumnDef="numero_op">
-        <!-- 👇 AÑADIMOS mat-sort-header 👇 -->
         <th mat-header-cell *matHeaderCellDef mat-sort-header> OP Nº </th>
         <td mat-cell *matCellDef="let orden" style="font-weight: bold; font-size: 1.1rem;"> {{orden.numero_op}} </td>
       </ng-container>

@@ -58,7 +58,10 @@ export class ProgramacionComponent implements OnInit, AfterViewInit {
   trabajadorReporte: string = 'TODOS'; 
   reporteProcesos: { proceso: string, totalMinutos: number, totalTexto: string }[] = [];
   
-  granTotalTextoTrabajador: string = '';
+  // 👇 NUEVAS VARIABLES PARA LOS TOTALES 👇
+  totalGeneralTexto: string = '';
+  totalSinReprocesoTexto: string = '';
+
   maximoMinutosReporte: number = 1;
 
   constructor(
@@ -465,11 +468,13 @@ export class ProgramacionComponent implements OnInit, AfterViewInit {
       this.fechaFinReporte = null;
       this.trabajadorReporte = 'TODOS'; 
       this.reporteProcesos = [];
-      this.granTotalTextoTrabajador = ''; 
+      this.totalGeneralTexto = ''; 
+      this.totalSinReprocesoTexto = ''; 
       this.maximoMinutosReporte = 1; 
     }
   }
 
+  // 👇 FUNCIÓN ACTUALIZADA PARA LOS DOS TOTALES 👇
   generarReporteTiempos(): void {
     if (!this.fechaInicioReporte || !this.fechaFinReporte) {
       this.snackBar.open('⚠️ Selecciona ambas fechas para calcular', 'Cerrar', { duration: 3000 });
@@ -501,29 +506,34 @@ export class ProgramacionComponent implements OnInit, AfterViewInit {
     });
 
     this.reporteProcesos = [];
-    let sumaGranTotalMinutos = 0; 
+    let sumaGeneral = 0; 
+    let sumaSinReproceso = 0;
 
     mapaTiempos.forEach((minutos, proceso) => {
-      sumaGranTotalMinutos += minutos; 
+      sumaGeneral += minutos; 
+      if (proceso !== 'Reproceso') {
+        sumaSinReproceso += minutos;
+      }
 
       const horas = Math.floor(minutos / 60);
       const mins = Math.round(minutos % 60);
       this.reporteProcesos.push({ proceso: proceso, totalMinutos: minutos, totalTexto: `${horas}h ${mins}m` });
     });
 
-    if (this.trabajadorReporte !== 'TODOS') {
-      const horasTotales = Math.floor(sumaGranTotalMinutos / 60);
-      const minsTotales = Math.round(sumaGranTotalMinutos % 60);
-      this.granTotalTextoTrabajador = `${horasTotales}h ${minsTotales}m`;
-    } else {
-      this.granTotalTextoTrabajador = ''; 
-    }
+    // Formateamos el Total General
+    const hG = Math.floor(sumaGeneral / 60);
+    const mG = Math.round(sumaGeneral % 60);
+    this.totalGeneralTexto = `${hG}h ${mG}m`;
+
+    // Formateamos el Total Sin Reproceso (Efectivo)
+    const hSR = Math.floor(sumaSinReproceso / 60);
+    const mSR = Math.round(sumaSinReproceso % 60);
+    this.totalSinReprocesoTexto = `${hSR}h ${mSR}m`;
 
     if (this.reporteProcesos.length > 0) {
       this.maximoMinutosReporte = Math.max(...this.reporteProcesos.map(r => r.totalMinutos));
       if (this.maximoMinutosReporte === 0) this.maximoMinutosReporte = 1; 
     }
-  
   }
 
   private sumarSiEnRango(fIni: string | undefined, hIni: string | undefined, fFin: string | undefined, hFin: string | undefined, inicioRango: Date, finRango: Date, proceso: string, mapaTiempos: Map<string, number>) {
