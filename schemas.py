@@ -550,3 +550,20 @@ class ProformaUpdate(BaseModel):
     garantia: Optional[str] = None
     forma_pago: Optional[str] = None
     validez: Optional[str] = None
+
+class ParametroPoliuretanoBase(BaseModel):
+    parte: str
+    largo: float = 0
+    ancho: float = 0
+    espesor: float = 0
+    poliol: float = 0
+    isocianato: float = 0
+
+class ParametroPoliuretanoCreate(ParametroPoliuretanoBase):
+    pass
+
+class ParametroPoliuretanoResponse(ParametroPoliuretanoBase):
+    id: int
+    id_producto: int
+    class Config:
+        from_attributes = True

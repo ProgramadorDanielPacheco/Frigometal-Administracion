@@ -1824,3 +1824,32 @@ def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
     db.commit()
     
     return {"mensaje": "Orden de Producción enviada al taller", "numero_op": siguiente_numero_op}
+
+# 👇 ENDPOINTS PARA PARÁMETROS TÉCNICOS (POLIURETANO) 👇
+
+@app.get("/parametros-poliuretano/{id_producto}", response_model=List[schemas.ParametroPoliuretanoResponse])
+def obtener_parametros(id_producto: int, db: Session = Depends(get_db)):
+    return db.query(models.ParametroPoliuretano).filter(models.ParametroPoliuretano.id_producto == id_producto).order_by(models.ParametroPoliuretano.id.asc()).all()
+
+@app.post("/parametros-poliuretano/{id_producto}")
+def guardar_parametros(id_producto: int, parametros: List[schemas.ParametroPoliuretanoCreate], db: Session = Depends(get_db)):
+    # 1. Eliminamos los datos anteriores (Sobreescritura total para limpieza)
+    db.query(models.ParametroPoliuretano).filter(models.ParametroPoliuretano.id_producto == id_producto).delete()
+    
+    # 2. Guardamos las nuevas filas (Solo las que el usuario haya escrito una "parte")
+    nuevas_filas = []
+    for p in parametros:
+        if p.parte and p.parte.strip() != "":
+            nuevo = models.ParametroPoliuretano(
+                id_producto=id_producto,
+                parte=p.parte.strip(),
+                largo=p.largo, ancho=p.ancho, espesor=p.espesor,
+                poliol=p.poliol, isocianato=p.isocianato
+            )
+            nuevas_filas.append(nuevo)
+            
+    if nuevas_filas:
+        db.add_all(nuevas_filas)
+        
+    db.commit()
+    return {"mensaje": "Parámetros técnicos de poliuretano guardados con éxito."}

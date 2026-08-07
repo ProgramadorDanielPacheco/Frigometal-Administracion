@@ -23,6 +23,12 @@
         <div matListItemTitle>Catálogo y Recetas</div>
       </a>
 
+      <!-- 👇 NUEVA SECCIÓN DE PARÁMETROS TÉCNICOS 👇 -->
+      <a mat-list-item routerLink="/parametros" routerLinkActive="link-activo">
+        <mat-icon matListItemIcon style="color: #5c6bc0;">architecture</mat-icon>
+        <div matListItemTitle>Parámetros Técnicos</div>
+      </a>
+
       <a mat-list-item routerLink="/inventario" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>warehouse</mat-icon>
         <div matListItemTitle>Inventario de Materiales</div>
@@ -53,8 +59,6 @@
         <div matListItemTitle>Compras Inteligentes</div>
       </a>
 
-     
-
       <a mat-list-item routerLink="/mantenimientos" routerLinkActive="active-menu-item">
         <mat-icon matListItemIcon style="color: #ff9800;">build_circle</mat-icon>
         <div matListItemTitle>Mantenimientos</div>
@@ -65,16 +69,12 @@
         <div matListItemTitle>Estadisticas</div>
       </a>
 
-      
-      
       <mat-divider style="margin: 10px 0;"></mat-divider> 
       
       <a mat-list-item routerLink="/registro" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>group_add</mat-icon>
         <div matListItemTitle>Recursos Humanos</div>
       </a>
-      
-      
       
       <a mat-list-item routerLink="/proveedor" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>local_shipping</mat-icon>
@@ -135,6 +135,7 @@
 } @else {
   <router-outlet></router-outlet>
 }
+
 <ng-template #dialogoCambioPassword>
   <h2 mat-dialog-title style="color: #1976d2; display: flex; align-items: center; gap: 8px;">
     <mat-icon>lock_reset</mat-icon> Cambiar Contraseña

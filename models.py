@@ -259,3 +259,15 @@ class Proforma(Base):
     garantia = Column(String(255))
     forma_pago = Column(String(255))
     validez = Column(String(50))
+
+
+class ParametroPoliuretano(Base):
+    __tablename__ = "parametros_poliuretano"
+    id = Column(Integer, primary_key=True, index=True)
+    id_producto = Column(Integer, ForeignKey("productos.id_producto", ondelete="CASCADE"), nullable=False)
+    parte = Column(String(255), nullable=False)
+    largo = Column(Numeric(10, 2), default=0)
+    ancho = Column(Numeric(10, 2), default=0)
+    espesor = Column(Numeric(10, 2), default=0)
+    poliol = Column(Numeric(10, 2), default=0)
+    isocianato = Column(Numeric(10, 2), default=0)

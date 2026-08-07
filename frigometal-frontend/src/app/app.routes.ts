@@ -11,16 +11,21 @@ import { RegistroComponent } from './components/registro/registro';
 import { ClientesComponent } from './components/clientes/clientes';
 import { ProveedoresComponent } from './components/proveedores/proveedores';
 import { MantenimientosComponent } from './components/mantenimientos/mantenimientos'
-// 👇 NUEVA IMPORTACIÓN 👇
 import { ReunionesComponent } from './components/reuniones/reuniones'; 
 import { OrdenesProduccionComponent } from './components/ordenes-produccion/ordenes-produccion';
 import { EstadisticasComponent } from './components/estadisticas/estadisticas';
 import { ProformasComponent } from './components/proformas/proformas';
+// 👇 NUEVA IMPORTACIÓN DE PARÁMETROS TÉCNICOS 👇
+import { ParametrosTecnicos } from './components/parametros-tecnicos/parametros-tecnicos'; 
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
   { path: 'productos', component: ListaProductos, canActivate: [authGuard] },
+  
+  // 👇 NUEVA RUTA DE PARÁMETROS TÉCNICOS 👇
+  { path: 'parametros', component: ParametrosTecnicos, canActivate: [authGuard] },
+  
   { path: 'inventario', component: Inventario, canActivate: [authGuard] },
   { path: 'pedidos', component: PedidosComponent, canActivate: [authGuard] },
   { path: 'compras', component: ComprasComponent, canActivate: [authGuard] },
@@ -29,13 +34,12 @@ export const routes: Routes = [
   { path: 'clientes', component: ClientesComponent, canActivate: [authGuard] },
   { path: 'proveedor', component: ProveedoresComponent, canActivate: [authGuard] },
   
-  // 👇 NUEVA RUTA DE AGENDA 👇
   { path: 'reuniones', component: ReunionesComponent, canActivate: [authGuard] },
-  // 👇 NUEVA RUTA DE AGENDA 👇
   { path: 'mantenimientos', component: MantenimientosComponent, canActivate: [authGuard] },
   { path: 'ordenes-produccion', component: OrdenesProduccionComponent, canActivate: [authGuard] },
   { path: 'estadisticas', component: EstadisticasComponent, canActivate: [authGuard] },
   { path: 'proformas', component: ProformasComponent, canActivate:[authGuard]},
+  
   // Redirect por defecto a login
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   // Si pone una URL que no existe, mándalo al login
