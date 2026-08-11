@@ -1626,6 +1626,7 @@ def actualizar_orden(id_orden: int, orden_update: schemas.OrdenProduccionUpdate,
 
     return orden_db
 
+# ==================== INGRESOS ====================
 @app.get("/kpis/ingresos", response_model=List[schemas.KpiIngresoResponse])
 def get_kpi_ingresos(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
     return db.query(models.KpiIngreso).filter(models.KpiIngreso.negocio == negocio).order_by(models.KpiIngreso.anio.asc(), models.KpiIngreso.semana.asc()).all()
@@ -1652,6 +1653,7 @@ def crear_kpi_ingresos(kpi: schemas.KpiIngresoCreate, db: Session = Depends(get_
     db.refresh(db_kpi)
     return db_kpi
 
+# ==================== PRODUCTIVIDAD ====================
 @app.get("/kpis/productividad", response_model=List[schemas.KpiProductividadResponse])
 def get_kpi_productividad(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
     return db.query(models.KpiProductividad).filter(models.KpiProductividad.negocio == negocio).order_by(models.KpiProductividad.anio.asc(), models.KpiProductividad.semana.asc()).all()
@@ -1675,6 +1677,7 @@ def crear_kpi_productividad(kpi: schemas.KpiProductividadCreate, db: Session = D
     db.refresh(db_kpi)
     return db_kpi
 
+# ==================== VENTAS ====================
 @app.get("/kpis/ventas", response_model=List[schemas.KpiVentasResponse])
 def get_kpi_ventas(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
     return db.query(models.KpiVentas).filter(models.KpiVentas.negocio == negocio).order_by(models.KpiVentas.anio.asc(), models.KpiVentas.semana.asc()).all()
@@ -1698,6 +1701,7 @@ def crear_kpi_ventas(kpi: schemas.KpiVentasCreate, db: Session = Depends(get_db)
     db.refresh(db_kpi)
     return db_kpi
 
+# ==================== GASTOS ====================
 @app.get("/kpis/gastos", response_model=List[schemas.KpiGastosResponse])
 def get_kpi_gastos(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
     return db.query(models.KpiGastos).filter(models.KpiGastos.negocio == negocio).order_by(models.KpiGastos.anio.asc(), models.KpiGastos.semana.asc()).all()
@@ -1721,6 +1725,7 @@ def crear_kpi_gastos(kpi: schemas.KpiGastosCreate, db: Session = Depends(get_db)
     db.refresh(db_kpi)
     return db_kpi
 
+# ==================== CUENTAS POR COBRAR ====================
 @app.get("/kpis/cuentas-cobrar", response_model=List[schemas.KpiCuentasCobrarResponse])
 def get_kpi_cuentas_cobrar(negocio: str = "PRINCIPAL", db: Session = Depends(get_db)):
     return db.query(models.KpiCuentasCobrar).filter(models.KpiCuentasCobrar.negocio == negocio).order_by(models.KpiCuentasCobrar.anio.asc(), models.KpiCuentasCobrar.semana.asc(), models.KpiCuentasCobrar.id.asc()).all()

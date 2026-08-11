@@ -48,18 +48,19 @@
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
           <mat-label>Meta ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formIngresos.meta">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formIngresos.meta">
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
           <mat-label>Ingresos ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formIngresos.ingresos">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formIngresos.ingresos">
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1.25em;">
           <mat-label>Egresos ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formIngresos.egresos">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formIngresos.egresos">
         </mat-form-field>
+
 
         <button mat-raised-button color="primary" (click)="guardarIngresos()" style="height: 52px; flex: 1; min-width: 150px; font-weight: bold;">
           Guardar Sem. {{semanaIngresos}}
@@ -123,12 +124,12 @@
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
           <mat-label>Meta ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formVentas.meta">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formVentas.meta">
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
           <mat-label>Ventas ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formVentas.ingresos">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formVentas.ingresos">
         </mat-form-field>
 
         <button mat-raised-button color="primary" (click)="guardarVentas()" style="height: 52px; flex: 1; min-width: 150px; font-weight: bold;">
@@ -158,12 +159,12 @@
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
           <mat-label>Límite Meta ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formGastos.meta">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formGastos.meta">
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 2; min-width: 200px; margin-bottom: -1.25em;">
           <mat-label>Gastos Reales ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formGastos.gastos">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formGastos.gastos">
         </mat-form-field>
 
         <button mat-raised-button color="warn" (click)="guardarGastos()" style="height: 52px; flex: 1; min-width: 150px; font-weight: bold;">
@@ -193,7 +194,7 @@
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
           <mat-label>Límite Meta ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formCuentas.meta">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formCuentas.meta">
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 140px; margin-bottom: -1.25em;">
@@ -211,7 +212,7 @@
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 120px; margin-bottom: -1.25em;">
           <mat-label>Monto ($)</mat-label>
-          <input matInput type="number" [(ngModel)]="formCuentas.monto">
+          <input matInput type="text" inputmode="decimal" [(ngModel)]="formCuentas.monto">
         </mat-form-field>
 
         <button mat-raised-button color="accent" (click)="guardarCuentas()" style="height: 52px; flex: 1; min-width: 120px; font-weight: bold;">

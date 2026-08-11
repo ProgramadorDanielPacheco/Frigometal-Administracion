@@ -145,12 +145,16 @@ export class EstadisticasComponent implements OnInit {
   }
 
   // 👇 FUNCIÓN MÁGICA: Convierte comas a puntos para evitar que Python rechace los datos 👇
+  // 👇 FUNCIÓN MÁGICA REFORZADA 👇
   private cleanNum(val: any): number {
-    if (val === null || val === undefined) return 0;
+    if (val === null || val === undefined || val === '') return 0;
     if (typeof val === 'string') {
-      return Number(val.replace(',', '.'));
+      // Reemplaza comas por puntos y quita letras o espacios por error
+      const validStr = val.replace(',', '.').replace(/[^0-9.-]/g, '');
+      const parsed = parseFloat(validStr);
+      return isNaN(parsed) ? 0 : parsed;
     }
-    return Number(val);
+    return Number(val) || 0;
   }
 
   buscarIngresosPorSemana(): void {
