@@ -144,7 +144,15 @@ export class EstadisticasComponent implements OnInit {
     return Math.ceil((fecha.getDay() + 1 + dias) / 7);
   }
 
-  // 👇 LÓGICA DE BÚSQUEDA CORREGIDA (FORZAR A NÚMERO) 👇
+  // 👇 FUNCIÓN MÁGICA: Convierte comas a puntos para evitar que Python rechace los datos 👇
+  private cleanNum(val: any): number {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'string') {
+      return Number(val.replace(',', '.'));
+    }
+    return Number(val);
+  }
+
   buscarIngresosPorSemana(): void {
     const sem = Number(this.semanaIngresos);
     const data = this.historialIngresos.find(d => Number(d.semana) === sem);
@@ -178,7 +186,6 @@ export class EstadisticasComponent implements OnInit {
       this.formCuentas.meta = this.historialCuentas.length ? this.historialCuentas[this.historialCuentas.length - 1].meta : 0;
     }
   }
-  // 👆 FIN LÓGICA DE BÚSQUEDA CORREGIDA 👆
 
   cargarGraficos(): void {
     this.kpiService.getIngresos(this.negocioActual).subscribe(datos => {
@@ -438,14 +445,69 @@ export class EstadisticasComponent implements OnInit {
     });
   }
 
-  guardarIngresos(): void { this.kpiService.guardarIngresos({ negocio: this.negocioActual, semana: Number(this.semanaIngresos), anio: this.anioActual, ...this.formIngresos }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
-  guardarProductividad(): void { this.kpiService.guardarProductividad({ negocio: this.negocioActual, semana: Number(this.semanaProductividad), anio: this.anioActual, ...this.formProductividad }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
-  guardarVentas(): void { this.kpiService.guardarVentas({ negocio: this.negocioActual, semana: Number(this.semanaVentas), anio: this.anioActual, ...this.formVentas }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  // 👇 TODOS LOS MÉTODOS DE GUARDAR AHORA SANITIZAN Y CAPTURAN ERRORES 👇
+  
+  guardarIngresos(): void { 
+    const payload = { 
+      negocio: this.negocioActual, 
+      semana: Number(this.semanaIngresos), 
+      anio: this.anioActual, 
+      meta: this.cleanNum(this.formIngresos.meta),
+      ingresos: this.cleanNum(this.formIngresos.ingresos),
+      egresos: this.cleanNum(this.formIngresos.egresos)
+    };
+    
+    this.kpiService.guardarIngresos(payload).subscribe({
+      next: () => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); },
+      error: (err) => { console.error(err); this.snackBar.open('❌ Error al guardar. Revisa los números ingresados.', 'Cerrar', { duration: 4000 }); }
+    }); 
+  }
+  
+  guardarProductividad(): void { 
+    const payload = { 
+      negocio: this.negocioActual, 
+      semana: Number(this.semanaProductividad), 
+      anio: this.anioActual, 
+      meta_planchas: this.cleanNum(this.formProductividad.meta_planchas),
+      planchas_usadas: this.cleanNum(this.formProductividad.planchas_usadas)
+    };
+
+    this.kpiService.guardarProductividad(payload).subscribe({
+      next: () => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); },
+      error: (err) => { console.error(err); this.snackBar.open('❌ Error al guardar. Revisa los números ingresados.', 'Cerrar', { duration: 4000 }); }
+    }); 
+  }
+  
+  guardarVentas(): void { 
+    const payload = { 
+      negocio: this.negocioActual, 
+      semana: Number(this.semanaVentas), 
+      anio: this.anioActual, 
+      meta: this.cleanNum(this.formVentas.meta),
+      ingresos: this.cleanNum(this.formVentas.ingresos)
+    };
+
+    this.kpiService.guardarVentas(payload).subscribe({
+      next: () => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); },
+      error: (err) => { console.error(err); this.snackBar.open('❌ Error al guardar. Revisa los números ingresados.', 'Cerrar', { duration: 4000 }); }
+    }); 
+  }
   
   guardarGastos(): void { 
-    this.kpiService.guardarGastos({ negocio: this.negocioActual, semana: Number(this.semanaGastos), anio: this.anioActual, ...this.formGastos }).subscribe(() => { 
-      this.snackBar.open(`✅ Gastos Sem. ${this.semanaGastos} registrados con éxito`, 'OK', { duration: 3000 }); 
-      this.cargarGraficos(); 
+    const payload = { 
+      negocio: this.negocioActual, 
+      semana: Number(this.semanaGastos), 
+      anio: this.anioActual, 
+      meta: this.cleanNum(this.formGastos.meta),
+      gastos: this.cleanNum(this.formGastos.gastos)
+    };
+
+    this.kpiService.guardarGastos(payload).subscribe({ 
+      next: () => { 
+        this.snackBar.open(`✅ Gastos Sem. ${this.semanaGastos} registrados con éxito`, 'OK', { duration: 3000 }); 
+        this.cargarGraficos(); 
+      },
+      error: (err) => { console.error(err); this.snackBar.open('❌ Error al guardar. Revisa los números ingresados.', 'Cerrar', { duration: 4000 }); }
     }); 
   }
 
@@ -474,7 +536,7 @@ export class EstadisticasComponent implements OnInit {
 
   guardarCuentas(): void { 
     const nombre = this.formCuentas.nombre_persona.trim();
-    const montoIngresado = Number(this.formCuentas.monto);
+    const montoIngresado = this.cleanNum(this.formCuentas.monto);
 
     if(!nombre) {
       this.snackBar.open(`⚠️ Ingresa el nombre del cliente`, 'OK', { duration: 3000 }); 
@@ -505,12 +567,24 @@ export class EstadisticasComponent implements OnInit {
       }
     }
 
-    this.kpiService.guardarCuentasCobrar({ negocio: this.negocioActual, semana: Number(this.semanaCuentas), anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
-      this.snackBar.open(`✅ Cuenta de ${nombre} registrada en ${this.negocioActual}`, 'OK', { duration: 3000 }); 
-      
-      this.formCuentas.nombre_persona = '';
-      this.formCuentas.monto = 0;
-      this.cargarGraficos(); 
+    const payload = { 
+      negocio: this.negocioActual, 
+      semana: Number(this.semanaCuentas), 
+      anio: this.anioActual, 
+      meta: this.cleanNum(this.formCuentas.meta),
+      nombre_persona: nombre,
+      monto: montoIngresado,
+      tipo_movimiento: this.formCuentas.tipo_movimiento
+    };
+
+    this.kpiService.guardarCuentasCobrar(payload).subscribe({ 
+      next: () => {
+        this.snackBar.open(`✅ Cuenta de ${nombre} registrada en ${this.negocioActual}`, 'OK', { duration: 3000 }); 
+        this.formCuentas.nombre_persona = '';
+        this.formCuentas.monto = 0;
+        this.cargarGraficos(); 
+      },
+      error: (err) => { console.error(err); this.snackBar.open('❌ Error al guardar datos de la cuenta.', 'Cerrar', { duration: 4000 }); }
     }); 
   }
 
