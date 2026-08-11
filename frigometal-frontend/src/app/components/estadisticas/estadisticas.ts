@@ -51,8 +51,6 @@ Chart.register(...registerables, annotationPlugin, watermarkPlugin);
 export class EstadisticasComponent implements OnInit {
 
   anioActual: number = new Date().getFullYear();
-  
-  // 👇 NUEVA VARIABLE PARA CONTROLAR EL NEGOCIO 👇
   negocioActual: string = 'PRINCIPAL';
 
   semanaIngresos: number = 0;
@@ -134,7 +132,6 @@ export class EstadisticasComponent implements OnInit {
     this.cargarGraficos();
   }
 
-  // 👇 NUEVA FUNCIÓN PARA CAMBIAR ENTRE PESTAÑAS 👇
   cambiarNegocio(nuevoNegocio: string): void {
     this.negocioActual = nuevoNegocio;
     this.snackBar.open(`Cargando datos de ${nuevoNegocio}...`, '', { duration: 1500 });
@@ -147,41 +144,47 @@ export class EstadisticasComponent implements OnInit {
     return Math.ceil((fecha.getDay() + 1 + dias) / 7);
   }
 
+  // 👇 LÓGICA DE BÚSQUEDA CORREGIDA (FORZAR A NÚMERO) 👇
   buscarIngresosPorSemana(): void {
-    const data = this.historialIngresos.find(d => d.semana === this.semanaIngresos);
+    const sem = Number(this.semanaIngresos);
+    const data = this.historialIngresos.find(d => Number(d.semana) === sem);
     this.formIngresos = data ? { meta: data.meta, ingresos: data.ingresos, egresos: data.egresos } : { meta: this.historialIngresos.length ? this.historialIngresos[this.historialIngresos.length - 1].meta : 0, ingresos: 0, egresos: 0 };
   }
 
   buscarProductividadPorSemana(): void {
-    const data = this.historialProductividad.find(d => d.semana === this.semanaProductividad);
+    const sem = Number(this.semanaProductividad);
+    const data = this.historialProductividad.find(d => Number(d.semana) === sem);
     this.formProductividad = data ? { meta_planchas: data.meta_planchas, planchas_usadas: data.planchas_usadas } : { meta_planchas: this.historialProductividad.length ? this.historialProductividad[this.historialProductividad.length - 1].meta_planchas : 0, planchas_usadas: 0 };
   }
 
   buscarVentasPorSemana(): void {
-    const data = this.historialVentas.find(d => d.semana === this.semanaVentas);
+    const sem = Number(this.semanaVentas);
+    const data = this.historialVentas.find(d => Number(d.semana) === sem);
     this.formVentas = data ? { meta: data.meta, ingresos: data.ingresos } : { meta: this.historialVentas.length ? this.historialVentas[this.historialVentas.length - 1].meta : 0, ingresos: 0 };
   }
 
   buscarGastosPorSemana(): void { 
-    const data = this.historialGastos.find(d => d.semana === this.semanaGastos);
+    const sem = Number(this.semanaGastos);
+    const data = this.historialGastos.find(d => Number(d.semana) === sem);
     this.formGastos = data ? { meta: data.meta, gastos: data.gastos } : { meta: this.historialGastos.length ? this.historialGastos[this.historialGastos.length - 1].meta : 0, gastos: 0 };
   }
 
   buscarCuentasPorSemana(): void {
-    const data = this.historialCuentas.find(d => d.semana === this.semanaCuentas);
+    const sem = Number(this.semanaCuentas);
+    const data = this.historialCuentas.find(d => Number(d.semana) === sem);
     if (data) {
       this.formCuentas.meta = data.meta;
     } else {
       this.formCuentas.meta = this.historialCuentas.length ? this.historialCuentas[this.historialCuentas.length - 1].meta : 0;
     }
   }
+  // 👆 FIN LÓGICA DE BÚSQUEDA CORREGIDA 👆
 
   cargarGraficos(): void {
-    // 👇 AHORA TODAS LAS PETICIONES USAN EL NEGOCIO ACTUAL 👇
     this.kpiService.getIngresos(this.negocioActual).subscribe(datos => {
       this.historialIngresos = datos; this.buscarIngresosPorSemana();
       if (datos.length === 0) {
-        if (this.graficoIngresos) this.graficoIngresos.destroy(); // Limpiar si está vacío
+        if (this.graficoIngresos) this.graficoIngresos.destroy(); 
         return;
       }
       const labels = datos.map(d => `Sem ${d.semana}`);
@@ -435,13 +438,12 @@ export class EstadisticasComponent implements OnInit {
     });
   }
 
-  // 👇 AÑADIMOS EL NEGOCIO ACTUAL AL GUARDAR 👇
-  guardarIngresos(): void { this.kpiService.guardarIngresos({ negocio: this.negocioActual, semana: this.semanaIngresos, anio: this.anioActual, ...this.formIngresos }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
-  guardarProductividad(): void { this.kpiService.guardarProductividad({ negocio: this.negocioActual, semana: this.semanaProductividad, anio: this.anioActual, ...this.formProductividad }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
-  guardarVentas(): void { this.kpiService.guardarVentas({ negocio: this.negocioActual, semana: this.semanaVentas, anio: this.anioActual, ...this.formVentas }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  guardarIngresos(): void { this.kpiService.guardarIngresos({ negocio: this.negocioActual, semana: Number(this.semanaIngresos), anio: this.anioActual, ...this.formIngresos }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  guardarProductividad(): void { this.kpiService.guardarProductividad({ negocio: this.negocioActual, semana: Number(this.semanaProductividad), anio: this.anioActual, ...this.formProductividad }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
+  guardarVentas(): void { this.kpiService.guardarVentas({ negocio: this.negocioActual, semana: Number(this.semanaVentas), anio: this.anioActual, ...this.formVentas }).subscribe(() => { this.snackBar.open(`✅ Guardado`, 'OK', { duration: 3000 }); this.cargarGraficos(); }); }
   
   guardarGastos(): void { 
-    this.kpiService.guardarGastos({ negocio: this.negocioActual, semana: this.semanaGastos, anio: this.anioActual, ...this.formGastos }).subscribe(() => { 
+    this.kpiService.guardarGastos({ negocio: this.negocioActual, semana: Number(this.semanaGastos), anio: this.anioActual, ...this.formGastos }).subscribe(() => { 
       this.snackBar.open(`✅ Gastos Sem. ${this.semanaGastos} registrados con éxito`, 'OK', { duration: 3000 }); 
       this.cargarGraficos(); 
     }); 
@@ -503,8 +505,7 @@ export class EstadisticasComponent implements OnInit {
       }
     }
 
-    // 👇 Añadimos el negocioActual 👇
-    this.kpiService.guardarCuentasCobrar({ negocio: this.negocioActual, semana: this.semanaCuentas, anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
+    this.kpiService.guardarCuentasCobrar({ negocio: this.negocioActual, semana: Number(this.semanaCuentas), anio: this.anioActual, ...this.formCuentas }).subscribe(() => { 
       this.snackBar.open(`✅ Cuenta de ${nombre} registrada en ${this.negocioActual}`, 'OK', { duration: 3000 }); 
       
       this.formCuentas.nombre_persona = '';
