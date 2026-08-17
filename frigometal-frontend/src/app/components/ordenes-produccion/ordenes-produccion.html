@@ -356,6 +356,14 @@
       </mat-card-actions>
     </mat-card>
   }
+  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA 👇 -->
+  <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+      <mat-label>Buscar Orden de Producción...</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput (keyup)="aplicarFiltroOrdenes($event)" placeholder="Busca por cliente, OP o producto a fabricar..." autocomplete="off">
+    </mat-form-field>
+  </div>
 
   <div class="mat-elevation-z8" style="width: 100%; max-height: 600px; overflow: auto; border-radius: 8px; background-color: white;">
     

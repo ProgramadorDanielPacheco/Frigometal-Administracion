@@ -146,6 +146,31 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // 👇 NUEVA LÓGICA DE BÚSQUEDA 👇
+  aplicarFiltroOrdenes(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    
+    // Configuramos cómo Angular va a buscar dentro de cada fila
+    this.dataSource.filterPredicate = (data: any, filter: string) => {
+      const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
+        // Buscamos en los campos principales (OP y Cliente)
+        let term = currentTerm + (data as { [key: string]: any })[key] + '◬';
+        
+        // Si la fila tiene equipos (productos), también buscamos dentro de ellos
+        if (key === 'equipos' && data.equipos && data.equipos.length) {
+          const productosNombres = data.equipos.map((e: any) => e.nombre_producto || e.descripcion).join(' ');
+          term += productosNombres + '◬';
+        }
+        return term;
+      }, '').toLowerCase();
+      
+      const transformedFilter = filter.trim().toLowerCase();
+      return dataStr.indexOf(transformedFilter) != -1;
+    };
+
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
   obtenerModeloVacio() {
     return {
       numero_op: '', numero_pedido: '',
