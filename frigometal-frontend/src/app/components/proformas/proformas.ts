@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -11,7 +11,7 @@ import { MatNativeDateModule, MAT_DATE_LOCALE, MatOptionModule } from '@angular/
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSelectModule } from '@angular/material/select';
-
+import { MatSort, MatSortModule } from '@angular/material/sort';
 import { ProformaService } from '../../services/proforma';
 import { ProductoService } from '../../services/producto';
 import { ClienteService } from '../../services/cliente';
@@ -25,12 +25,12 @@ import { MaterialService } from '../../services/material';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatButtonModule, MatIconModule, MatDatepickerModule, 
-    MatNativeDateModule, MatSnackBarModule, MatTableModule, MatOptionModule, MatSelectModule
+    MatNativeDateModule, MatSnackBarModule, MatTableModule, MatOptionModule, MatSelectModule, MatSortModule
   ],
   templateUrl: './proformas.html',
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }]
 })
-export class ProformasComponent implements OnInit {
+export class ProformasComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<any>([]);
   columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'acciones'];
@@ -58,6 +58,8 @@ export class ProformasComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {}
 
+  @ViewChild(MatSort) sort!: MatSort;
+
   ngOnInit(): void { 
     this.cargarProformas(); 
     this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
@@ -65,6 +67,26 @@ export class ProformasComponent implements OnInit {
     
     // 👇 Cargamos los materiales al inicio para poder calcular la receta rápido
     this.materialService.getMateriales().subscribe(res => this.materialesBodega = res);
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+  }
+
+  aplicarFiltroProformas(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    
+    this.dataSource.filterPredicate = (data: any, filter: string) => {
+      const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
+        // Buscamos en todo, pero enfocándonos en cliente y fecha
+        return currentTerm + (data as { [key: string]: any })[key] + '◬';
+      }, '').toLowerCase();
+      
+      const transformedFilter = filter.trim().toLowerCase();
+      return dataStr.indexOf(transformedFilter) != -1;
+    };
+
+    this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
   cargarClientesDirectorio(): void {
