@@ -404,6 +404,7 @@ class OrdenProduccionBase(BaseModel):
     valor_abono: Optional[float] = 0.0
     saldo: Optional[float] = 0.0
     finalizada: Optional[bool] = False
+    estado: Optional[str] = "EN COLA"
 
 class OrdenProduccionCreate(OrdenProduccionBase):
     pass
@@ -429,6 +430,7 @@ class OrdenProduccionUpdate(BaseModel):
     valor_abono: Optional[float] = None
     saldo: Optional[float] = None
     finalizada: Optional[bool] = None
+    estado: Optional[str] = None
 
 class OrdenProduccionResponse(OrdenProduccionBase):
     id_orden: int

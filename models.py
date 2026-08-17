@@ -192,8 +192,11 @@ class OrdenProduccion(Base):
     valor_abono = Column(Numeric(10, 2), default=0.0)
     saldo = Column(Numeric(10, 2), default=0.0)
 
-    vista_en_dashboard = Column(Boolean, default=False) # 👈 NUEVA LÍNEA
-    finalizada = Column(Boolean, default=False) # 👈 NUEVA LÍNEA
+    vista_en_dashboard = Column(Boolean, default=False)
+    finalizada = Column(Boolean, default=False)
+    
+    # 👇 NUEVA COLUMNA 👇
+    estado = Column(String(50), default='EN COLA')
 
 class KpiIngreso(Base):
     __tablename__ = "kpi_ingresos"

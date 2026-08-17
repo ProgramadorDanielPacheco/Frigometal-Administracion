@@ -34,8 +34,7 @@ import { ClienteService } from '../../services/cliente';
 export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   
   dataSource = new MatTableDataSource<any>([]);
-  columnasMostradas: string[] = ['numero_op', 'cliente', 'fecha_entrega', 'tiempo_taller', 'costo_teorico', 'costo_real', 'precio', 'saldo', 'acciones'];
-  
+  columnasMostradas: string[] = ['numero_op', 'cliente', 'fecha_entrega', 'tiempo_taller', 'costo_teorico', 'costo_real', 'precio', 'saldo', 'estado', 'acciones'];  
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false;
   idEditando: number | null = null;
@@ -842,6 +841,18 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     const horas = Math.floor(totalMinutos / 60);
     const minutos = Math.round(totalMinutos % 60);
     return `${horas}h ${minutos}m`;
+  }
+
+  // 👇 NUEVA FUNCIÓN PARA COLORES DE ESTADO 👇
+  obtenerColorEstado(estado: string): string {
+    if (!estado) return '#e65100'; // Por defecto Naranja (EN COLA)
+    switch (estado.toUpperCase()) {
+      case 'TERMINADO': return '#2e7d32'; // Verde
+      case 'EN PROGRESO': return '#1565c0'; // Azul
+      case 'PAUSADO': return '#c62828'; // Rojo
+      case 'EN COLA': return '#e65100'; // Naranja
+      default: return '#e65100'; 
+    }
   }
 
   finalizarOrden(orden: any): void {
