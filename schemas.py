@@ -530,6 +530,7 @@ class ProformaBase(BaseModel):
     garantia: Optional[str] = "1 año a partir de la entrega del equipo (La garantia NO cubre daño eléctrico)."
     forma_pago: Optional[str] = "Abono 60% antes de iniciar la obra y 40% antes de la entrega."
     validez: Optional[str] = "15 dias"
+    estado: Optional[str] = "PENDIENTE DE APROBACIÓN"
 
 class ProformaCreate(ProformaBase):
     pass
@@ -552,6 +553,7 @@ class ProformaUpdate(BaseModel):
     garantia: Optional[str] = None
     forma_pago: Optional[str] = None
     validez: Optional[str] = None
+    estado: Optional[str] = None
 
 class ParametroPoliuretanoBase(BaseModel):
     parte: str

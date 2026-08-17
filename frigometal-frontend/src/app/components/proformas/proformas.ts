@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -12,10 +12,10 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+
 import { ProformaService } from '../../services/proforma';
 import { ProductoService } from '../../services/producto';
 import { ClienteService } from '../../services/cliente';
-// 👇 NUEVOS IMPORTACIONES 👇
 import { RecetaService } from '../../services/receta'; 
 import { MaterialService } from '../../services/material';
 
@@ -25,7 +25,8 @@ import { MaterialService } from '../../services/material';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatButtonModule, MatIconModule, MatDatepickerModule, 
-    MatNativeDateModule, MatSnackBarModule, MatTableModule, MatOptionModule, MatSelectModule, MatSortModule
+    MatNativeDateModule, MatSnackBarModule, MatTableModule, MatOptionModule, 
+    MatSelectModule, MatSortModule
   ],
   templateUrl: './proformas.html',
   providers: [{ provide: MAT_DATE_LOCALE, useValue: 'es-ES' }]
@@ -33,8 +34,11 @@ import { MaterialService } from '../../services/material';
 export class ProformasComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<any>([]);
-  columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'acciones'];
+  // 👇 Añadido 'estado' a la tabla 👇
+  columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'estado', 'acciones'];
   
+  @ViewChild(MatSort) sort!: MatSort;
+
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false;
   idEditando: number | null = null;
@@ -44,28 +48,23 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   nuevaProforma: any = this.obtenerModeloVacio();
   productosCatalogo: any[] = [];
   filtroProductos: string = ''; 
-  materialesBodega: any[] = []; // 👈 NUEVO: Para saber los precios de la receta
+  materialesBodega: any[] = []; 
   
-  // 👇 NUEVO: Añadimos 'utilidad' inicializada en 30% por defecto (puedes cambiarlo)
   nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
   
   constructor(
     private proformaService: ProformaService,
     private productoService: ProductoService, 
     private clienteService: ClienteService,
-    private recetaService: RecetaService, // 👈 NUEVO
-    private materialService: MaterialService, // 👈 NUEVO
+    private recetaService: RecetaService, 
+    private materialService: MaterialService, 
     private snackBar: MatSnackBar
   ) {}
-
-  @ViewChild(MatSort) sort!: MatSort;
 
   ngOnInit(): void { 
     this.cargarProformas(); 
     this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
     this.cargarClientesDirectorio();
-    
-    // 👇 Cargamos los materiales al inicio para poder calcular la receta rápido
     this.materialService.getMateriales().subscribe(res => this.materialesBodega = res);
   }
 
@@ -73,12 +72,12 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.dataSource.sort = this.sort;
   }
 
+  // 👇 LÓGICA DE BÚSQUEDA Y FILTRADO 👇
   aplicarFiltroProformas(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     
     this.dataSource.filterPredicate = (data: any, filter: string) => {
       const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
-        // Buscamos en todo, pero enfocándonos en cliente y fecha
         return currentTerm + (data as { [key: string]: any })[key] + '◬';
       }, '').toLowerCase();
       
@@ -87,6 +86,19 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     };
 
     this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  // 👇 COLORES DE LOS ESTADOS 👇
+  obtenerColorEstado(estado: string): string {
+    if (!estado) return '#607d8b'; // PENDIENTE DE APROBACIÓN
+    switch (estado.toUpperCase()) {
+      case 'TERMINADO': return '#2e7d32'; // Verde
+      case 'EN PROGRESO': return '#1565c0'; // Azul
+      case 'PAUSADO': return '#c62828'; // Rojo
+      case 'EN COLA': return '#e65100'; // Naranja
+      case 'PENDIENTE DE APROBACIÓN': return '#607d8b'; // Gris Azulado
+      default: return '#607d8b'; 
+    }
   }
 
   cargarClientesDirectorio(): void {
@@ -161,20 +173,15 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ==========================================
-  // 👇 CÁLCULO DE COSTOS, UTILIDAD Y PRECIO 👇
-  // ==========================================
   seleccionarProductoCatalogo(idProducto: number): void {
     const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
     if (prod) {
       this.nuevoDetalle.descripcion = prod.nombre;
       
-      // Consultamos la receta para armar el costo real
       this.snackBar.open('⏳ Calculando costo desde bodega...', '', { duration: 1500 });
       this.recetaService.getReceta(idProducto).subscribe({
         next: (receta) => {
           let costoTotal = 0;
-          
           receta.forEach((r: any) => {
             const materialBD = this.materialesBodega.find(m => m.id_material === r.id_material);
             const precioMat = materialBD ? Number(materialBD.precio_unitario || 0) : 0;
@@ -182,7 +189,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
             costoTotal += (cantidadMat * precioMat);
           });
           
-          // Asignamos el costo a "precio_unitario" y calculamos la ganancia
           this.nuevoDetalle.precio_unitario = parseFloat(costoTotal.toFixed(2));
           this.calcularTotalLinea();
           this.snackBar.open('✅ Costo de producción cargado', 'OK', { duration: 2000 });
@@ -195,14 +201,9 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   }
 
   calcularTotalLinea(): void {
-    // 1. Calculamos el costo base (Costo de receta * Cantidad)
     const costoBase = this.nuevoDetalle.cantidad * this.nuevoDetalle.precio_unitario;
-    
-    // 2. Calculamos cuánto es la ganancia según el porcentaje de utilidad
     const porcentajeUtilidad = this.nuevoDetalle.utilidad / 100;
     const ganancia = costoBase * porcentajeUtilidad;
-    
-    // 3. El Precio de Venta final (Total)
     this.nuevoDetalle.precio_total = parseFloat((costoBase + ganancia).toFixed(2));
   }
 
@@ -246,7 +247,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     } else {
       this.proformaService.crearProforma(payload).subscribe({
         next: () => {
-          this.snackBar.open('✅ Proforma Guardada en Standby', 'OK', { duration: 5000 });
+          this.snackBar.open('✅ Proforma Guardada', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
           this.cargarProformas();
@@ -259,7 +260,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // 👇 NUEVAS FUNCIONES PARA LA TABLA 👇
   eliminarProforma(proforma: any): void {
     const confirmar = confirm(`¿Estás seguro de eliminar la proforma ${proforma.numero_proforma}? Esta acción no se puede deshacer.`);
     if (confirmar) {
@@ -280,6 +280,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       this.proformaService.generarOP(proforma.id_proforma).subscribe({
         next: (res) => {
           this.snackBar.open(`✅ ¡Éxito! Se ha creado la OP Nº ${res.numero_op} en Producción.`, 'Genial', { duration: 5000 });
+          this.cargarProformas(); // Recargamos para actualizar el estado visual de la proforma
         },
         error: (err) => {
           const msg = err.error?.detail || 'Error al generar la OP';
@@ -288,13 +289,10 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       });
     }
   }
-  // ==========================================
-  // 👇 LÓGICA DE IMPRESIÓN (FORMATO FÍSICO FRIGOMETAL) 👇
-  // ==========================================
+
   imprimirProforma(proforma: any): void {
     let filasDetalles = '';
     
-    // Armamos las filas de la tabla con los detalles
     if (proforma.detalles && proforma.detalles.length > 0) {
       proforma.detalles.forEach((d: any) => {
         filasDetalles += `
@@ -308,12 +306,10 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       });
     }
 
-    // Convertimos la fecha a un formato amigable (Ej: 24 de marzo del 2026)
     const fechaObj = new Date(proforma.fecha_emision);
     const opcionesFecha: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
     const fechaFormateada = fechaObj.toLocaleDateString('es-ES', opcionesFecha);
 
-    // Texto del total en letras
     const totalEnLetras = this.numeroALetras(Number(proforma.precio_total));
 
     const ventanaImpresion = window.open('', '_blank', 'width=1000,height=800');
@@ -325,8 +321,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
             <style>
               @page { size: A4 portrait; margin: 1cm; }
               body { font-family: 'Arial', sans-serif; padding: 0; margin: 0; color: #333; font-size: 13px; }
-              
-              /* Encabezado */
               .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1976d2; padding-bottom: 10px; margin-bottom: 15px; }
               .logo-section { display: flex; align-items: center; gap: 15px; }
               .logo-section img { height: 70px; }
@@ -334,45 +328,30 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               .company-info p { margin: 2px 0; font-size: 11px; color: #555; }
               .contact-info { text-align: right; font-size: 12px; }
               .contact-info p { margin: 3px 0; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-
-              /* Datos del Cliente */
               .client-box { background-color: #f9f9f9; border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
               .client-row { display: flex; margin-bottom: 5px; }
               .client-label { font-weight: bold; width: 140px; color: #1976d2; }
               .client-value { flex: 1; border-bottom: 1px dashed #ccc; }
-
-              /* Tabla de Detalles */
               table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
               th { background-color: #1976d2; color: white; padding: 10px; text-align: center; font-size: 12px; border: 1px solid #0d47a1; }
               td { border: 1px solid #ccc; padding: 8px; }
               .table-striped tr:nth-child(even) { background-color: #f2f2f2; }
-
-              /* Resumen Totales y Condiciones */
               .summary-container { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
               .conditions { width: 65%; }
               .conditions p { margin: 5px 0; }
               .totals { width: 30%; border: 1px solid #ccc; border-radius: 5px; padding: 10px; background-color: #f9f9f9; }
               .totals-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 16px; }
-
-              /* Footer e Info Bancaria */
               .footer-grid { display: flex; justify-content: space-between; border-top: 2px solid #1976d2; padding-top: 15px; font-size: 11px; }
               .footer-col { width: 30%; }
               .footer-col h4 { margin: 0 0 5px 0; color: #1976d2; font-size: 12px; }
               .footer-col p { margin: 2px 0; }
               .note-box { font-style: italic; font-size: 10px; color: #666; margin-top: 10px; text-align: justify; }
-
-              /* Firmas */
               .signatures { display: flex; justify-content: space-around; margin-top: 50px; }
               .sig-line { width: 200px; border-top: 1px solid #333; text-align: center; padding-top: 5px; font-weight: bold; }
-
-              @media print {
-                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              }
+              @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
             </style>
           </head>
           <body>
-            
-            <!-- Encabezado -->
             <div class="header-container">
               <div class="logo-section">
                 <img src="/logo.png" alt="Logo FrigoMetal" onerror="this.style.display='none'">
@@ -387,7 +366,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               </div>
             </div>
 
-            <!-- Datos del Cliente -->
             <div class="client-box">
               <div class="client-row"><div class="client-label">CLIENTE:</div><div class="client-value">${proforma.cliente_nombre}</div></div>
               <div class="client-row"><div class="client-label">DIRECCIÓN:</div><div class="client-value">${proforma.cliente_direccion || 'N/A'}</div></div>
@@ -395,7 +373,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               <div class="client-row"><div class="client-label">TRABAJO:</div><div class="client-value">${proforma.trabajo || 'Fabricación de Equipos'}</div></div>
             </div>
 
-            <!-- Tabla -->
             <table class="table-striped">
               <thead>
                 <tr>
@@ -410,7 +387,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               </tbody>
             </table>
 
-            <!-- Condiciones y Total -->
             <div class="summary-container">
               <div class="conditions">
                 <p><b>SON:</b> ${totalEnLetras} (Estos valores Incluyen I.V.A)</p>
@@ -426,7 +402,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               </div>
             </div>
 
-            <!-- Información General y Bancaria -->
             <div class="footer-grid">
               <div class="footer-col">
                 <h4>FRIGOMETAL CIA. LTDA.</h4>
@@ -448,12 +423,10 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               </div>
             </div>
 
-            <!-- Nota Legal -->
             <div class="note-box">
               NOTA: Todas las mercancías despachadas por Frigo Metal seguirán siendo de nuestra propiedad hasta la cancelación total de las facturas y posibles saldos pendientes a nuestro favor que con ellas se relacionen.
             </div>
 
-            <!-- Firmas -->
             <div class="signatures">
               <div class="sig-line">ENTREGADO POR:</div>
               <div class="sig-line">RECIBIDO POR:</div>
@@ -471,7 +444,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // 👇 LÓGICA DE NÚMEROS A LETRAS PARA EL TOTAL 👇
   numeroALetras(num: number): string {
     if (num === 0) return 'Cero dólares con 00/100 ctvs';
     
@@ -504,7 +476,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     if (resto > 0) letras += convertirGrupo(resto);
 
     letras = letras.trim();
-    letras = letras.charAt(0).toUpperCase() + letras.slice(1); // Mayúscula inicial
+    letras = letras.charAt(0).toUpperCase() + letras.slice(1); 
 
     return `${letras} dolares con ${centavos.toString().padStart(2, '0')}/100 ctvs`;
   }

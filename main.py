@@ -1388,33 +1388,21 @@ def actualizar_op_planta(id_op: int, op_update: schemas.OrdenPlantaUpdate, db: S
     db.refresh(op_db)
 
     # ==========================================
-    # 👇 NUEVO: SINCRONIZACIÓN INTELIGENTE DE ESTADOS 👇
+    # 👇 SINCRONIZACIÓN INTELIGENTE DE ESTADOS 👇
     # ==========================================
-    # 1. Necesitamos saber si esta sub-OP de planta pertenece a una Orden General.
-    # Como la tabla Planta guarda 'numero_op' y la tabla OrdenProduccion guarda un JSON con los equipos,
-    # debemos buscar a qué Orden General le pertenece el numero_op que acabamos de editar.
-    
     numero_op_editada = str(op_db.numero_op)
-    
-    # Buscamos todas las órdenes de producción que no estén finalizadas
     ordenes_generales = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.finalizada == False).all()
     
     for orden_general in ordenes_generales:
         equipos = orden_general.equipos or []
         numeros_ops_de_esta_orden = [str(eq.get("orden_produccion", "")) for eq in equipos if isinstance(eq, dict)]
         
-        # Si la OP que editamos en el taller pertenece a esta Orden General
         if numero_op_editada in numeros_ops_de_esta_orden:
-            
-            # Consultamos en la tabla de Planta el estado actual de TODAS las sub-OPs de esta orden
             estados_sub_ops = db.query(models.OrdenPlanta.estado).filter(
                 models.OrdenPlanta.numero_op.in_(numeros_ops_de_esta_orden)
             ).all()
             
-            # Limpiamos la lista de estados ['TERMINADO', 'EN PROGRESO', 'EN COLA', ...]
             lista_estados = [e[0] for e in estados_sub_ops]
-            
-            # Calculamos el Estado Global
             nuevo_estado_global = 'EN COLA'
             
             if not lista_estados:
@@ -1422,16 +1410,21 @@ def actualizar_op_planta(id_op: int, op_update: schemas.OrdenPlantaUpdate, db: S
             elif all(estado == 'TERMINADO' for estado in lista_estados):
                 nuevo_estado_global = 'TERMINADO'
             elif 'EN PROGRESO' in lista_estados or 'PAUSADO' in lista_estados:
-                 # Con que al menos 1 esté en progreso, la orden general está en progreso
                 nuevo_estado_global = 'EN PROGRESO'
             elif any(estado == 'TERMINADO' for estado in lista_estados) and any(estado == 'EN COLA' for estado in lista_estados):
-                 # Si hay algunos terminados y otros en cola, significa que ya empezaron pero no acaban
                  nuevo_estado_global = 'EN PROGRESO'
 
-            # Actualizamos el estado en la Orden General
+            # Actualizamos la Orden General
             orden_general.estado = nuevo_estado_global
+            
+            # 👇 NUEVO: EFECTO DOMINÓ HACIA LA PROFORMA 👇
+            if orden_general.id_proforma_origen:
+                proforma_vinculada = db.query(models.Proforma).filter(models.Proforma.id_proforma == orden_general.id_proforma_origen).first()
+                if proforma_vinculada:
+                    proforma_vinculada.estado = nuevo_estado_global
+            
             db.commit()
-            break # Ya encontramos su orden y actualizamos, salimos del ciclo
+            break 
 
     return op_db
 # ==========================================
@@ -1867,7 +1860,7 @@ def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
     if not proforma:
         raise HTTPException(status_code=404, detail="Proforma no encontrada")
 
-    # Evitamos generar la misma OP dos veces (usando numero_pedido)
+    # Evitamos generar la misma OP dos veces
     op_existente = db.query(models.OrdenProduccion).filter(models.OrdenProduccion.numero_pedido == str(proforma.numero_proforma)).first()
     if op_existente:
         raise HTTPException(status_code=400, detail="Esta proforma ya fue enviada a Producción anteriormente.")
@@ -1904,10 +1897,16 @@ def generar_op_desde_proforma(id_proforma: int, db: Session = Depends(get_db)):
         } for d in proforma.detalles],
         precio_total=proforma.precio_total,
         saldo=proforma.precio_total,
-        vista_en_dashboard=False 
+        vista_en_dashboard=False,
+        estado="EN COLA",
+        id_proforma_origen=proforma.id_proforma # 👈 NUEVO: Enlace Secreto
     )
     
     db.add(orden_nueva)
+    
+    # 👇 NUEVO: Cambiamos el estado de la proforma
+    proforma.estado = "EN COLA"
+    
     db.commit()
     
     return {"mensaje": "Orden de Producción enviada al taller", "numero_op": siguiente_numero_op}

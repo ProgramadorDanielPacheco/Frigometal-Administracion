@@ -197,6 +197,7 @@ class OrdenProduccion(Base):
     
     # 👇 NUEVA COLUMNA 👇
     estado = Column(String(50), default='EN COLA')
+    id_proforma_origen = Column(Integer, nullable=True)
 
 class KpiIngreso(Base):
     __tablename__ = "kpi_ingresos"
@@ -262,7 +263,8 @@ class Proforma(Base):
     garantia = Column(String(255))
     forma_pago = Column(String(255))
     validez = Column(String(50))
-
+    # 👇 NUEVA COLUMNA 👇
+    estado = Column(String(50), default='PENDIENTE DE APROBACIÓN')
 
 class ParametroPoliuretano(Base):
     __tablename__ = "parametros_poliuretano"

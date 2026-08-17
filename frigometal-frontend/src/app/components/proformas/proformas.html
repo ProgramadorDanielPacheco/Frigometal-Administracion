@@ -15,13 +15,11 @@
       
       <div style="display: flex; gap: 15px;">
         <mat-form-field appearance="outline" style="flex: 1;"><mat-label>Nº Proforma</mat-label><input matInput [(ngModel)]="nuevaProforma.numero_proforma"></mat-form-field>
-       <!-- 👇 NUEVO CAMPO DE CLIENTE CON BUSCADOR Y REFRESCAR 👇 -->
         <div style="flex: 2; display: flex; gap: 5px; align-items: flex-start;">
           <mat-form-field appearance="outline" style="flex: 1;">
             <mat-label>Seleccionar Cliente</mat-label>
             <mat-select [(ngModel)]="nuevaProforma.cliente_nombre" (ngModelChange)="seleccionarCliente($event)">
               
-              <!-- Buscador interno -->
               <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
                 <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
                   <mat-label>Buscar por nombre o cédula...</mat-label>
@@ -30,7 +28,6 @@
                 </mat-form-field>
               </div>
 
-              <!-- Lista iterada -->
               @for (c of clientesFiltrados; track c.id_cliente) {
                 <mat-option [value]="c.nombre">
                   {{ c.nombre }} <span style="color: gray; font-size: 0.8em;">({{ c.id_cliente }})</span>
@@ -43,7 +40,6 @@
             </mat-select>
           </mat-form-field>
 
-          <!-- Botón para refrescar la lista si añadieron uno en otra pestaña -->
           <button mat-icon-button color="primary" (click)="cargarClientesDirectorio()" matTooltip="Refrescar lista de clientes" style="margin-top: 10px;">
             <mat-icon>refresh</mat-icon>
           </button>
@@ -66,7 +62,6 @@
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h4 style="margin-top: 0;">Detalle de Equipos (Cálculo de Precios)</h4>
         
-        <!-- 👇 NUEVA CUADRÍCULA CON UTILIDAD 👇 -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           
           <mat-form-field appearance="outline" style="width: 70px; margin-bottom: -1em;">
@@ -148,6 +143,7 @@
     </mat-card>
   }
 
+  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA 👇 -->
   <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
     <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
       <mat-label>Buscar Proforma...</mat-label>
@@ -156,12 +152,36 @@
     </mat-form-field>
   </div>
 
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
-    <ng-container matColumnDef="numero_proforma"><th mat-header-cell *matHeaderCellDef>Nº</th><td mat-cell *matCellDef="let p"><b>{{p.numero_proforma}}</b></td></ng-container>
-    <ng-container matColumnDef="cliente"><th mat-header-cell *matHeaderCellDef>Cliente</th><td mat-cell *matCellDef="let p">{{p.cliente_nombre}}</td></ng-container>
-    <ng-container matColumnDef="fecha"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let p">{{p.fecha_emision}}</td></ng-container>
-    <ng-container matColumnDef="precio_total"><th mat-header-cell *matHeaderCellDef>Total</th><td mat-cell *matCellDef="let p">${{p.precio_total | number:'1.2-2'}}</td></ng-container>
+  <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_proforma" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
+    <ng-container matColumnDef="numero_proforma">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Nº</th>
+      <td mat-cell *matCellDef="let p"><b>{{p.numero_proforma}}</b></td>
+    </ng-container>
     
+    <ng-container matColumnDef="cliente">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+      <td mat-cell *matCellDef="let p">{{p.cliente_nombre}}</td>
+    </ng-container>
+    
+    <ng-container matColumnDef="fecha">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
+      <td mat-cell *matCellDef="let p">{{p.fecha_emision}}</td>
+    </ng-container>
+    
+    <ng-container matColumnDef="precio_total">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th>
+      <td mat-cell *matCellDef="let p">${{p.precio_total | number:'1.2-2'}}</td>
+    </ng-container>
+    
+    <!-- 👇 NUEVA COLUMNA DE ESTADO 👇 -->
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado </th>
+      <td mat-cell *matCellDef="let p" style="text-align: center;"> 
+        <span [style.color]="obtenerColorEstado(p.estado)" style="font-weight: bold; border: 1px solid; padding: 4px 12px; border-radius: 20px; font-size: 0.80rem; white-space: nowrap; display: inline-block;">
+          {{p.estado || 'PENDIENTE DE APROBACIÓN'}}
+        </span>
+      </td>
+    </ng-container>
     
     <ng-container matColumnDef="acciones">
       <th mat-header-cell *matHeaderCellDef style="text-align: right;">Acciones</th>
@@ -175,7 +195,8 @@
           <mat-icon>print</mat-icon>
         </button>
 
-        <button mat-icon-button style="color: #2e7d32;" (click)="generarOPDesdeProforma(p)" title="Aprobar y Enviar a Producción">
+        <!-- 👇 CONDICIONAL DE APROBACIÓN 👇 -->
+        <button mat-icon-button style="color: #2e7d32;" (click)="generarOPDesdeProforma(p)" title="Aprobar y Enviar a Producción" *ngIf="!p.estado || p.estado === 'PENDIENTE DE APROBACIÓN'">
           <mat-icon>precision_manufacturing</mat-icon>
         </button>
 
@@ -188,5 +209,11 @@
 
     <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
     <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="6" style="text-align: center; padding: 30px; color: gray;">
+        No se encontraron proformas.
+      </td>
+    </tr>
   </table>
 </div>
