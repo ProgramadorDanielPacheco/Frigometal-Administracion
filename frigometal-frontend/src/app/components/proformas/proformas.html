@@ -143,13 +143,27 @@
     </mat-card>
   }
 
-  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA 👇 -->
-  <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-    <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA Y FILTRO DE ESTADO 👇 -->
+  <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;">
+    
+    <mat-form-field appearance="outline" style="flex: 2; min-width: 250px; margin-bottom: -1.25em;">
       <mat-label>Buscar Proforma...</mat-label>
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput (keyup)="aplicarFiltroProformas($event)" placeholder="Busca por cliente o fecha (Ej: 2026-03-15)..." autocomplete="off">
+      <input matInput (keyup)="aplicarFiltroTexto($event)" placeholder="Busca por cliente o fecha (Ej: 2026-03-15)..." autocomplete="off">
     </mat-form-field>
+
+    <mat-form-field appearance="outline" style="flex: 1; min-width: 200px; margin-bottom: -1.25em;">
+      <mat-label>Filtrar por Estado</mat-label>
+      <mat-select [(ngModel)]="estadoFiltroSeleccionado" (ngModelChange)="aplicarFiltroEstado($event)">
+        <mat-option value="TODOS" style="font-weight: bold; color: #1976d2;">Ver Todos los Estados</mat-option>
+        @for (estado of listaEstados; track estado) {
+          <mat-option [value]="estado">
+            <span [style.color]="obtenerColorEstado(estado)" style="font-weight: bold;">{{ estado }}</span>
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    
   </div>
 
   <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_proforma" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
@@ -173,7 +187,6 @@
       <td mat-cell *matCellDef="let p">${{p.precio_total | number:'1.2-2'}}</td>
     </ng-container>
     
-    <!-- 👇 NUEVA COLUMNA DE ESTADO 👇 -->
     <ng-container matColumnDef="estado">
       <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado </th>
       <td mat-cell *matCellDef="let p" style="text-align: center;"> 
@@ -212,7 +225,7 @@
 
     <tr class="mat-row" *matNoDataRow>
       <td class="mat-cell" colspan="6" style="text-align: center; padding: 30px; color: gray;">
-        No se encontraron proformas.
+        No se encontraron proformas con los filtros actuales.
       </td>
     </tr>
   </table>

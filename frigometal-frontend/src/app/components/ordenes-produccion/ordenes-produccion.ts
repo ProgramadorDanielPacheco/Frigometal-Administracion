@@ -60,6 +60,11 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
   filtroMaterialesOP: string = '';
   nuevoMaterialOP: any = { id_material: null, cantidad_real: 1 };
 
+  // 👇 VARIABLES PARA LOS FILTROS COMBINADOS 👇
+  textoBusquedaGeneral: string = '';
+  estadoFiltroSeleccionado: string = 'TODOS';
+  listaEstados: string[] = ['EN COLA', 'EN PROGRESO', 'PAUSADO', 'TERMINADO'];
+
   constructor(
     private ordenService: OrdenProduccionService,
     private productoService: ProductoService,
@@ -85,11 +90,62 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.programacionService.getOrdenes().subscribe(datos => {
       this.ordenesPlanta = datos;
     });
+
+    this.configurarFiltroPersonalizado(); // 👈 Inicializamos el filtro combinado
   }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
   }
+
+  // 👇 NUEVA LÓGICA DE BÚSQUEDA COMBINADA (TEXTO + ESTADO) 👇
+  configurarFiltroPersonalizado(): void {
+    this.dataSource.filterPredicate = (data: any, filter: string) => {
+      const busqueda = JSON.parse(filter);
+      
+      // 1. Verificamos el estado
+      const estadoFila = data.estado || 'EN COLA';
+      const coincideEstado = busqueda.estado === 'TODOS' || estadoFila.toUpperCase() === busqueda.estado;
+      
+      // 2. Verificamos el texto
+      const textoBuscado = busqueda.texto.trim().toLowerCase();
+      let coincideTexto = true;
+      
+      if (textoBuscado) {
+        const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
+          let term = currentTerm + (data as { [key: string]: any })[key] + '◬';
+          
+          if (key === 'equipos' && data.equipos && data.equipos.length) {
+            const productosNombres = data.equipos.map((e: any) => e.nombre_producto || e.descripcion).join(' ');
+            term += productosNombres + '◬';
+          }
+          return term;
+        }, '').toLowerCase();
+        coincideTexto = dataStr.indexOf(textoBuscado) !== -1;
+      }
+      
+      return coincideEstado && coincideTexto;
+    };
+  }
+
+  aplicarFiltrosCombinados(): void {
+    const filtroCombinado = {
+      texto: this.textoBusquedaGeneral,
+      estado: this.estadoFiltroSeleccionado
+    };
+    this.dataSource.filter = JSON.stringify(filtroCombinado);
+  }
+
+  aplicarFiltroTexto(event: Event) {
+    this.textoBusquedaGeneral = (event.target as HTMLInputElement).value;
+    this.aplicarFiltrosCombinados();
+  }
+
+  aplicarFiltroEstado(estado: string) {
+    this.estadoFiltroSeleccionado = estado;
+    this.aplicarFiltrosCombinados();
+  }
+  // 👆 FIN LÓGICA DE BÚSQUEDA COMBINADA 👆
 
   cargarClientesDirectorio(): void {
     this.clienteService.getClientes().subscribe({
@@ -139,35 +195,11 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     this.ordenService.getOrdenes().subscribe({
       next: (datos) => {
         this.dataSource.data = datos;
+        this.aplicarFiltrosCombinados(); // 👈 Re-aplicamos filtros al recargar
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Error al cargar órdenes', err)
     });
-  }
-
-  // 👇 NUEVA LÓGICA DE BÚSQUEDA 👇
-  aplicarFiltroOrdenes(event: Event) {
-    const filterValue = (event.target as HTMLInputElement).value;
-    
-    // Configuramos cómo Angular va a buscar dentro de cada fila
-    this.dataSource.filterPredicate = (data: any, filter: string) => {
-      const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
-        // Buscamos en los campos principales (OP y Cliente)
-        let term = currentTerm + (data as { [key: string]: any })[key] + '◬';
-        
-        // Si la fila tiene equipos (productos), también buscamos dentro de ellos
-        if (key === 'equipos' && data.equipos && data.equipos.length) {
-          const productosNombres = data.equipos.map((e: any) => e.nombre_producto || e.descripcion).join(' ');
-          term += productosNombres + '◬';
-        }
-        return term;
-      }, '').toLowerCase();
-      
-      const transformedFilter = filter.trim().toLowerCase();
-      return dataStr.indexOf(transformedFilter) != -1;
-    };
-
-    this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
   obtenerModeloVacio() {
@@ -538,7 +570,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // 👇 NUEVA FUNCIÓN: Imprimir sin costos (Solo Materiales) 👇
   imprimirRecetaEquipoSinCostos(): void {
     if (!this.recetaViendo || !this.recetaViendo.receta_historica) {
       this.snackBar.open('⚠️ No hay datos para imprimir', 'Cerrar', { duration: 3000 });
@@ -843,7 +874,6 @@ export class OrdenesProduccionComponent implements OnInit, AfterViewInit {
     return `${horas}h ${minutos}m`;
   }
 
-  // 👇 NUEVA FUNCIÓN PARA COLORES DE ESTADO 👇
   obtenerColorEstado(estado: string): string {
     if (!estado) return '#e65100'; // Por defecto Naranja (EN COLA)
     switch (estado.toUpperCase()) {

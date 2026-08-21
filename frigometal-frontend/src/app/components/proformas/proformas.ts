@@ -34,7 +34,6 @@ import { MaterialService } from '../../services/material';
 export class ProformasComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<any>([]);
-  // 👇 Añadido 'estado' a la tabla 👇
   columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'estado', 'acciones'];
   
   @ViewChild(MatSort) sort!: MatSort;
@@ -52,6 +51,11 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   
   nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
   
+  // 👇 VARIABLES PARA LOS FILTROS 👇
+  textoBusquedaGeneral: string = '';
+  estadoFiltroSeleccionado: string = 'TODOS';
+  listaEstados: string[] = ['PENDIENTE DE APROBACIÓN', 'EN COLA', 'EN PROGRESO', 'PAUSADO', 'TERMINADO'];
+
   constructor(
     private proformaService: ProformaService,
     private productoService: ProductoService, 
@@ -66,29 +70,61 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
     this.cargarClientesDirectorio();
     this.materialService.getMateriales().subscribe(res => this.materialesBodega = res);
+    this.configurarFiltroPersonalizado(); // 👈 Inicializamos el filtro
   }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
   }
 
-  // 👇 LÓGICA DE BÚSQUEDA Y FILTRADO 👇
-  aplicarFiltroProformas(event: Event) {
-    const filterValue = (event.target as HTMLInputElement).value;
-    
+  // 👇 NUEVA LÓGICA DE BÚSQUEDA COMBINADA (TEXTO + ESTADO) 👇
+  configurarFiltroPersonalizado(): void {
     this.dataSource.filterPredicate = (data: any, filter: string) => {
-      const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
-        return currentTerm + (data as { [key: string]: any })[key] + '◬';
-      }, '').toLowerCase();
+      // El filter que recibe Angular será un JSON en string con nuestros dos valores
+      const busqueda = JSON.parse(filter);
       
-      const transformedFilter = filter.trim().toLowerCase();
-      return dataStr.indexOf(transformedFilter) != -1;
+      // 1. Verificamos el estado
+      const estadoFila = data.estado || 'PENDIENTE DE APROBACIÓN';
+      const coincideEstado = busqueda.estado === 'TODOS' || estadoFila.toUpperCase() === busqueda.estado;
+      
+      // 2. Verificamos el texto
+      const textoBuscado = busqueda.texto.trim().toLowerCase();
+      let coincideTexto = true;
+      
+      if (textoBuscado) {
+        const dataStr = Object.keys(data).reduce((currentTerm: string, key: string) => {
+          return currentTerm + (data as { [key: string]: any })[key] + '◬';
+        }, '').toLowerCase();
+        coincideTexto = dataStr.indexOf(textoBuscado) !== -1;
+      }
+      
+      // La fila se muestra SOLO si coincide en ambas cosas
+      return coincideEstado && coincideTexto;
     };
-
-    this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
-  // 👇 COLORES DE LOS ESTADOS 👇
+  aplicarFiltrosCombinados(): void {
+    // Empaquetamos los dos filtros en un solo string para que Angular lo procese
+    const filtroCombinado = {
+      texto: this.textoBusquedaGeneral,
+      estado: this.estadoFiltroSeleccionado
+    };
+    this.dataSource.filter = JSON.stringify(filtroCombinado);
+  }
+
+  // Se llama desde el input de texto
+  aplicarFiltroTexto(event: Event) {
+    this.textoBusquedaGeneral = (event.target as HTMLInputElement).value;
+    this.aplicarFiltrosCombinados();
+  }
+
+  // Se llama desde el select de estado
+  aplicarFiltroEstado(estado: string) {
+    this.estadoFiltroSeleccionado = estado;
+    this.aplicarFiltrosCombinados();
+  }
+  // 👆 FIN LÓGICA DE BÚSQUEDA COMBINADA 👆
+
   obtenerColorEstado(estado: string): string {
     if (!estado) return '#607d8b'; // PENDIENTE DE APROBACIÓN
     switch (estado.toUpperCase()) {
@@ -137,7 +173,11 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   }
 
   cargarProformas(): void {
-    this.proformaService.getProformas().subscribe(res => this.dataSource.data = res);
+    this.proformaService.getProformas().subscribe(res => {
+      this.dataSource.data = res;
+      // Re-aplicamos filtros por si recargan mientras hay un filtro activo
+      this.aplicarFiltrosCombinados();
+    });
   }
 
   obtenerModeloVacio() {
@@ -280,7 +320,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       this.proformaService.generarOP(proforma.id_proforma).subscribe({
         next: (res) => {
           this.snackBar.open(`✅ ¡Éxito! Se ha creado la OP Nº ${res.numero_op} en Producción.`, 'Genial', { duration: 5000 });
-          this.cargarProformas(); // Recargamos para actualizar el estado visual de la proforma
+          this.cargarProformas(); 
         },
         error: (err) => {
           const msg = err.error?.detail || 'Error al generar la OP';

@@ -220,7 +220,6 @@
               </div>
               
               <div style="display: flex; gap: 15px; align-items: center;">
-                <!-- 👇 NUEVO BOTÓN PARA IMPRIMIR SIN COSTOS 👇 -->
                 <button mat-stroked-button style="color: #f57c00; border-color: #f57c00; font-weight: bold; background: white;" (click)="imprimirRecetaEquipoSinCostos()" title="Imprimir Lista de Materiales (Sin Costos)">
                   <mat-icon>receipt</mat-icon> Solo Materiales
                 </button>
@@ -356,12 +355,25 @@
       </mat-card-actions>
     </mat-card>
   }
-  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA 👇 -->
-  <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-    <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+  
+  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA COMBINADA 👇 -->
+  <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;">
+    <mat-form-field appearance="outline" style="flex: 2; min-width: 250px; margin-bottom: -1.25em;">
       <mat-label>Buscar Orden de Producción...</mat-label>
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput (keyup)="aplicarFiltroOrdenes($event)" placeholder="Busca por cliente, OP o producto a fabricar..." autocomplete="off">
+      <input matInput (keyup)="aplicarFiltroTexto($event)" placeholder="Busca por cliente, OP o producto a fabricar..." autocomplete="off">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="flex: 1; min-width: 200px; margin-bottom: -1.25em;">
+      <mat-label>Filtrar por Estado</mat-label>
+      <mat-select [(ngModel)]="estadoFiltroSeleccionado" (ngModelChange)="aplicarFiltroEstado($event)">
+        <mat-option value="TODOS" style="font-weight: bold; color: #1976d2;">Ver Todos los Estados</mat-option>
+        @for (estado of listaEstados; track estado) {
+          <mat-option [value]="estado">
+            <span [style.color]="obtenerColorEstado(estado)" style="font-weight: bold;">{{ estado }}</span>
+          </mat-option>
+        }
+      </mat-select>
     </mat-form-field>
   </div>
 
@@ -438,7 +450,6 @@
         </td>
       </ng-container>
 
-      <!-- 👇 NUEVA COLUMNA DE ESTADO 👇 -->
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef style="text-align: center; background-color: white;"> Estado Producción </th>
         <td mat-cell *matCellDef="let orden" style="text-align: center;"> 
@@ -469,8 +480,8 @@
       <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" colspan="9" style="text-align: center; padding: 20px; color: gray;">
-          No hay órdenes de producción registradas.
+        <td class="mat-cell" colspan="10" style="text-align: center; padding: 20px; color: gray;">
+          No hay órdenes de producción que coincidan con los filtros.
         </td>
       </tr>
     </table>
