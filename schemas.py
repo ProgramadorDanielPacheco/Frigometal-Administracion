@@ -58,6 +58,7 @@ class ClienteResponse(ClienteBase):
         from_attributes = True
 
 class ClienteUpdate(BaseModel):
+    id_cliente: Optional[str] = None  # 👈 NUEVO: Permitimos recibir la cédula nueva
     nombre: Optional[str] = None
     nombre_comercial: Optional[str] = None
     telefono: Optional[str] = None

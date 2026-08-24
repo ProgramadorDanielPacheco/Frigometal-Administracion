@@ -35,6 +35,10 @@ export class ClientesComponent implements OnInit {
   // Variables del formulario
   mostrarFormulario: boolean = false;
   modoEdicion: boolean = false; 
+  
+  // 👇 NUEVO: Variable para recordar la cédula antes de editarla 👇
+  idOriginalEditando: string = '';
+
   nuevoCliente: Cliente = { id_cliente: '', nombre: '', nombre_comercial: '', telefono: '', correo: '', direccion: '' , ciudad:''};
 
   constructor(
@@ -70,6 +74,9 @@ export class ClientesComponent implements OnInit {
     this.modoEdicion = true;
     this.mostrarFormulario = true;
     
+    // 👇 NUEVO: Guardamos la cédula original en secreto 👇
+    this.idOriginalEditando = cliente.id_cliente;
+
     // Clonamos los datos para no afectar la tabla hasta que se guarde
     this.nuevoCliente = { ...cliente }; 
     
@@ -79,10 +86,11 @@ export class ClientesComponent implements OnInit {
 
   cancelarEdicion(): void {
     this.modoEdicion = false;
+    this.idOriginalEditando = ''; // Limpiamos la cédula original
     this.nuevoCliente = { id_cliente: '', nombre: '', nombre_comercial: '', telefono: '', correo: '', direccion: '', ciudad: '' };
   }
 
-  // 👇 LÓGICA DE GUARDADO CON "SOFT-FAIL" PARA EL SRI 👇
+  // 👇 LÓGICA DE GUARDADO 👇
   guardarCliente(): void {
     if (!this.nuevoCliente.id_cliente || !this.nuevoCliente.nombre) {
       this.snackBar.open('⚠️ La identificación y el nombre son obligatorios', 'Cerrar', { duration: 3000 });
@@ -92,6 +100,7 @@ export class ClientesComponent implements OnInit {
     if (this.modoEdicion) {
       // 🔵 MODO ACTUALIZAR
       const datosActualizar = {
+        id_cliente: this.nuevoCliente.id_cliente, // 👈 NUEVO: Mandamos la cédula nueva en los datos
         nombre: this.nuevoCliente.nombre,
         nombre_comercial: this.nuevoCliente.nombre_comercial,
         telefono: this.nuevoCliente.telefono,
@@ -100,7 +109,8 @@ export class ClientesComponent implements OnInit {
         ciudad: this.nuevoCliente.ciudad
       };
 
-      this.clienteService.actualizarCliente(this.nuevoCliente.id_cliente, datosActualizar).subscribe({
+      // 👈 FÍJATE AQUÍ: Usamos this.idOriginalEditando en la URL
+      this.clienteService.actualizarCliente(this.idOriginalEditando, datosActualizar).subscribe({
         next: () => {
           this.snackBar.open('✅ Cliente actualizado con éxito', 'Genial', { duration: 4000 });
           this.mostrarFormulario = false;
@@ -130,7 +140,6 @@ export class ClientesComponent implements OnInit {
             
             if (confirmar) {
               // Le decimos al backend que lo guarde ignorando las reglas
-              // Enviamos el cliente como 'any' para poder inyectarle la nueva bandera al vuelo
               const payloadConFuerza = { ...this.nuevoCliente, forzar_registro: true };
               
               this.clienteService.crearCliente(payloadConFuerza as any).subscribe({
@@ -147,7 +156,7 @@ export class ClientesComponent implements OnInit {
               });
             }
           } else {
-            // Cualquier otro error normal (ej. cliente ya existe)
+            // Cualquier otro error normal
             const mensajeError = err.error?.detail || 'Error al registrar el cliente';
             this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 4000 });
           }

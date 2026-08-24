@@ -351,27 +351,50 @@ def obtener_clientes(skip: int = 0, limit: int = 5000, db: Session = Depends(get
 
 @app.put("/clientes/{id_cliente}", response_model=schemas.ClienteResponse)
 def actualizar_cliente(id_cliente: str, cliente_update: schemas.ClienteUpdate, db: Session = Depends(get_db)):
+    # 1. Verificar si el cliente original existe
     cliente_db = db.query(models.Cliente).filter(models.Cliente.id_cliente == id_cliente).first()
-    
     if not cliente_db:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
-    if cliente_update.nombre is not None:
-        cliente_db.nombre = cliente_update.nombre
-    if cliente_update.nombre_comercial is not None:
-        cliente_db.nombre_comercial = cliente_update.nombre_comercial
-    if cliente_update.telefono is not None:
-        cliente_db.telefono = cliente_update.telefono
-    if cliente_update.correo is not None:
-        cliente_db.correo = cliente_update.correo
-    if cliente_update.direccion is not None:
-        cliente_db.direccion = cliente_update.direccion
-    if cliente_update.ciudad is not None:
-        cliente_db.ciudad = cliente_update.ciudad
+    # 2. Extraer los datos nuevos
+    nuevo_id = cliente_update.id_cliente if cliente_update.id_cliente is not None else id_cliente
+    nuevo_nombre = cliente_update.nombre if cliente_update.nombre is not None else cliente_db.nombre
+    
+    # 3. Si la cédula cambia, verificar que no le estemos robando la cédula a otro cliente existente
+    if nuevo_id != id_cliente:
+        existe_nuevo = db.query(models.Cliente).filter(models.Cliente.id_cliente == nuevo_id).first()
+        if existe_nuevo:
+            raise HTTPException(status_code=400, detail="La nueva cédula/RUC ya está registrada a nombre de otro cliente.")
 
-    db.commit()
-    db.refresh(cliente_db)
-    return cliente_db
+    # 4. Forzamos la actualización directa en la BD para que se active el ON UPDATE CASCADE
+    update_data = cliente_update.model_dump(exclude_unset=True)
+    db.query(models.Cliente).filter(models.Cliente.id_cliente == id_cliente).update(update_data, synchronize_session=False)
+
+    # 5. EFECTO DOMINÓ EXTRA: Actualizamos también los campos sueltos que no tienen Foreign Key
+    try:
+        if hasattr(models, 'OrdenProduccion'):
+            db.query(models.OrdenProduccion).filter(models.OrdenProduccion.cliente_cedula == id_cliente).update(
+                {"cliente_cedula": nuevo_id, "cliente_nombre": nuevo_nombre}, synchronize_session=False
+            )
+            
+        if hasattr(models, 'Proforma'):
+            db.query(models.Proforma).filter(models.Proforma.cliente_nombre == cliente_db.nombre).update(
+                {"cliente_nombre": nuevo_nombre}, synchronize_session=False
+            )
+            
+        if hasattr(models, 'OrdenPlanta'):
+            db.query(models.OrdenPlanta).filter(models.OrdenPlanta.cliente_nombre == cliente_db.nombre).update(
+                {"cliente_nombre": nuevo_nombre}, synchronize_session=False
+            )
+
+        db.commit()
+        
+        # Devolvemos el cliente con sus datos ya actualizados
+        return db.query(models.Cliente).filter(models.Cliente.id_cliente == nuevo_id).first()
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al actualizar la base de datos: {str(e)}")
 
 
 @app.delete("/clientes/{id_cliente}")
