@@ -10,6 +10,8 @@ from fastapi import UploadFile, File
 import pandas as pd
 import io
 import re
+import cloudinary
+import cloudinary.uploader
 # 👇 Añade esta importación al principio de main.py si no la tienes 👇
 from decimal import Decimal
 
@@ -43,6 +45,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"], # Permite GET, POST, PUT, DELETE
     allow_headers=["*"],
+)
+
+cloudinary.config(
+  cloud_name = "wkk0hcgh",
+  api_key = "488332793279851",
+  api_secret = "ncSapZ-OE69EmF5YBEeodqGJ9FY",
+  secure = True
 )
 
 
@@ -1832,6 +1841,15 @@ def crear_kpi_cuentas_cobrar(kpi: schemas.KpiCuentasCobrarCreate, db: Session = 
 @app.get("/proformas/", response_model=List[schemas.ProformaResponse])
 def obtener_proformas(db: Session = Depends(get_db)):
     return db.query(models.Proforma).order_by(models.Proforma.id_proforma.desc()).all()
+
+@app.post("/proformas/upload-imagen")
+def upload_imagen_proforma(file: UploadFile = File(...)):
+    try:
+        # Subimos la imagen a Cloudinary en una carpeta específica
+        resultado = cloudinary.uploader.upload(file.file, folder="proformas_frigometal")
+        return {"imagen_url": resultado.get("secure_url")}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al subir imagen a Cloudinary: {str(e)}")
 
 # 👇 ESTA ES LA FUNCIÓN QUE PROBABLEMENTE FALTABA (CREAR NUEVA) 👇
 @app.post("/proformas/", response_model=schemas.ProformaResponse)

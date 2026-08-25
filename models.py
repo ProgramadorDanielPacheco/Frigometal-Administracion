@@ -265,6 +265,7 @@ class Proforma(Base):
     validez = Column(String(50))
     # 👇 NUEVA COLUMNA 👇
     estado = Column(String(50), default='PENDIENTE DE APROBACIÓN')
+    imagen_url = Column(String(500), nullable=True)
 
 class ParametroPoliuretano(Base):
     __tablename__ = "parametros_poliuretano"

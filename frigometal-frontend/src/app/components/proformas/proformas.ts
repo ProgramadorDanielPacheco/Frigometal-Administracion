@@ -50,6 +50,9 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   materialesBodega: any[] = []; 
   
   nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
+
+  archivoSeleccionado: File | null = null;
+  vistaPreviaImagen: string | ArrayBuffer | null = null;
   
   // 👇 VARIABLES PARA LOS FILTROS 👇
   textoBusquedaGeneral: string = '';
@@ -202,6 +205,23 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
   }
 
+  onArchivoSeleccionado(event: any): void {
+    const archivo = event.target.files[0];
+    if (archivo) {
+      this.archivoSeleccionado = archivo;
+      // Creamos una URL temporal para mostrar la vista previa en pantalla
+      const reader = new FileReader();
+      reader.onload = e => this.vistaPreviaImagen = reader.result;
+      reader.readAsDataURL(archivo);
+    }
+  }
+
+  eliminarImagen(): void {
+    this.archivoSeleccionado = null;
+    this.vistaPreviaImagen = null;
+    this.nuevaProforma.imagen_url = null;
+  }
+
   editarProforma(proforma: any): void {
     this.modoEdicion = true;
     this.idEditando = proforma.id_proforma;
@@ -210,9 +230,12 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.nuevaProforma = { ...proforma };
     if (!this.nuevaProforma.detalles) this.nuevaProforma.detalles = [];
     
+    // 👇 NUEVO: Cargamos la imagen si ya existía
+    this.vistaPreviaImagen = this.nuevaProforma.imagen_url || null;
+    this.archivoSeleccionado = null; 
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-
   seleccionarProductoCatalogo(idProducto: number): void {
     const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
     if (prod) {
@@ -268,8 +291,30 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       this.snackBar.open('Faltan datos clave', 'Cerrar'); return;
     }
     
+    // Si hay una nueva imagen seleccionada, la subimos primero a Cloudinary
+    if (this.archivoSeleccionado) {
+      this.snackBar.open('⏳ Subiendo imagen a la nube...', '', { duration: 2000 });
+      this.proformaService.subirImagen(this.archivoSeleccionado).subscribe({
+        next: (res) => {
+          this.nuevaProforma.imagen_url = res.imagen_url;
+          this.ejecutarGuardadoFinal(); // Función que hace el guardado en BD
+        },
+        error: () => {
+          this.snackBar.open('❌ Error al subir la imagen.', 'Cerrar', { duration: 4000 });
+        }
+      });
+    } else {
+      // Si no hay imagen nueva, guardamos directo
+      this.ejecutarGuardadoFinal();
+    }
+  }
+
+  // Se separó esta lógica para poder llamarla después de subir la imagen
+  ejecutarGuardadoFinal(): void {
     const payload = { ...this.nuevaProforma };
     if (payload.fecha_emision) payload.fecha_emision = new Date(payload.fecha_emision).toISOString().split('T')[0];
+
+    this.snackBar.open('⏳ Guardando Proforma...', '', { duration: 1500 });
 
     if (this.modoEdicion && this.idEditando) {
       this.proformaService.actualizarProforma(this.idEditando, payload).subscribe({
@@ -277,11 +322,11 @@ export class ProformasComponent implements OnInit, AfterViewInit {
           this.snackBar.open('✅ Proforma Actualizada', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
+          this.eliminarImagen(); // Limpiamos la memoria
           this.cargarProformas();
         },
         error: (err) => {
-          const mensajeError = err.error?.detail || 'Error al actualizar';
-          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 8000 });
+          this.snackBar.open(`❌ ${err.error?.detail || 'Error al actualizar'}`, 'Cerrar', { duration: 8000 });
         }
       });
     } else {
@@ -290,11 +335,11 @@ export class ProformasComponent implements OnInit, AfterViewInit {
           this.snackBar.open('✅ Proforma Guardada', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
+          this.eliminarImagen(); // Limpiamos la memoria
           this.cargarProformas();
         },
         error: (err) => {
-          const mensajeError = err.error?.detail || 'Error al guardar';
-          this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { duration: 8000 });
+          this.snackBar.open(`❌ ${err.error?.detail || 'Error al guardar'}`, 'Cerrar', { duration: 8000 });
         }
       });
     }
@@ -412,6 +457,11 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               <div class="client-row"><div class="client-label">FECHA DE EMISIÓN:</div><div class="client-value">${fechaFormateada}</div></div>
               <div class="client-row"><div class="client-label">TRABAJO:</div><div class="client-value">${proforma.trabajo || 'Fabricación de Equipos'}</div></div>
             </div>
+            ${proforma.imagen_url ? `
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img src="${proforma.imagen_url}" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid #ccc;">
+            </div>
+            ` : ''}
 
             <table class="table-striped">
               <thead>

@@ -22,4 +22,11 @@ export class ProformaService {
   generarOP(id: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}${id}/generar-op`, {});
   }
+
+  subirImagen(archivo: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', archivo);
+    // Nota: enviamos esto al nuevo endpoint sin usar JSON, usando FormData
+    return this.http.post<any>(`${this.apiUrl}upload-imagen`, formData);
+  }
 }
