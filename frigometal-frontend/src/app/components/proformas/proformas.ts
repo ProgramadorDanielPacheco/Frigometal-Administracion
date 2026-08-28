@@ -34,7 +34,8 @@ import { MaterialService } from '../../services/material';
 export class ProformasComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<any>([]);
-  columnasMostradas: string[] = ['numero_proforma', 'cliente', 'fecha', 'precio_total', 'estado', 'acciones'];
+  // 👇 Añadimos 'imagen' al principio de la tabla 👇
+  columnasMostradas: string[] = ['imagen', 'numero_proforma', 'cliente', 'fecha', 'precio_total', 'estado', 'acciones'];
   
   @ViewChild(MatSort) sort!: MatSort;
 
