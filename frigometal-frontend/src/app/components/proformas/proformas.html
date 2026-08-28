@@ -94,6 +94,18 @@
             </mat-select>
           </mat-form-field>
 
+          <div style="display: flex; align-items: center; gap: 5px; margin-bottom: -1em;">
+            <button mat-icon-button type="button" color="primary" (click)="fileInputDetalle.click()" [disabled]="subiendoImagen" matTooltip="Adjuntar plano/foto a este equipo">
+              <mat-icon>{{ subiendoImagen ? 'hourglass_empty' : 'add_a_photo' }}</mat-icon>
+            </button>
+            <input type="file" #fileInputDetalle (change)="onArchivoSeleccionado($event)" accept="image/*" style="display: none;">
+            
+            <div *ngIf="nuevoDetalle.imagen_url" style="position: relative;">
+              <img [src]="nuevoDetalle.imagen_url" style="height: 40px; width: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #1976d2;">
+              <mat-icon style="position: absolute; top: -8px; right: -8px; font-size: 16px; color: red; cursor: pointer; background: white; border-radius: 50%;" (click)="quitarImagenDetalle()">cancel</mat-icon>
+            </div>
+          </div>
+
           <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1em;">
             <mat-label>Costo ($)</mat-label>
             <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()" matTooltip="Costo según Receta de Producción">
@@ -109,7 +121,7 @@
             <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" style="font-weight: bold; color: #2e7d32;">
           </mat-form-field>
 
-          <button mat-raised-button color="accent" style="margin-bottom: -1em;" (click)="agregarDetalle()">
+          <button mat-raised-button color="accent" style="margin-bottom: -1em;" (click)="agregarDetalle()" [disabled]="subiendoImagen">
             <mat-icon>add</mat-icon>
           </button>
         </div>
@@ -117,9 +129,12 @@
         <div style="margin-top: 15px;">
           @for (d of nuevaProforma.detalles; track d; let i = $index) {
             <div style="display: flex; justify-content: space-between; padding: 10px; background: white; border-bottom: 1px solid #ddd; align-items: center;">
-              <div>
-                <span style="font-weight: bold; font-size: 1.1em;">{{d.cantidad}}x</span> - {{d.descripcion}} 
-                <div style="color: gray; font-size: 0.85em; margin-top: 2px;">(Costo Receta: ${{d.precio_unitario}} c/u | Utilidad: {{d.utilidad}}%)</div>
+              <div style="display: flex; align-items: center; gap: 15px;">
+                <img *ngIf="d.imagen_url" [src]="d.imagen_url" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc;">
+                <div>
+                  <span style="font-weight: bold; font-size: 1.1em;">{{d.cantidad}}x</span> - {{d.descripcion}} 
+                  <div style="color: gray; font-size: 0.85em; margin-top: 2px;">(Costo: ${{d.precio_unitario}} c/u | Utilidad: {{d.utilidad}}%)</div>
+                </div>
               </div>
               <div style="text-align: right;">
                 <span style="font-size: 1.2em; color: #1976d2;"><b>${{d.precio_total | number:'1.2-2'}}</b></span> 
@@ -129,26 +144,6 @@
           }
         </div>
         <h2 style="text-align: right; color: #2e7d32; margin-top: 15px; font-size: 1.8rem;">TOTAL: ${{ nuevaProforma.precio_total | number:'1.2-2' }}</h2>
-        <!-- 👇 NUEVA SECCIÓN DE IMAGEN 👇 -->
-      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed #ccc;">
-        <h3 style="color: #555; margin-bottom: 10px;">Imagen de Referencia (Opcional)</h3>
-        
-        <div style="display: flex; gap: 20px; align-items: flex-start;">
-          <button mat-stroked-button color="primary" type="button" (click)="fileInput.click()" style="height: 50px;">
-            <mat-icon>cloud_upload</mat-icon> Seleccionar Imagen
-          </button>
-          <input type="file" #fileInput (change)="onArchivoSeleccionado($event)" accept="image/*" style="display: none;">
-
-          <!-- Vista previa de la imagen -->
-          <div *ngIf="vistaPreviaImagen" style="position: relative; display: inline-block;">
-            <img [src]="vistaPreviaImagen" style="height: 120px; border-radius: 8px; border: 2px solid #1976d2; object-fit: cover;">
-            <button mat-mini-fab color="warn" style="position: absolute; top: -10px; right: -10px; transform: scale(0.8);" (click)="eliminarImagen()" matTooltip="Quitar imagen">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        </div>
-      </div>
-      <!-- 👆 FIN SECCIÓN DE IMAGEN 👆 -->
       </div>
 
       <div style="display: flex; gap: 15px;">
@@ -163,7 +158,6 @@
     </mat-card>
   }
 
-  <!-- 👇 NUEVO: BARRA DE BÚSQUEDA Y FILTRO DE ESTADO 👇 -->
   <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;">
     
     <mat-form-field appearance="outline" style="flex: 2; min-width: 250px; margin-bottom: -1.25em;">
@@ -187,29 +181,29 @@
   </div>
 
   <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_proforma" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
-    <!-- 👇 NUEVA COLUMNA DE IMAGEN EN LA TABLA 👇 -->
+    
     <ng-container matColumnDef="imagen">
       <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 80px;"> Foto </th>
       <td mat-cell *matCellDef="let p" style="text-align: center; padding: 8px 5px;">
         
-        <!-- Si tiene imagen -->
-        <a *ngIf="p.imagen_url" [href]="p.imagen_url" target="_blank" title="Ver imagen original en grande">
-          <img [src]="p.imagen_url" 
-               style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: zoom-in; transition: transform 0.2s ease-in-out;" 
-               onmouseover="this.style.transform='scale(1.15)'" 
-               onmouseout="this.style.transform='scale(1)'"
-               alt="Ref">
-        </a>
+        <ng-container *ngIf="p.detalles?.length > 0 && p.detalles[0].imagen_url; else sinImagen">
+          <a [href]="p.detalles[0].imagen_url" target="_blank" title="Ver imagen original">
+            <img [src]="p.detalles[0].imagen_url" 
+                 style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: zoom-in; transition: transform 0.2s ease-in-out;" 
+                 onmouseover="this.style.transform='scale(1.15)'" 
+                 onmouseout="this.style.transform='scale(1)'">
+          </a>
+        </ng-container>
 
-        <!-- Si NO tiene imagen (Placeholder) -->
-        <div *ngIf="!p.imagen_url" 
-             style="width: 55px; height: 55px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" 
-             title="Sin imagen de referencia">
-          <mat-icon style="color: #bdbdbd; font-size: 20px; width: 20px; height: 20px;">image_not_supported</mat-icon>
-        </div>
+        <ng-template #sinImagen>
+          <div style="width: 55px; height: 55px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin imagen de referencia">
+            <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
+          </div>
+        </ng-template>
 
       </td>
     </ng-container>
+
     <ng-container matColumnDef="numero_proforma">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Nº</th>
       <td mat-cell *matCellDef="let p"><b>{{p.numero_proforma}}</b></td>
@@ -251,7 +245,6 @@
           <mat-icon>print</mat-icon>
         </button>
 
-        <!-- 👇 CONDICIONAL DE APROBACIÓN 👇 -->
         <button mat-icon-button style="color: #2e7d32;" (click)="generarOPDesdeProforma(p)" title="Aprobar y Enviar a Producción" *ngIf="!p.estado || p.estado === 'PENDIENTE DE APROBACIÓN'">
           <mat-icon>precision_manufacturing</mat-icon>
         </button>
@@ -267,7 +260,7 @@
     <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
     <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="6" style="text-align: center; padding: 30px; color: gray;">
+      <td class="mat-cell" colspan="7" style="text-align: center; padding: 30px; color: gray;">
         No se encontraron proformas con los filtros actuales.
       </td>
     </tr>

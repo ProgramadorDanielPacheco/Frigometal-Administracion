@@ -34,7 +34,6 @@ import { MaterialService } from '../../services/material';
 export class ProformasComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<any>([]);
-  // 👇 Añadimos 'imagen' al principio de la tabla 👇
   columnasMostradas: string[] = ['imagen', 'numero_proforma', 'cliente', 'fecha', 'precio_total', 'estado', 'acciones'];
   
   @ViewChild(MatSort) sort!: MatSort;
@@ -50,12 +49,9 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   filtroProductos: string = ''; 
   materialesBodega: any[] = []; 
   
-  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
-
-  archivoSeleccionado: File | null = null;
-  vistaPreviaImagen: string | ArrayBuffer | null = null;
+  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
+  subiendoImagen: boolean = false;
   
-  // 👇 VARIABLES PARA LOS FILTROS 👇
   textoBusquedaGeneral: string = '';
   estadoFiltroSeleccionado: string = 'TODOS';
   listaEstados: string[] = ['PENDIENTE DE APROBACIÓN', 'EN COLA', 'EN PROGRESO', 'PAUSADO', 'TERMINADO'];
@@ -74,24 +70,20 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.productoService.getProductos().subscribe(res => this.productosCatalogo = res);
     this.cargarClientesDirectorio();
     this.materialService.getMateriales().subscribe(res => this.materialesBodega = res);
-    this.configurarFiltroPersonalizado(); // 👈 Inicializamos el filtro
+    this.configurarFiltroPersonalizado(); 
   }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
   }
 
-  // 👇 NUEVA LÓGICA DE BÚSQUEDA COMBINADA (TEXTO + ESTADO) 👇
   configurarFiltroPersonalizado(): void {
     this.dataSource.filterPredicate = (data: any, filter: string) => {
-      // El filter que recibe Angular será un JSON en string con nuestros dos valores
       const busqueda = JSON.parse(filter);
       
-      // 1. Verificamos el estado
       const estadoFila = data.estado || 'PENDIENTE DE APROBACIÓN';
       const coincideEstado = busqueda.estado === 'TODOS' || estadoFila.toUpperCase() === busqueda.estado;
       
-      // 2. Verificamos el texto
       const textoBuscado = busqueda.texto.trim().toLowerCase();
       let coincideTexto = true;
       
@@ -102,13 +94,11 @@ export class ProformasComponent implements OnInit, AfterViewInit {
         coincideTexto = dataStr.indexOf(textoBuscado) !== -1;
       }
       
-      // La fila se muestra SOLO si coincide en ambas cosas
       return coincideEstado && coincideTexto;
     };
   }
 
   aplicarFiltrosCombinados(): void {
-    // Empaquetamos los dos filtros en un solo string para que Angular lo procese
     const filtroCombinado = {
       texto: this.textoBusquedaGeneral,
       estado: this.estadoFiltroSeleccionado
@@ -116,27 +106,24 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.dataSource.filter = JSON.stringify(filtroCombinado);
   }
 
-  // Se llama desde el input de texto
   aplicarFiltroTexto(event: Event) {
     this.textoBusquedaGeneral = (event.target as HTMLInputElement).value;
     this.aplicarFiltrosCombinados();
   }
 
-  // Se llama desde el select de estado
   aplicarFiltroEstado(estado: string) {
     this.estadoFiltroSeleccionado = estado;
     this.aplicarFiltrosCombinados();
   }
-  // 👆 FIN LÓGICA DE BÚSQUEDA COMBINADA 👆
 
   obtenerColorEstado(estado: string): string {
-    if (!estado) return '#607d8b'; // PENDIENTE DE APROBACIÓN
+    if (!estado) return '#607d8b';
     switch (estado.toUpperCase()) {
-      case 'TERMINADO': return '#2e7d32'; // Verde
-      case 'EN PROGRESO': return '#1565c0'; // Azul
-      case 'PAUSADO': return '#c62828'; // Rojo
-      case 'EN COLA': return '#e65100'; // Naranja
-      case 'PENDIENTE DE APROBACIÓN': return '#607d8b'; // Gris Azulado
+      case 'TERMINADO': return '#2e7d32'; 
+      case 'EN PROGRESO': return '#1565c0'; 
+      case 'PAUSADO': return '#c62828'; 
+      case 'EN COLA': return '#e65100'; 
+      case 'PENDIENTE DE APROBACIÓN': return '#607d8b'; 
       default: return '#607d8b'; 
     }
   }
@@ -179,7 +166,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   cargarProformas(): void {
     this.proformaService.getProformas().subscribe(res => {
       this.dataSource.data = res;
-      // Re-aplicamos filtros por si recargan mientras hay un filtro activo
       this.aplicarFiltrosCombinados();
     });
   }
@@ -203,24 +189,32 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.modoEdicion = false;
     this.idEditando = null;
     this.nuevaProforma = this.obtenerModeloVacio();
-    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
   }
 
   onArchivoSeleccionado(event: any): void {
     const archivo = event.target.files[0];
     if (archivo) {
-      this.archivoSeleccionado = archivo;
-      // Creamos una URL temporal para mostrar la vista previa en pantalla
-      const reader = new FileReader();
-      reader.onload = e => this.vistaPreviaImagen = reader.result;
-      reader.readAsDataURL(archivo);
+      this.subiendoImagen = true;
+      this.snackBar.open('⏳ Subiendo plano/foto a la nube...', '', { duration: 3000 });
+      
+      this.proformaService.subirImagen(archivo).subscribe({
+        next: (res) => {
+          this.nuevoDetalle.imagen_url = res.imagen_url;
+          this.subiendoImagen = false;
+          this.snackBar.open('✅ Imagen adjuntada al equipo', 'OK', { duration: 2000 });
+        },
+        error: () => {
+          this.subiendoImagen = false;
+          this.snackBar.open('❌ Error al subir imagen.', 'Cerrar', { duration: 4000 });
+        }
+      });
+      event.target.value = ''; 
     }
   }
 
-  eliminarImagen(): void {
-    this.archivoSeleccionado = null;
-    this.vistaPreviaImagen = null;
-    this.nuevaProforma.imagen_url = null;
+  quitarImagenDetalle(): void {
+    this.nuevoDetalle.imagen_url = null;
   }
 
   editarProforma(proforma: any): void {
@@ -231,12 +225,9 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.nuevaProforma = { ...proforma };
     if (!this.nuevaProforma.detalles) this.nuevaProforma.detalles = [];
     
-    // 👇 NUEVO: Cargamos la imagen si ya existía
-    this.vistaPreviaImagen = this.nuevaProforma.imagen_url || null;
-    this.archivoSeleccionado = null; 
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
   seleccionarProductoCatalogo(idProducto: number): void {
     const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
     if (prod) {
@@ -275,7 +266,9 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     if (!this.nuevoDetalle.descripcion) return;
     this.nuevaProforma.detalles.push({ ...this.nuevoDetalle });
     this.recalcularTotalGeneral();
-    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0 };
+    
+    // Reseteamos limpiando todo, incluyendo la imagen
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
   }
 
   eliminarDetalle(index: number): void {
@@ -292,26 +285,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       this.snackBar.open('Faltan datos clave', 'Cerrar'); return;
     }
     
-    // Si hay una nueva imagen seleccionada, la subimos primero a Cloudinary
-    if (this.archivoSeleccionado) {
-      this.snackBar.open('⏳ Subiendo imagen a la nube...', '', { duration: 2000 });
-      this.proformaService.subirImagen(this.archivoSeleccionado).subscribe({
-        next: (res) => {
-          this.nuevaProforma.imagen_url = res.imagen_url;
-          this.ejecutarGuardadoFinal(); // Función que hace el guardado en BD
-        },
-        error: () => {
-          this.snackBar.open('❌ Error al subir la imagen.', 'Cerrar', { duration: 4000 });
-        }
-      });
-    } else {
-      // Si no hay imagen nueva, guardamos directo
-      this.ejecutarGuardadoFinal();
-    }
-  }
-
-  // Se separó esta lógica para poder llamarla después de subir la imagen
-  ejecutarGuardadoFinal(): void {
     const payload = { ...this.nuevaProforma };
     if (payload.fecha_emision) payload.fecha_emision = new Date(payload.fecha_emision).toISOString().split('T')[0];
 
@@ -323,7 +296,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
           this.snackBar.open('✅ Proforma Actualizada', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
-          this.eliminarImagen(); // Limpiamos la memoria
           this.cargarProformas();
         },
         error: (err) => {
@@ -336,7 +308,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
           this.snackBar.open('✅ Proforma Guardada', 'OK', { duration: 5000 });
           this.mostrarFormulario = false;
           this.cancelarEdicion();
-          this.eliminarImagen(); // Limpiamos la memoria
           this.cargarProformas();
         },
         error: (err) => {
@@ -383,10 +354,13 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       proforma.detalles.forEach((d: any) => {
         filasDetalles += `
           <tr>
-            <td style="text-align: left; padding: 10px;">${d.descripcion}</td>
-            <td style="text-align: center;">${d.cantidad}</td>
-            <td style="text-align: right;">$ ${Number(d.precio_unitario).toFixed(2)}</td>
-            <td style="text-align: right; font-weight: bold;">$ ${Number(d.precio_total).toFixed(2)}</td>
+            <td style="text-align: left; padding: 10px;">
+              <strong>${d.descripcion}</strong>
+              ${d.imagen_url ? `<br><img src="${d.imagen_url}" style="margin-top: 8px; max-height: 90px; border-radius: 4px; border: 1px solid #ddd;">` : ''}
+            </td>
+            <td style="text-align: center; vertical-align: top; padding-top: 10px;">${d.cantidad}</td>
+            <td style="text-align: right; vertical-align: top; padding-top: 10px;">$ ${Number(d.precio_unitario).toFixed(2)}</td>
+            <td style="text-align: right; font-weight: bold; vertical-align: top; padding-top: 10px;">$ ${Number(d.precio_total).toFixed(2)}</td>
           </tr>
         `;
       });
@@ -458,11 +432,6 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               <div class="client-row"><div class="client-label">FECHA DE EMISIÓN:</div><div class="client-value">${fechaFormateada}</div></div>
               <div class="client-row"><div class="client-label">TRABAJO:</div><div class="client-value">${proforma.trabajo || 'Fabricación de Equipos'}</div></div>
             </div>
-            ${proforma.imagen_url ? `
-            <div style="text-align: center; margin-bottom: 20px;">
-              <img src="${proforma.imagen_url}" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid #ccc;">
-            </div>
-            ` : ''}
 
             <table class="table-striped">
               <thead>
@@ -515,7 +484,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
             </div>
 
             <div class="note-box">
-              NOTA: Todas las mercancías despachadas por Frigo Metal seguirán siendo de nuestra propiedad hasta la cancelación total de las facturas y posibles saldos pendientes a nuestro favor que con ellas se relacionen.
+              NOTA: Todas las mercancías despachadas por Frigo Metal seguirán siendo de nuestra propiedad hasta la cancelación total de las facturas y posibles saldos pendientes a favor.
             </div>
 
             <div class="signatures">

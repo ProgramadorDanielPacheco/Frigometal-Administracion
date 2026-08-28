@@ -517,6 +517,7 @@ class ProformaDetalle(BaseModel):
     descripcion: str
     precio_unitario: float
     precio_total: float
+    imagen_url: Optional[str] = None
 
 class ProformaBase(BaseModel):
     numero_proforma: str
@@ -532,7 +533,7 @@ class ProformaBase(BaseModel):
     forma_pago: Optional[str] = "Abono 60% antes de iniciar la obra y 40% antes de la entrega."
     validez: Optional[str] = "15 dias"
     estado: Optional[str] = "PENDIENTE DE APROBACIÓN"
-    imagen_url: Optional[str] = None
+ 
 
 class ProformaCreate(ProformaBase):
     pass
@@ -556,7 +557,7 @@ class ProformaUpdate(BaseModel):
     forma_pago: Optional[str] = None
     validez: Optional[str] = None
     estado: Optional[str] = None
-    imagen_url: Optional[str] = None
+
 
 class ParametroPoliuretanoBase(BaseModel):
     parte: str
