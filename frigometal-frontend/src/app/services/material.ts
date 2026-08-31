@@ -9,6 +9,7 @@ export interface Material {
   stock_minimo_alerta: number;
   unidad_medida: string;
   precio_unitario: number; // 👈 Agregado
+  imagenes?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +36,12 @@ export class MaterialService {
   // 👇 NUEVA FUNCIÓN PARA ELIMINAR MATERIAL 👇
   eliminarMaterial(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}${id}`);
+  }
+
+  subirImagen(archivo: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', archivo);
+    return this.http.post<any>(`${this.apiUrl}upload-imagen`, formData);
   }
 
    importarMaterilesExcel(archivo: File): Observable<any> {

@@ -54,6 +54,12 @@ cloudinary.config(
   secure = True
 )
 
+CREDENCIALES_INVENTARIO = {
+    "cloud_name": "i81ejdn6",
+    "api_key": "153576114754667",
+    "api_secret": "uokuskwWcHhwKxqb3uiMphh1UmE"
+}
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -779,6 +785,8 @@ def actualizar_material(id_material: int, material_actualizado: schemas.Material
     
     return material_db
 
+
+
 @app.post("/estructura-producto/", response_model=schemas.EstructuraProductoResponse)
 def agregar_material_a_producto(estructura: schemas.EstructuraProductoCreate, db: Session = Depends(get_db)):
     
@@ -1497,6 +1505,19 @@ def eliminar_material(id_material: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="No se puede eliminar el material porque ya está siendo usado en una receta de producto.")
 # 👆 HASTA AQUÍ 👆
 
+@app.post("/materiales/upload-imagen")
+def upload_imagen_material(file: UploadFile = File(...)):
+    try:
+        # Usamos **CREDENCIALES_INVENTARIO para forzar la segunda cuenta
+        resultado = cloudinary.uploader.upload(
+            file.file, 
+            folder="inventario_frigometal",
+            **CREDENCIALES_INVENTARIO
+        )
+        return {"imagen_url": resultado.get("secure_url")}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error en Cloudinary Inventario: {str(e)}")
+
 # ==========================================
 # RUTAS PARA EL DASHBOARD (KPIs)
 # ==========================================
@@ -1845,11 +1866,11 @@ def obtener_proformas(db: Session = Depends(get_db)):
 @app.post("/proformas/upload-imagen")
 def upload_imagen_proforma(file: UploadFile = File(...)):
     try:
-        # Subimos la imagen a Cloudinary en una carpeta específica
+        # Al no pasarle credenciales, usa automáticamente la Cuenta 1 (Global)
         resultado = cloudinary.uploader.upload(file.file, folder="proformas_frigometal")
         return {"imagen_url": resultado.get("secure_url")}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al subir imagen a Cloudinary: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error en Cloudinary: {str(e)}")
 
 # 👇 ESTA ES LA FUNCIÓN QUE PROBABLEMENTE FALTABA (CREAR NUEVA) 👇
 @app.post("/proformas/", response_model=schemas.ProformaResponse)

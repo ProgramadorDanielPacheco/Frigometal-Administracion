@@ -28,7 +28,7 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 export class Inventario implements OnInit {
   // Usamos el DataSource oficial de Material
   dataSource = new MatTableDataSource<Material>([]);
-  columnasMostradas: string[] = ['id_material', 'nombre', 'stock_actual', 'precio_unitario', 'estado', 'acciones'];
+  columnasMostradas: string[] = ['imagen', 'id_material', 'nombre', 'stock_actual', 'precio_unitario', 'estado', 'acciones'];
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -37,12 +37,11 @@ export class Inventario implements OnInit {
 
   mostrarFormulario: boolean = false;
   guardando: boolean = false;
+  subiendoImagen: boolean = false;
   nuevoMaterial: Material = {
-    nombre: '',
-    stock_actual: 0,
-    stock_minimo_alerta: 5,
-    unidad_medida: 'Unidades',
-    precio_unitario: 0 // 👈 Inicializado en 0
+    nombre: '', stock_actual: 0, stock_minimo_alerta: 5, 
+    unidad_medida: 'Unidades', precio_unitario: 0, 
+    imagenes: [] // 👈 Inicializado vacío
   };
 
   modoEdicion: boolean = false;
@@ -92,15 +91,51 @@ export class Inventario implements OnInit {
     this.mostrarFormulario = !this.mostrarFormulario;
   }
 
+  onArchivosSeleccionados(event: any): void {
+    const archivos: FileList = event.target.files;
+    if (archivos && archivos.length > 0) {
+      this.subiendoImagen = true;
+      this.snackBar.open(`⏳ Subiendo ${archivos.length} imagen(es)...`, '', { duration: 3000 });
+      
+      if (!this.nuevoMaterial.imagenes) this.nuevoMaterial.imagenes = [];
+
+      // Convertimos FileList a Array para poder iterar más fácil
+      const archivosArray = Array.from(archivos);
+      let subidasCompletadas = 0;
+
+      archivosArray.forEach(archivo => {
+        this.materialService.subirImagen(archivo).subscribe({
+          next: (res) => {
+            this.nuevoMaterial.imagenes!.push(res.imagen_url);
+            subidasCompletadas++;
+            if (subidasCompletadas === archivosArray.length) {
+              this.subiendoImagen = false;
+              this.snackBar.open('✅ Todas las imágenes adjuntadas', 'OK', { duration: 3000 });
+            }
+          },
+          error: () => {
+            this.snackBar.open(`❌ Error al subir una imagen`, 'Cerrar', { duration: 4000 });
+            subidasCompletadas++;
+            if (subidasCompletadas === archivosArray.length) this.subiendoImagen = false;
+          }
+        });
+      });
+      event.target.value = ''; // Resetea el input
+    }
+  }
+
+  quitarImagen(index: number): void {
+    this.nuevoMaterial.imagenes!.splice(index, 1);
+  }
+
   editarMaterial(material: Material): void {
     this.modoEdicion = true;
     this.idMaterialEditando = material.id_material!;
     this.mostrarFormulario = true;
     
-    // Copiamos los datos del material al formulario para no modificar la tabla directamente
     this.nuevoMaterial = { ...material };
+    if (!this.nuevoMaterial.imagenes) this.nuevoMaterial.imagenes = []; // Previene nulos
     
-    // Subimos la pantalla hacia el formulario suavemente
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -167,7 +202,7 @@ export class Inventario implements OnInit {
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idMaterialEditando = null;
-    this.nuevoMaterial = { nombre: '', stock_actual: 0, stock_minimo_alerta: 5, unidad_medida: 'Unidades', precio_unitario: 0 };
+    this.nuevoMaterial = { nombre: '', stock_actual: 0, stock_minimo_alerta: 5, unidad_medida: 'Unidades', precio_unitario: 0, imagenes: [] };
   }
 
   aplicarFiltroTexto(event: Event) {

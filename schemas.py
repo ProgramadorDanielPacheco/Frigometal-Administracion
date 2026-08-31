@@ -96,6 +96,7 @@ class MaterialBase(BaseModel):
     stock_actual: Decimal = Decimal('0.0')
     stock_minimo_alerta: Decimal = Decimal('0.0')
     precio_unitario: Decimal = Decimal('0.0') # 👈 Agregado
+    imagenes: Optional[List[str]] = []
 
 class MaterialCreate(MaterialBase):
     pass
@@ -114,6 +115,7 @@ class MaterialUpdate(BaseModel):
     stock_actual: Optional[Decimal] = None
     stock_minimo_alerta: Optional[Decimal] = None
     precio_unitario: Optional[Decimal] = None # 👈 Agregado
+    imagenes: Optional[List[str]] = None
 
 class EstructuraProductoCreate(BaseModel):
     id_producto: int

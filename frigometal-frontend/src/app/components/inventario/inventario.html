@@ -80,6 +80,32 @@
           <input matInput type="number" [(ngModel)]="nuevoMaterial.precio_unitario" min="0" step="0.01">
         </mat-form-field>
 
+        <div style="width: 100%; margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; border: 1px dashed #ccc;">
+          <h4 style="margin-top: 0; color: #555;">Fotos / Planos de Referencia</h4>
+          
+          <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            
+            <!-- Botón para adjuntar múltiples archivos -->
+            <button mat-stroked-button color="primary" type="button" (click)="fileInputMaterial.click()" [disabled]="subiendoImagen" style="height: 60px;">
+              <mat-icon>{{ subiendoImagen ? 'hourglass_empty' : 'add_photo_alternate' }}</mat-icon> 
+              {{ subiendoImagen ? 'Subiendo...' : 'Añadir Imágenes' }}
+            </button>
+            <input type="file" #fileInputMaterial multiple (change)="onArchivosSeleccionados($event)" accept="image/*" style="display: none;">
+
+            <!-- Galería de miniaturas -->
+            @for (img of nuevoMaterial.imagenes; track img; let i = $index) {
+              <div style="position: relative; display: inline-block;">
+                <a [href]="img" target="_blank" title="Ver imagen completa">
+                  <img [src]="img" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #1976d2; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                </a>
+                <button mat-mini-fab color="warn" style="position: absolute; top: -10px; right: -10px; transform: scale(0.6);" (click)="quitarImagen(i)" matTooltip="Quitar imagen">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
       </mat-card-content>
 
       <mat-card-actions align="end" style="padding: 16px;">
@@ -110,6 +136,30 @@
 
  <div class="mat-elevation-z8" style="border-radius: 8px; overflow: hidden;">
     <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" style="width: 100%;">
+
+      <ng-container matColumnDef="imagen">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 70px;"> Foto </th>
+        <td mat-cell *matCellDef="let mat" style="text-align: center; padding: 8px 5px;">
+          
+          <!-- Si tiene imágenes, muestra la PRIMERA de la lista -->
+          <ng-container *ngIf="mat.imagenes && mat.imagenes.length > 0; else sinImagenMaterial">
+            <a [href]="mat.imagenes[0]" target="_blank" title="Ver galería (${mat.imagenes.length} fotos)">
+              <img [src]="mat.imagenes[0]" 
+                   style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: zoom-in;">
+              
+              <!-- Pequeño indicador si hay más de 1 foto -->
+              <span *ngIf="mat.imagenes.length > 1" style="position: absolute; margin-left: -20px; margin-top: 35px; background: #1976d2; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; font-weight: bold;">+{{mat.imagenes.length - 1}}</span>
+            </a>
+          </ng-container>
+
+          <ng-template #sinImagenMaterial>
+            <div style="width: 50px; height: 50px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin fotos">
+              <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
+            </div>
+          </ng-template>
+
+        </td>
+      </ng-container>
       
       <ng-container matColumnDef="id_material">
         <th mat-header-cell *matHeaderCellDef style="font-weight: bold;"> ID </th>
@@ -175,7 +225,7 @@
           [style.background-color]="soloStockBajo ? '#fff5f5' : 'inherit'"></tr>
 
       <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell" colspan="6" style="text-align: center; padding: 40px; color: #757575;">
+        <td class="mat-cell" colspan="7" style="text-align: center; padding: 40px; color: #757575;">
           <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
             <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: #bdbdbd;">search_off</mat-icon>
             <span style="font-size: 1.1rem;">No se encontraron materiales con los filtros aplicados.</span>

@@ -50,6 +50,7 @@ class Material(Base):
     stock_minimo_alerta = Column(Numeric(10, 2), default=0)
     # 👇 NUEVO CAMPO PARA EL COSTO 👇
     precio_unitario = Column(Numeric(10, 2), default=0.0)
+    imagenes = Column(JSON, default=[])
 
 class EstructuraProducto(Base):
     __tablename__ = "estructura_producto"
