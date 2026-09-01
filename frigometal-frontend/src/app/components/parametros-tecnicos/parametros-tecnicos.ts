@@ -11,7 +11,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatIconModule } from "@angular/material/icon";
 
 import { Producto, ProductoService } from '../../services/producto';
-import { ParametroPoliuretano, Parametros } from '../../services/parametros';
+import { ParametroPoliuretano, Parametros, PerfilCuartoFrio } from '../../services/parametros';
 
 @Component({
   selector: 'app-parametros-tecnicos',
@@ -33,6 +33,9 @@ export class ParametrosTecnicos implements OnInit {
   productoSeleccionado: Producto | null = null;
   filasPoliuretano: ParametroPoliuretano[] = [];
   guardando: boolean = false;
+
+  productoSeleccionadoPerfiles: Producto | null = null;
+  filasPerfiles: PerfilCuartoFrio[] = [];
 
   constructor(
     private productoService: ProductoService,
@@ -120,6 +123,69 @@ export class ParametrosTecnicos implements OnInit {
     this.parametros.guardarParametros(this.productoSeleccionado.id_producto, this.filasPoliuretano).subscribe({
       next: (resp) => {
         this.snackBar.open('✅ Parámetros guardados con éxito', 'Excelente', { duration: 3000 });
+        this.guardando = false;
+      },
+      error: (err) => {
+        this.snackBar.open('❌ Error al guardar datos', 'Cerrar', { duration: 4000 });
+        this.guardando = false;
+      }
+    });
+  }
+
+  esCuartoFrio(nombreProducto: string): boolean {
+    if (!nombreProducto) return false;
+    // Convierte a minúsculas y quita tildes para no fallar si escriben "Cuarto Frío"
+    const nombreNormalizado = nombreProducto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return nombreNormalizado.includes("cuarto frio");
+  }
+
+  abrirEstructura(prod: Producto): void {
+    this.cerrarPoliuretano(); // Cerramos el otro panel si estaba abierto
+    this.productoSeleccionadoPerfiles = prod;
+    this.filasPerfiles = [];
+    
+    this.cdr.detectChanges(); 
+    setTimeout(() => {
+      const panel = document.getElementById('panel-estructura');
+      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+
+    this.parametros.getPerfiles(prod.id_producto!).subscribe(datosExistentes => {
+      this.filasPerfiles = datosExistentes;
+      const faltantes = 5 - this.filasPerfiles.length;
+      for (let i = 0; i < faltantes; i++) {
+        this.agregarFilaPerfil();
+      }
+    });
+  }
+
+  cerrarEstructura(): void {
+    this.productoSeleccionadoPerfiles = null;
+    this.filasPerfiles = [];
+  }
+
+  agregarFilaPerfil(): void {
+    this.filasPerfiles.push({
+      cantidad: 1, nombre_canaleta: '', dim_1: null, dim_2: null, dim_3: null, largo: null
+    });
+  }
+
+  eliminarFilaPerfil(index: number): void {
+    this.filasPerfiles.splice(index, 1);
+  }
+
+  guardarEstructura(): void {
+    if (!this.productoSeleccionadoPerfiles || !this.productoSeleccionadoPerfiles.id_producto) return;
+    
+    // Filtramos las filas vacías para no mandar basura a la base de datos
+    const filasValidas = this.filasPerfiles.filter(f => f.nombre_canaleta.trim() !== '');
+
+    this.guardando = true;
+    this.snackBar.open('⏳ Guardando lista de perfiles...', '', { duration: 2000 });
+
+    this.parametros.guardarPerfiles(this.productoSeleccionadoPerfiles.id_producto, filasValidas).subscribe({
+      next: (resp) => {
+        this.snackBar.open('✅ Estructura guardada con éxito', 'Excelente', { duration: 3000 });
         this.guardando = false;
       },
       error: (err) => {

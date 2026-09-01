@@ -277,3 +277,17 @@ class ParametroPoliuretano(Base):
     espesor = Column(Numeric(10, 2), default=0)
     poliol = Column(Numeric(10, 2), default=0)
     isocianato = Column(Numeric(10, 2), default=0)
+
+class PerfilCuartoFrio(Base):
+    __tablename__ = "perfiles_cuarto_frio"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Vinculamos al producto
+    id_producto = Column(Integer, ForeignKey("productos.id_producto", ondelete="CASCADE"), nullable=False)
+    
+    cantidad = Column(Integer, default=1)
+    nombre_canaleta = Column(String(150), nullable=False)
+    dim_1 = Column(Numeric(10, 2), nullable=True)
+    dim_2 = Column(Numeric(10, 2), nullable=True)
+    dim_3 = Column(Numeric(10, 2), nullable=True)
+    largo = Column(Numeric(10, 2), nullable=True) # 👈 Este es el opcional

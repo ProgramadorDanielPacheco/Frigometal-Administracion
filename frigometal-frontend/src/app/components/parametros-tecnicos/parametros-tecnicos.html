@@ -35,8 +35,14 @@
     </ng-container>
 
     <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef style="text-align: right; width: 20%;"> Configuración Técnica </th>
+      <th mat-header-cell *matHeaderCellDef style="text-align: right; width: 30%;"> Configuración Técnica </th>
       <td mat-cell *matCellDef="let prod" style="text-align: right;">
+        
+        <!-- 👇 Botón Estructura (Solo aparece si es Cuarto Frio) 👇 -->
+        <button *ngIf="esCuartoFrio(prod.nombre)" mat-raised-button style="background-color: #00897b; color: white; margin-right: 10px;" (click)="abrirEstructura(prod)">
+          <mat-icon>view_quilt</mat-icon> Estructura
+        </button>
+
         <button mat-raised-button style="background-color: #5c6bc0; color: white;" (click)="abrirPoliuretano(prod)">
           <mat-icon>layers</mat-icon> Poliuretano
         </button>
@@ -153,6 +159,94 @@
         </button>
       </mat-card-actions>
 
+    </mat-card>
+
+    
+  }
+
+  <!-- 👇 PANEL DE ESTRUCTURA (PERFILES) 👇 -->
+  @if (productoSeleccionadoPerfiles) {
+    <mat-card id="panel-estructura" class="mat-elevation-z8" style="border-top: 6px solid #00897b; margin-bottom: 50px;">
+      
+      <div style="padding: 20px; background-color: #e0f2f1; border-bottom: 1px solid #b2dfdb; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: #00695c; font-size: 1.4rem;">
+            <mat-icon style="vertical-align: middle; margin-right: 5px;">view_quilt</mat-icon> 
+            Estructura de Perfiles / Canaletas
+          </h3>
+          <p style="margin: 0; color: #00897b; font-weight: 500;">Producto: {{productoSeleccionadoPerfiles.nombre}}</p>
+        </div>
+        <div>
+          <button mat-icon-button color="warn" (click)="cerrarEstructura()" matTooltip="Cerrar Panel">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <mat-card-content style="padding: 20px;">
+        
+        <table style="width: 100%; border-collapse: collapse; border: 2px solid #ccc; font-family: Roboto, sans-serif;">
+          <thead>
+            <tr style="background-color: #f0f0f0; border-bottom: 2px solid #999;">
+              <th style="padding: 12px; width: 5%; border-right: 1px solid #ccc; text-align: center;">#</th>
+              <th style="padding: 12px; width: 10%; border-right: 1px solid #ccc; text-align: center;">Cant.</th>
+              <th style="padding: 12px; width: 35%; border-right: 1px solid #ccc; text-align: left;">Nombre Canaleta / Perfil</th>
+              <th style="padding: 12px; width: 35%; border-right: 1px solid #ccc; text-align: center;">Dimensiones (D1 x D2 x D3)</th>
+              <th style="padding: 12px; width: 10%; border-right: 1px solid #ccc; text-align: center; color: #f57c00;">Largo (Opcional)</th>
+              <th style="padding: 12px; width: 5%; text-align: center;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filasPerfiles; track $index) {
+              <tr style="border-bottom: 1px solid #eee;">
+                
+                <td style="padding: 8px; text-align: center; color: gray; font-weight: bold; border-right: 1px solid #eee;">{{ $index + 1 }}</td>
+                
+                <td style="padding: 8px; border-right: 1px solid #eee;">
+                  <input type="number" [(ngModel)]="fila.cantidad" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; text-align: center;">
+                </td>
+
+                <td style="padding: 8px; border-right: 1px solid #eee;">
+                  <input type="text" [(ngModel)]="fila.nombre_canaleta" placeholder="Ej: Esquinero interior" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; outline: none;">
+                </td>
+                
+                <td style="padding: 8px; border-right: 1px solid #eee; text-align: center;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <input type="number" [(ngModel)]="fila.dim_1" style="width: 30%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center;">
+                    <span style="color: gray; font-weight: bold; font-size: 12px;">X</span>
+                    <input type="number" [(ngModel)]="fila.dim_2" style="width: 30%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center;">
+                    <span style="color: gray; font-weight: bold; font-size: 12px;">X</span>
+                    <input type="number" [(ngModel)]="fila.dim_3" style="width: 30%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center;">
+                  </div>
+                </td>
+                
+                <td style="padding: 8px; border-right: 1px solid #eee; background-color: #fff3e0;">
+                  <input type="number" [(ngModel)]="fila.largo" placeholder="Largo" style="width: 100%; padding: 8px; border: 1px solid #ffb74d; border-radius: 4px; text-align: center; color: #ef6c00; font-weight: bold; background: white;">
+                </td>
+                
+                <td style="padding: 8px; text-align: center;">
+                  <button mat-icon-button color="warn" (click)="eliminarFilaPerfil($index)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div style="margin-top: 15px;">
+          <button mat-stroked-button color="primary" (click)="agregarFilaPerfil()">
+            <mat-icon>add</mat-icon> Agregar Perfil
+          </button>
+        </div>
+
+      </mat-card-content>
+
+      <mat-card-actions style="padding: 16px; background-color: #f8f9fa; display: flex; justify-content: flex-end;">
+        <button mat-raised-button style="background-color: #00897b; color: white; height: 45px; padding: 0 30px; font-size: 1.1em;" (click)="guardarEstructura()" [disabled]="guardando">
+          <mat-icon>save</mat-icon> {{ guardando ? 'Guardando...' : 'Guardar Lista de Perfiles' }}
+        </button>
+      </mat-card-actions>
     </mat-card>
   }
 </div>

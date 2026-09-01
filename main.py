@@ -2001,3 +2001,26 @@ def guardar_parametros(id_producto: int, parametros: List[schemas.ParametroPoliu
         
     db.commit()
     return {"mensaje": "Parámetros técnicos de poliuretano guardados con éxito."}
+
+# 👇 RUTAS PARA ESTRUCTURA DE CUARTOS FRÍOS 👇
+
+@app.get("/parametros-perfiles/{id_producto}", response_model=List[schemas.PerfilCuartoFrioResponse])
+def obtener_perfiles(id_producto: int, db: Session = Depends(get_db)):
+    return db.query(models.PerfilCuartoFrio).filter(models.PerfilCuartoFrio.id_producto == id_producto).all()
+
+@app.post("/parametros-perfiles/{id_producto}")
+def guardar_perfiles(id_producto: int, perfiles: List[schemas.PerfilCuartoFrioBase], db: Session = Depends(get_db)):
+    try:
+        # 1. Borramos los perfiles anteriores de este producto
+        db.query(models.PerfilCuartoFrio).filter(models.PerfilCuartoFrio.id_producto == id_producto).delete()
+        
+        # 2. Insertamos la nueva lista
+        for p in perfiles:
+            nuevo_perfil = models.PerfilCuartoFrio(**p.model_dump(), id_producto=id_producto)
+            db.add(nuevo_perfil)
+            
+        db.commit()
+        return {"mensaje": "Estructura de perfiles guardada con éxito"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al guardar perfiles: {str(e)}")

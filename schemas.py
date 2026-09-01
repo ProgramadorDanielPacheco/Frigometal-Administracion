@@ -577,3 +577,17 @@ class ParametroPoliuretanoResponse(ParametroPoliuretanoBase):
     id_producto: int
     class Config:
         from_attributes = True
+
+class PerfilCuartoFrioBase(BaseModel):
+    cantidad: Optional[int] = 1
+    nombre_canaleta: str
+    dim_1: Optional[float] = None
+    dim_2: Optional[float] = None
+    dim_3: Optional[float] = None
+    largo: Optional[float] = None
+
+class PerfilCuartoFrioResponse(PerfilCuartoFrioBase):
+    id: int
+    id_producto: int
+    class Config:
+        from_attributes = True
