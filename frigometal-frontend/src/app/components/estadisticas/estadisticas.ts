@@ -324,13 +324,13 @@ export class EstadisticasComponent implements OnInit {
       });
 
       const clientesConDeuda = Object.entries(saldosPorPersona)
-        .filter(([nombre, datos]) => datos.saldo > 0)
         .map(([nombre, datos]) => ({
            nombre: nombre,
-           saldo: parseFloat(datos.saldo.toFixed(2)),
+           saldo: parseFloat(datos.saldo.toFixed(2)), // Redondeamos primero a 2 decimales
            meta: datos.meta,
            ultimaSemana: datos.ultimaSemana
-        }));
+        }))
+        .filter(c => c.saldo > 0);
 
       const labels = clientesConDeuda.map(c => [`Sem ${c.ultimaSemana}`, c.nombre]); 
       const montosArr = clientesConDeuda.map(c => c.saldo);
