@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { Material, MaterialService } from '../../services/material';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table'; // <-- IMPORTANTE
 import { MatButtonModule } from '@angular/material/button';
@@ -49,7 +49,8 @@ export class Inventario implements OnInit {
   constructor(
     private materialService: MaterialService,
     private reportesService: ReportesService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -136,7 +137,14 @@ export class Inventario implements OnInit {
     this.nuevoMaterial = { ...material };
     if (!this.nuevoMaterial.imagenes) this.nuevoMaterial.imagenes = []; // Previene nulos
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.cdr.detectChanges(); 
+    
+    setTimeout(() => {
+      const panelMaterial = document.getElementById('formulario-material');
+      if (panelMaterial) {
+        panelMaterial.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50); 
   }
 
   guardarMaterial(): void {

@@ -39,7 +39,7 @@
   </div>
 
   @if (mostrarFormulario) {
-    <mat-card class="mat-elevation-z4" [style.border-left]="modoEdicion ? '5px solid #ff9800' : '5px solid #ff4081'" style="margin-bottom: 30px;">
+    <mat-card id="formulario-material" class="mat-elevation-z4" [style.border-left]="modoEdicion ? '5px solid #ff9800' : '5px solid #ff4081'" style="margin-bottom: 30px;">
       <mat-card-header style="margin-bottom: 15px;">
         <mat-card-title>
           {{ modoEdicion ? '✏️ Editando Material: ' + nuevoMaterial.nombre : '✨ Registrar Nuevo Material' }}
