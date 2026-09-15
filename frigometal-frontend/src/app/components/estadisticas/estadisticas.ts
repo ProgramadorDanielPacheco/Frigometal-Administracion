@@ -129,14 +129,27 @@ export class EstadisticasComponent implements OnInit {
     this.semanaVentas = semActual;
     this.semanaGastos = semActual;
     this.semanaCuentas = semActual;
+
+    // 👇 1. LEEMOS EL NEGOCIO AL ABRIR LA PANTALLA 👇
+    const negocioGuardado = localStorage.getItem('negocioActivo');
+    if (negocioGuardado) {
+      this.negocioActual = negocioGuardado;
+    }
+
     this.cargarGraficos();
+
+    // 👇 2. ESCUCHAMOS EN VIVO POR SI CAMBIAN DE EMPRESA DESDE LA BARRA SUPERIOR 👇
+    window.addEventListener('negocioCambiado', () => {
+      const nuevoNegocio = localStorage.getItem('negocioActivo') || 'PRINCIPAL';
+      if (this.negocioActual !== nuevoNegocio) {
+        this.negocioActual = nuevoNegocio;
+        this.snackBar.open(`Cargando datos de ${nuevoNegocio}...`, '', { duration: 1500 });
+        this.cargarGraficos();
+      }
+    });
   }
 
-  cambiarNegocio(nuevoNegocio: string): void {
-    this.negocioActual = nuevoNegocio;
-    this.snackBar.open(`Cargando datos de ${nuevoNegocio}...`, '', { duration: 1500 });
-    this.cargarGraficos();
-  }
+  
 
   calcularSemanaDelAno(fecha: Date): number {
     const primerDiaAno = new Date(fecha.getFullYear(), 0, 1);

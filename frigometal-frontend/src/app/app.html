@@ -8,92 +8,135 @@
     </div>
 
     <mat-nav-list>
+      <!-- El Dashboard principal queda visible para todas las empresas -->
       <a mat-list-item routerLink="/dashboard" routerLinkActive="link-activo">
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <div matListItemTitle>Inicio / Dashboard</div>
       </a>
 
-      <a mat-list-item routerLink="/clientes" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>groups</mat-icon>
-        <div matListItemTitle>Directorio de Clientes</div>
-      </a>
-      
-      <a mat-list-item routerLink="/productos" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>inventory_2</mat-icon>
-        <div matListItemTitle>Catálogo y Recetas</div>
-      </a>
-
-      <!-- 👇 NUEVA SECCIÓN DE PARÁMETROS TÉCNICOS 👇 -->
-      <a mat-list-item routerLink="/parametros" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon style="color: #5c6bc0;">architecture</mat-icon>
-        <div matListItemTitle>Parámetros Técnicos</div>
-      </a>
-
-      <a mat-list-item routerLink="/inventario" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>warehouse</mat-icon>
-        <div matListItemTitle>Inventario de Materiales</div>
-      </a>
-
-      <a mat-list-item routerLink="/proformas" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>request_quote</mat-icon>
-        <div matListItemTitle>Proformas</div>
-      </a>
-
-      <a mat-list-item routerLink="/ordenes-produccion" routerLinkActive="activo">
-        <mat-icon matListItemIcon style="color: #1976d2;">factory</mat-icon>
-        <div matListItemTitle>Órdenes de Producción</div>
-      </a>
-
-      <a mat-list-item routerLink="/programacion" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>engineering</mat-icon>
-        <div matListItemTitle>Control de Planta</div>
-      </a>
-
-      <a mat-list-item routerLink="/pedidos" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>shopping_cart</mat-icon>
-        <div matListItemTitle>Gestión de Pedidos</div>
-      </a>
-
-      <a mat-list-item routerLink="/compras" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>request_quote</mat-icon>
-        <div matListItemTitle>Compras Inteligentes</div>
-      </a>
-
-      <a mat-list-item routerLink="/mantenimientos" routerLinkActive="active-menu-item">
-        <mat-icon matListItemIcon style="color: #ff9800;">build_circle</mat-icon>
-        <div matListItemTitle>Mantenimientos</div>
-      </a>
-
-      <a mat-list-item routerLink="/estadisticas" routerLinkActive="active-menu-item">
-        <mat-icon matListItemIcon style="color: #ff9800;">analytics</mat-icon>
-        <div matListItemTitle>Estadisticas</div>
-      </a>
-
       <mat-divider style="margin: 10px 0;"></mat-divider> 
+
+      <!-- 👇 MENÚ EXCLUSIVO PARA PRINCIPAL (FRIGOMETAL) 👇 -->
+      @if (negocioActivo === 'PRINCIPAL') {
+        <a mat-list-item routerLink="/clientes" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>groups</mat-icon>
+          <div matListItemTitle>Directorio de Clientes</div>
+        </a>
+        
+        <a mat-list-item routerLink="/productos" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>inventory_2</mat-icon>
+          <div matListItemTitle>Catálogo y Recetas</div>
+        </a>
+
+        <a mat-list-item routerLink="/parametros" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon style="color: #5c6bc0;">architecture</mat-icon>
+          <div matListItemTitle>Parámetros Técnicos</div>
+        </a>
+
+        <a mat-list-item routerLink="/inventario" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>warehouse</mat-icon>
+          <div matListItemTitle>Inventario de Materiales</div>
+        </a>
+
+        <a mat-list-item routerLink="/proformas" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>request_quote</mat-icon>
+          <div matListItemTitle>Proformas</div>
+        </a>
+
+        <a mat-list-item routerLink="/ordenes-produccion" routerLinkActive="activo">
+          <mat-icon matListItemIcon style="color: #1976d2;">factory</mat-icon>
+          <div matListItemTitle>Órdenes de Producción</div>
+        </a>
+
+        <a mat-list-item routerLink="/programacion" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>engineering</mat-icon>
+          <div matListItemTitle>Control de Planta</div>
+        </a>
+
+        <a mat-list-item routerLink="/pedidos" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>shopping_cart</mat-icon>
+          <div matListItemTitle>Gestión de Pedidos</div>
+        </a>
+
+        <a mat-list-item routerLink="/compras" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>request_quote</mat-icon>
+          <div matListItemTitle>Compras Inteligentes</div>
+        </a>
+
+        <a mat-list-item routerLink="/mantenimientos" routerLinkActive="active-menu-item">
+          <mat-icon matListItemIcon style="color: #ff9800;">build_circle</mat-icon>
+          <div matListItemTitle>Mantenimientos</div>
+        </a>
+
+        <a mat-list-item routerLink="/estadisticas" routerLinkActive="active-menu-item">
+          <mat-icon matListItemIcon style="color: #ff9800;">analytics</mat-icon>
+          <div matListItemTitle>Estadísticas</div>
+        </a>
+
+        <mat-divider style="margin: 10px 0;"></mat-divider> 
+        
+        <a mat-list-item routerLink="/registro" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>group_add</mat-icon>
+          <div matListItemTitle>Recursos Humanos</div>
+        </a>
+        
+        <a mat-list-item routerLink="/proveedor" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>local_shipping</mat-icon>
+          <div matListItemTitle>Directorio de Proveedores</div>
+        </a>
+        
+        <a mat-list-item routerLink="/reuniones" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon>event</mat-icon>
+          <div matListItemTitle>Agenda / Reuniones</div>
+        </a>
+      }
+
+      <!-- 👇 MENÚ EXCLUSIVO PARA IMPORFRIGOMETAL 👇 -->
+      @if (negocioActivo === 'IMPORFRIGOMETAL') {
+        <a mat-list-item routerLink="/estadisticas" routerLinkActive="active-menu-item">
+          <mat-icon matListItemIcon style="color: #ff9800;">analytics</mat-icon>
+          <div matListItemTitle>Estadísticas</div>
+        </a>
+      }
+
+      <!-- 👇 MENÚ EXCLUSIVO PARA FRIGORIA 👇 -->
+      @if (negocioActivo === 'FRIGORIA') {
+        <a mat-list-item routerLink="/estadisticas" routerLinkActive="active-menu-item">
+          <mat-icon matListItemIcon style="color: #ff9800;">analytics</mat-icon>
+          <div matListItemTitle>Estadísticas</div>
+        </a>
+        <a mat-list-item routerLink="/reportes-tecnicos" routerLinkActive="link-activo">
+          <mat-icon matListItemIcon style="color: #0288d1;">assignment</mat-icon>
+          <div matListItemTitle>Reportes Técnicos</div>
+        </a>
+      }
       
-      <a mat-list-item routerLink="/registro" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>group_add</mat-icon>
-        <div matListItemTitle>Recursos Humanos</div>
-      </a>
-      
-      <a mat-list-item routerLink="/proveedor" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>local_shipping</mat-icon>
-        <div matListItemTitle>Directorio de Proveedores</div>
-      </a>
-      
-      <a mat-list-item routerLink="/reuniones" routerLinkActive="link-activo">
-        <mat-icon matListItemIcon>event</mat-icon>
-        <div matListItemTitle>Agenda / Reuniones</div>
-      </a>
     </mat-nav-list>
   </mat-sidenav>
 
   <mat-sidenav-content>
     <mat-toolbar class="barra-superior" style="background-color: #ffffff; border-bottom: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); height: 64px;">
       
-      <span style="color: #333; font-weight: 500; font-size: 1.1rem; margin-left: 10px;">
-        Panel de Administración Central
-      </span>
+      <!-- 👇 SELECTOR DE EMPRESAS EN LA BARRA SUPERIOR 👇 -->
+      <div style="display: flex; gap: 10px; margin-left: 10px; align-items: center;">
+        <button mat-button 
+                [ngStyle]="{'background-color': negocioActivo === 'PRINCIPAL' ? '#e3f2fd' : 'transparent', 'color': negocioActivo === 'PRINCIPAL' ? '#1976d2' : '#555', 'border-radius': '20px'}"
+                (click)="cambiarNegocio('PRINCIPAL')">
+          <mat-icon>business</mat-icon> FRIGOMETAL
+        </button>
+
+        <button mat-button 
+                [ngStyle]="{'background-color': negocioActivo === 'IMPORFRIGOMETAL' ? '#e3f2fd' : 'transparent', 'color': negocioActivo === 'IMPORFRIGOMETAL' ? '#1976d2' : '#555', 'border-radius': '20px'}"
+                (click)="cambiarNegocio('IMPORFRIGOMETAL')">
+          <mat-icon>public</mat-icon> IMPORFRIGOMETAL
+        </button>
+
+        <button mat-button 
+                [ngStyle]="{'background-color': negocioActivo === 'FRIGORIA' ? '#e3f2fd' : 'transparent', 'color': negocioActivo === 'FRIGORIA' ? '#1976d2' : '#555', 'border-radius': '20px'}"
+                (click)="cambiarNegocio('FRIGORIA')">
+          <mat-icon>ac_unit</mat-icon> FRIGORIA
+        </button>
+      </div>
       
       <span style="flex: 1 1 auto;"></span>
       
@@ -103,25 +146,20 @@
       </button>
 
       <mat-menu #menuPerfil="matMenu" xPosition="before" class="menu-perfil">
-        
         <div style="padding: 20px 20px 10px 20px; text-align: center; outline: none; min-width: 200px;">
           <mat-icon style="font-size: 48px; height: 48px; width: 48px; color: #bdbdbd;">account_circle</mat-icon>
           <p style="margin: 10px 0 0 0; font-weight: bold; color: #333; font-size: 1.1rem;">Usuario Activo</p>
           <p style="margin: 0; font-size: 0.85em; color: gray;">Administrador</p>
         </div>
-        
         <mat-divider style="margin: 10px 0;"></mat-divider>
-        
         <button mat-menu-item (click)="abrirCambioPassword()">
           <mat-icon color="primary">lock_reset</mat-icon>
           <span>Cambiar Contraseña</span>
         </button>
-        
         <button mat-menu-item (click)="cerrarSesion()" style="color: #c62828;">
           <mat-icon color="warn">logout</mat-icon>
           <span>Cerrar Sesión</span>
         </button>
-        
       </mat-menu>
 
     </mat-toolbar>

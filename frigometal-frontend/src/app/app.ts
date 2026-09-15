@@ -1,7 +1,7 @@
-import { Component, TemplateRef, ViewChild } from '@angular/core';
+import { Component, TemplateRef, ViewChild, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
-import { AuthService } from './services/auth'; // <-- Importa esto
-import { CommonModule } from '@angular/common'; // <-- Y esto
+import { AuthService } from './services/auth'; 
+import { CommonModule } from '@angular/common'; 
 // Módulos de Angular Material para el diseño estructural
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -13,28 +13,31 @@ import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
-    RouterOutlet, RouterLink, RouterLinkActive, CommonModule, // <-- Agrega CommonModule aquí
+    RouterOutlet, RouterLink, RouterLinkActive, CommonModule, 
     MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule, MatButtonToggleModule,
     MatButtonModule, MatMenuModule,
-    MatDialogModule,
-    FormsModule, MatFormFieldModule, MatInputModule // <-- ¡Crucial para que el botón se vea bonito!
+    MatDialogModule, MatSnackBarModule,
+    FormsModule, MatFormFieldModule, MatInputModule 
   ],
-  templateUrl: './app.html', // <-- Vamos a crear este archivo ahora
-  styleUrls: ['./app.scss']  // <-- Y este también
+  templateUrl: './app.html', 
+  styleUrls: ['./app.scss']  
 })
-export class App {
+export class App implements OnInit {
   title = 'Frigometal ERP';
 
   @ViewChild('dialogoCambioPassword') dialogoCambioPassword!: TemplateRef<any>;
 
-  // Variables para el formulario
+  // 👇 VARIABLE DE ESTADO MULTI-EMPRESA 👇
+  negocioActivo: string = 'PRINCIPAL';
+
+  // Variables para el formulario de contraseña
   passActual: string = '';
   passNueva: string = '';
   passConfirmar: string = '';
@@ -42,32 +45,47 @@ export class App {
   mostrarNueva: boolean = false;
 
   constructor(
-    public authService: AuthService, // Tu servicio actual
+    public authService: AuthService, 
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
+  // 👇 1. AL CARGAR LA APP, RECUPERAMOS LA EMPRESA GUARDADA 👇
+  ngOnInit(): void {
+    const negocioGuardado = localStorage.getItem('negocioActivo');
+    if (negocioGuardado) {
+      this.negocioActivo = negocioGuardado;
+    }
+  }
+
+  // 👇 2. AL CAMBIAR DE EMPRESA, GUARDAMOS EN MEMORIA Y AVISAMOS 👇
+  cambiarNegocio(nuevoNegocio: string): void {
+    this.negocioActivo = nuevoNegocio;
+    localStorage.setItem('negocioActivo', nuevoNegocio);
+    
+    // Disparamos un evento invisible para que Estadísticas (u otros componentes) se enteren del cambio
+    window.dispatchEvent(new Event('negocioCambiado'));
+  }
+
+  // Lógica de cambio de contraseña
   abrirCambioPassword(): void {
-    // Limpiamos variables antes de abrir
     this.passActual = '';
     this.passNueva = '';
     this.passConfirmar = '';
     this.mostrarActual = false;
     this.mostrarNueva = false;
 
-    // Abrimos el modal usando la plantilla
     this.dialog.open(this.dialogoCambioPassword, {
       width: '400px',
-      disableClose: true // Para que no se cierre si hacen clic afuera por error
+      disableClose: true 
     });
   }
 
   guardarNuevaPassword(): void {
-    // Aquí llamamos a tu servicio existente (que modificaremos en el paso 3)
     this.authService.cambiarPassword(this.passActual, this.passNueva).subscribe({
       next: () => {
         this.snackBar.open('✅ Contraseña actualizada con éxito', 'Genial', { duration: 4000 });
-        this.dialog.closeAll(); // Cerramos el modal
+        this.dialog.closeAll(); 
       },
       error: (err) => {
         const mensaje = err.error?.detail || 'Error al cambiar la contraseña';

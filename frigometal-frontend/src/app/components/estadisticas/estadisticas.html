@@ -6,29 +6,7 @@
   </div>
 
   <!-- 👇 NUEVO: SELECTOR DE EMPRESAS (PESTAÑAS) 👇 -->
-  <div style="display: flex; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; flex-wrap: wrap;">
-    <button mat-raised-button 
-            [color]="negocioActual === 'PRINCIPAL' ? 'primary' : ''" 
-            (click)="cambiarNegocio('PRINCIPAL')" 
-            style="font-weight: bold; border-radius: 20px; padding: 0 25px;">
-      <mat-icon>business</mat-icon> FRIGOMETAL (Principal)
-    </button>
-
-    <button mat-raised-button 
-            [color]="negocioActual === 'IMPORFRIGOMETAL' ? 'primary' : ''" 
-            (click)="cambiarNegocio('IMPORFRIGOMETAL')" 
-            style="font-weight: bold; border-radius: 20px; padding: 0 25px;">
-      <mat-icon>public</mat-icon> IMPORFRIGOMETAL
-    </button>
-
-    <button mat-raised-button 
-            [color]="negocioActual === 'FRIGORIA' ? 'primary' : ''" 
-            (click)="cambiarNegocio('FRIGORIA')" 
-            style="font-weight: bold; border-radius: 20px; padding: 0 25px;">
-      <mat-icon>ac_unit</mat-icon> FRIGORIA
-    </button>
-  </div>
-
+ 
   <div style="display: flex; flex-direction: column; gap: 40px;">
     
     <mat-card style="width: 100%; padding: 25px; border-top: 5px solid #4caf50;">
