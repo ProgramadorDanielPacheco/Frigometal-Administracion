@@ -60,6 +60,12 @@ CREDENCIALES_INVENTARIO = {
     "api_secret": "uokuskwWcHhwKxqb3uiMphh1UmE"
 }
 
+CREDENCIALES_CATALOGO = {
+    "cloud_name": "wqyl4kg9",
+    "api_key": "591782528448652",
+    "api_secret": "eJ5aRP8Lpu8_ifZytJG4KNYeaQU"
+}
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -665,6 +671,18 @@ def obtener_productos_vacios(db: Session = Depends(get_db)):
     
     # Extraemos solo los productos de la consulta
     return [p.Producto for p in productos_con_conteo]
+
+@app.post("/productos/upload-imagen")
+def upload_imagen_producto(file: UploadFile = File(...)):
+    try:
+        resultado = cloudinary.uploader.upload(
+            file.file, 
+            folder="catalogo_frigometal",
+            **CREDENCIALES_CATALOGO
+        )
+        return {"imagen_url": resultado.get("secure_url")}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error en Cloudinary Catálogo: {str(e)}")
 
 @app.post("/materiales/", response_model=schemas.MaterialResponse)
 def crear_material(material: schemas.MaterialCreate, db: Session = Depends(get_db)):

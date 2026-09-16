@@ -8,6 +8,8 @@ export interface Producto {
   tiempo_fabricacion_horas: number;
   es_estandar: boolean;
   parametro?: string;
+  precio_venta?: number;
+  imagenes?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,6 +39,12 @@ export class ProductoService {
 
   eliminarProducto(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}${id}`);
+  }
+
+  subirImagen(archivo: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', archivo);
+    return this.http.post<any>(`${this.apiUrl}upload-imagen`, formData);
   }
   
   importarCatalogoExcel(archivo: File): Observable<any> {

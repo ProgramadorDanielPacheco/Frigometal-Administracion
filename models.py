@@ -40,6 +40,9 @@ class Producto(Base):
     tiempo_fabricacion_horas = Column(Numeric(5, 2), nullable=False)
     parametro = Column(String(50000), nullable=True)
 
+    precio_venta = Column(Numeric(10, 2), default=0.0)
+    imagenes = Column(JSON, default=[])
+
 class Material(Base):
     __tablename__ = "materiales"
 

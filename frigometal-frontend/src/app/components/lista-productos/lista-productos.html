@@ -62,6 +62,12 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Precio de Venta ($)</mat-label>
+          <mat-icon matPrefix>attach_money</mat-icon>
+          <input matInput type="number" [(ngModel)]="nuevoProducto.precio_venta" min="0" step="0.01">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
           <mat-label>Tipo de Catálogo</mat-label>
           <mat-select [(ngModel)]="nuevoProducto.es_estandar">
             <mat-option [value]="true">Estándar (En Serie)</mat-option>
@@ -73,6 +79,28 @@
           <mat-label>Parámetros Adicionales / Especificaciones Técnicas</mat-label>
           <textarea matInput rows="3" [(ngModel)]="nuevoProducto.parametro" placeholder="Ej: Chapa de acero 304, patas regulables, incluye bisagras reforzadas..."></textarea>
         </mat-form-field>
+
+        <div style="width: 100%; margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; border: 1px dashed #ccc;">
+          <h4 style="margin-top: 0; color: #555;">Fotos del Producto (Catálogo)</h4>
+          <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button mat-stroked-button color="primary" type="button" (click)="fileInputCatalogo.click()" [disabled]="subiendoImagen" style="height: 60px;">
+              <mat-icon>{{ subiendoImagen ? 'hourglass_empty' : 'add_photo_alternate' }}</mat-icon> 
+              {{ subiendoImagen ? 'Subiendo...' : 'Añadir Imágenes' }}
+            </button>
+            <input type="file" #fileInputCatalogo multiple (change)="onArchivosSeleccionados($event)" accept="image/*" style="display: none;">
+
+            @for (img of nuevoProducto.imagenes; track img; let i = $index) {
+              <div style="position: relative; display: inline-block;">
+                <a [href]="img" target="_blank">
+                  <img [src]="img" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #1976d2; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                </a>
+                <button mat-mini-fab color="warn" style="position: absolute; top: -10px; right: -10px; transform: scale(0.6);" (click)="quitarImagen(i)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
 
       </mat-card-content>
 
@@ -95,6 +123,24 @@
   </div>
 
   <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" class="mat-elevation-z8" style="width: 100%;">
+    
+
+    <ng-container matColumnDef="imagen">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 70px;"> Foto </th>
+      <td mat-cell *matCellDef="let prod" style="text-align: center; padding: 8px 5px;">
+        <ng-container *ngIf="prod.imagenes && prod.imagenes.length > 0; else sinImagenCat">
+          <a [href]="prod.imagenes[0]" target="_blank" title="Ver galería (${prod.imagenes.length} fotos)">
+            <img [src]="prod.imagenes[0]" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; cursor: zoom-in;">
+            <span *ngIf="prod.imagenes.length > 1" style="position: absolute; margin-left: -20px; margin-top: 35px; background: #1976d2; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; font-weight: bold;">+{{prod.imagenes.length - 1}}</span>
+          </a>
+        </ng-container>
+        <ng-template #sinImagenCat>
+          <div style="width: 50px; height: 50px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin fotos">
+            <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
+          </div>
+        </ng-template>
+      </td>
+    </ng-container>
     
     <ng-container matColumnDef="id_producto">
       <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> ID </th>
@@ -132,6 +178,13 @@
         </span>
       </td>
     </ng-container>
+
+    <ng-container matColumnDef="precio_venta">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold; text-align: right;"> Precio Venta </th>
+      <td mat-cell *matCellDef="let prod" style="text-align: right; color: #2e7d32; font-weight: bold; font-size: 1.1em;">
+        ${{prod.precio_venta | number:'1.2-2'}}
+      </td>
+    </ng-container>
     
 
     <ng-container matColumnDef="acciones">
@@ -156,7 +209,7 @@
     <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
     <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="6" style="text-align: center; padding: 30px; color: gray;">
+      <td class="mat-cell" colspan="8" style="text-align: center; padding: 30px; color: gray;">
         No se encontraron productos que coincidan con la búsqueda.
       </td>
     </tr>

@@ -35,7 +35,7 @@ import { OrdenProduccionService } from '../../services/orden-produccion';
 })
 export class ListaProductos implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<Producto>([]);
-  columnasMostradas: string[] = ['id_producto', 'nombre', 'parametro', 'tiempo', 'es_estandar', 'acciones'];
+  columnasMostradas: string[] = ['imagen', 'id_producto', 'nombre', 'parametro', 'tiempo', 'es_estandar', 'precio_venta', 'acciones'];
 
   @ViewChild(MatSort) sort!: MatSort;
   textoBusqueda: string = '';
@@ -45,7 +45,10 @@ export class ListaProductos implements OnInit, AfterViewInit {
 
   modoEdicion: boolean = false;
   idProductoEditando: number | null = null;
-  nuevoProducto: Producto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '' };
+  nuevoProducto: Producto = { 
+    nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '',
+    precio_venta: 0, imagenes: [] 
+  };
 
   // === VARIABLES PARA LA RECETA ===
   productoSeleccionado: Producto | null = null;
@@ -71,6 +74,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
   tipoClonacion: 'EXISTENTE' | 'NUEVO' = 'EXISTENTE';
   productosVaciosParaClonar: Producto[] = [];
   clonacionData = { id_producto_destino: null, nombre_nuevo_producto: '' };
+  subiendoImagen: boolean = false;
 
   constructor(
     private productoService: ProductoService,
@@ -101,6 +105,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
   cargarProductos(): void {
     this.productoService.getProductos().subscribe(datos => this.dataSource.data = datos);
   }
+  
 
   toggleFormulario(): void { this.mostrarFormulario = !this.mostrarFormulario; }
 
@@ -118,6 +123,8 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.idProductoEditando = prod.id_producto!;
     this.mostrarFormulario = true;
     this.nuevoProducto = { ...prod }; 
+    if (!this.nuevoProducto.imagenes) this.nuevoProducto.imagenes = [];
+    if (!this.nuevoProducto.precio_venta) this.nuevoProducto.precio_venta = 0;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -195,7 +202,42 @@ export class ListaProductos implements OnInit, AfterViewInit {
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idProductoEditando = null;
-    this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '' };
+    this.nuevoProducto = { nombre: '', tiempo_fabricacion_horas: 1, es_estandar: true, parametro: '', precio_venta: 0, imagenes: [] };
+  }
+
+  onArchivosSeleccionados(event: any): void {
+    const archivos: FileList = event.target.files;
+    if (archivos && archivos.length > 0) {
+      this.subiendoImagen = true;
+      this.snackBar.open(`⏳ Subiendo ${archivos.length} foto(s)...`, '', { duration: 3000 });
+      
+      if (!this.nuevoProducto.imagenes) this.nuevoProducto.imagenes = [];
+      const archivosArray = Array.from(archivos);
+      let subidasCompletadas = 0;
+
+      archivosArray.forEach(archivo => {
+        this.productoService.subirImagen(archivo).subscribe({
+          next: (res) => {
+            this.nuevoProducto.imagenes!.push(res.imagen_url);
+            subidasCompletadas++;
+            if (subidasCompletadas === archivosArray.length) {
+              this.subiendoImagen = false;
+              this.snackBar.open('✅ Fotos adjuntadas al catálogo', 'OK', { duration: 3000 });
+            }
+          },
+          error: () => {
+            this.snackBar.open(`❌ Error al subir una imagen`, 'Cerrar', { duration: 4000 });
+            subidasCompletadas++;
+            if (subidasCompletadas === archivosArray.length) this.subiendoImagen = false;
+          }
+        });
+      });
+      event.target.value = ''; 
+    }
+  }
+
+  quitarImagen(index: number): void {
+    this.nuevoProducto.imagenes!.splice(index, 1);
   }
 
   abrirReceta(prod: Producto): void {
