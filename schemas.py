@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import date
 from typing import List
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from datetime import date, time
 # ==========================
 # ESQUEMAS PARA USUARIOS
@@ -596,3 +596,60 @@ class PerfilCuartoFrioResponse(PerfilCuartoFrioBase):
     id_producto: int
     class Config:
         from_attributes = True
+
+class ReporteTecnicoBase(BaseModel):
+    fecha: date
+    hora: Optional[str] = None
+    cliente_nombre: Optional[str] = None
+    cliente_direccion: Optional[str] = None
+    tecnico: Optional[str] = None
+    
+    equipo: Optional[str] = None
+    color: Optional[str] = None
+    marca: Optional[str] = None
+    numero_serie: Optional[str] = None
+    falla_reportada: Optional[str] = None
+    
+    diagnostico_checks: Optional[List[str]] = []
+    
+    detalle_falla: Optional[str] = None
+    pruebas_realizadas: Optional[str] = None
+    diagnostico_txt: Optional[str] = None
+    trabajo_recomendado: Optional[str] = None
+    
+    # Aceptamos una lista de diccionarios libres para los repuestos
+    repuestos: Optional[List[Dict[str, Any]]] = []
+    
+    presupuesto_total: Optional[float] = 0.0
+    estado_actual: Optional[str] = "Recibido"
+    estados_marcados: Optional[List[str]] = ["Recibido"]
+
+class ReporteTecnicoCreate(ReporteTecnicoBase):
+    pass
+
+class ReporteTecnicoResponse(ReporteTecnicoBase):
+    id_reporte: int
+    class Config:
+        from_attributes = True
+
+class ReporteTecnicoUpdate(BaseModel):
+    # Todo opcional para poder actualizar campos sueltos
+    fecha: Optional[date] = None
+    hora: Optional[str] = None
+    cliente_nombre: Optional[str] = None
+    cliente_direccion: Optional[str] = None
+    tecnico: Optional[str] = None
+    equipo: Optional[str] = None
+    color: Optional[str] = None
+    marca: Optional[str] = None
+    numero_serie: Optional[str] = None
+    falla_reportada: Optional[str] = None
+    diagnostico_checks: Optional[List[str]] = None
+    detalle_falla: Optional[str] = None
+    pruebas_realizadas: Optional[str] = None
+    diagnostico_txt: Optional[str] = None
+    trabajo_recomendado: Optional[str] = None
+    repuestos: Optional[List[Dict[str, Any]]] = None
+    presupuesto_total: Optional[float] = None
+    estado_actual: Optional[str] = None
+    estados_marcados: Optional[List[str]] = None

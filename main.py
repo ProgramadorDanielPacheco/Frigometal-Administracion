@@ -2042,3 +2042,52 @@ def guardar_perfiles(id_producto: int, perfiles: List[schemas.PerfilCuartoFrioBa
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al guardar perfiles: {str(e)}")
+
+
+# ==========================================
+# RUTAS PARA REPORTES TÉCNICOS (FRIGORIA)
+# ==========================================
+
+@app.get("/reportes-tecnicos/", response_model=List[schemas.ReporteTecnicoResponse])
+def obtener_reportes(db: Session = Depends(get_db)):
+    return db.query(models.ReporteTecnico).order_by(models.ReporteTecnico.id_reporte.desc()).all()
+
+@app.post("/reportes-tecnicos/", response_model=schemas.ReporteTecnicoResponse)
+def crear_reporte(reporte: schemas.ReporteTecnicoCreate, db: Session = Depends(get_db)):
+    try:
+        nuevo_reporte = models.ReporteTecnico(**reporte.model_dump())
+        db.add(nuevo_reporte)
+        db.commit()
+        db.refresh(nuevo_reporte)
+        return nuevo_reporte
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al crear reporte: {str(e)}")
+
+@app.put("/reportes-tecnicos/{id_reporte}", response_model=schemas.ReporteTecnicoResponse)
+def actualizar_reporte(id_reporte: int, reporte_actualizado: schemas.ReporteTecnicoUpdate, db: Session = Depends(get_db)):
+    reporte_db = db.query(models.ReporteTecnico).filter(models.ReporteTecnico.id_reporte == id_reporte).first()
+    if not reporte_db:
+        raise HTTPException(status_code=404, detail="Reporte no encontrado")
+
+    datos_nuevos = reporte_actualizado.model_dump(exclude_unset=True)
+    for clave, valor in datos_nuevos.items():
+        setattr(reporte_db, clave, valor)
+
+    try:
+        db.commit()
+        db.refresh(reporte_db)
+        return reporte_db
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al actualizar reporte: {str(e)}")
+
+@app.delete("/reportes-tecnicos/{id_reporte}")
+def eliminar_reporte(id_reporte: int, db: Session = Depends(get_db)):
+    reporte = db.query(models.ReporteTecnico).filter(models.ReporteTecnico.id_reporte == id_reporte).first()
+    if not reporte:
+        raise HTTPException(status_code=404, detail="Reporte no encontrado")
+    
+    db.delete(reporte)
+    db.commit()
+    return {"mensaje": "Reporte eliminado"}

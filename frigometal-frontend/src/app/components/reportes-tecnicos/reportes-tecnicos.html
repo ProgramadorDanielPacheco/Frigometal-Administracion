@@ -1,0 +1,233 @@
+<div style="padding: 40px; max-width: 1200px; margin: auto;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h2 style="margin: 0; color: #0288d1; font-family: Roboto, sans-serif;">Reportes Técnicos - FRIGORIA</h2>
+      <p style="color: gray; margin-top: 5px;">Módulo de Mantenimiento y Reparación de Equipos.</p>
+    </div>
+    <button mat-raised-button style="background-color: #0288d1; color: white;" (click)="toggleFormulario()">
+      <mat-icon>{{ mostrarFormulario ? 'close' : 'add' }}</mat-icon> {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Reporte' }}
+    </button>
+  </div>
+
+  @if (mostrarFormulario) {
+    <mat-card style="padding: 30px; margin-bottom: 30px; border-top: 5px solid #0288d1;">
+      
+      <!-- 1. DATOS GENERALES -->
+      <h3 style="color: #0288d1; border-bottom: 2px solid #b3e5fc; padding-bottom: 5px;">1. DATOS GENERALES</h3>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Fecha de Ingreso</mat-label>
+          <input matInput type="date" [(ngModel)]="nuevoReporte.fecha">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 120px;">
+          <mat-label>Hora</mat-label>
+          <input matInput type="time" [(ngModel)]="nuevoReporte.hora">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px;">
+          <mat-label>Seleccionar Cliente</mat-label>
+          <mat-select [(ngModel)]="nuevoReporte.cliente_nombre" (ngModelChange)="seleccionarCliente($event)">
+            <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1;">
+              <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                <mat-label>Buscar cliente...</mat-label>
+                <input matInput [(ngModel)]="filtroClientes" autocomplete="off">
+              </mat-form-field>
+            </div>
+            @for (c of clientesFiltrados; track c.id_cliente) {
+              <mat-option [value]="c.nombre">{{ c.nombre }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px;">
+          <mat-label>Dirección</mat-label>
+          <input matInput [(ngModel)]="nuevoReporte.cliente_direccion">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Técnico Asignado</mat-label>
+          <input matInput [(ngModel)]="nuevoReporte.tecnico">
+        </mat-form-field>
+      </div>
+
+      <!-- 2. IDENTIFICACIÓN DEL EQUIPO -->
+      <h3 style="color: #0288d1; border-bottom: 2px solid #b3e5fc; padding-bottom: 5px; margin-top: 15px;">2. IDENTIFICACIÓN DEL EQUIPO</h3>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <mat-form-field appearance="outline" style="flex: 2; min-width: 200px;">
+          <mat-label>Equipo (Ej. Refrigeradora, Lavadora...)</mat-label>
+          <input matInput [(ngModel)]="nuevoReporte.equipo">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Marca</mat-label>
+          <input matInput [(ngModel)]="nuevoReporte.marca">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 150px;">
+          <mat-label>Modelo / No. Serie</mat-label>
+          <input matInput [(ngModel)]="nuevoReporte.numero_serie">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 100px;">
+          <mat-label>Color</mat-label>
+          <input matInput [(ngModel)]="nuevoReporte.color">
+        </mat-form-field>
+      </div>
+      <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-label>Falla Reportada por el Cliente</mat-label>
+        <textarea matInput rows="2" [(ngModel)]="nuevoReporte.falla_reportada"></textarea>
+      </mat-form-field>
+
+      <!-- 4. DIAGNÓSTICO TÉCNICO (CHECKBOXES) -->
+      <h3 style="color: #0288d1; border-bottom: 2px solid #b3e5fc; padding-bottom: 5px; margin-top: 15px;">4. DIAGNÓSTICO TÉCNICO (VERIFICACIÓN DETECTADA)</h3>
+      <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; border: 1px dashed #ccc; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+        @for (falla of listaFallas; track falla) {
+          <mat-checkbox [checked]="nuevoReporte.diagnostico_checks.includes(falla)" (change)="toggleFalla(falla)" color="primary">
+            {{falla}}
+          </mat-checkbox>
+        }
+      </div>
+
+      <!-- 5. DETALLE DEL DIAGNÓSTICO -->
+      <h3 style="color: #0288d1; border-bottom: 2px solid #b3e5fc; padding-bottom: 5px; margin-top: 25px;">5. DETALLE DEL DIAGNÓSTICO</h3>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 300px;">
+          <mat-label>Detalle Falla</mat-label><textarea matInput rows="2" [(ngModel)]="nuevoReporte.detalle_falla"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 300px;">
+          <mat-label>Pruebas Realizadas</mat-label><textarea matInput rows="2" [(ngModel)]="nuevoReporte.pruebas_realizadas"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 300px;">
+          <mat-label>Diagnóstico Técnico</mat-label><textarea matInput rows="2" [(ngModel)]="nuevoReporte.diagnostico_txt"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1; min-width: 300px;">
+          <mat-label>Trabajo Recomendado</mat-label><textarea matInput rows="2" [(ngModel)]="nuevoReporte.trabajo_recomendado"></textarea>
+        </mat-form-field>
+      </div>
+
+      <!-- 6. PRESUPUESTO AUTOMÁTICO (BODEGA) -->
+      <h3 style="color: #2e7d32; border-bottom: 2px solid #a5d6a7; padding-bottom: 5px; margin-top: 15px;">6. PRESUPUESTO / REPUESTOS REQUERIDOS</h3>
+      <div style="background-color: #e8f5e9; padding: 20px; border-radius: 8px; border: 1px solid #81c784;">
+        
+        <button mat-stroked-button color="primary" (click)="agregarRepuesto()" style="margin-bottom: 15px; background: white;">
+          <mat-icon>add_shopping_cart</mat-icon> Añadir Repuesto
+        </button>
+
+        @for (rep of nuevoReporte.repuestos; track $index; let i = $index) {
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; background: white; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+            
+            <mat-form-field appearance="outline" style="flex: 2; margin-bottom: -1.25em;">
+              <mat-label>Seleccionar Material / Repuesto</mat-label>
+              <mat-select [(ngModel)]="rep.id_material" (ngModelChange)="seleccionarMaterialBodega(rep)">
+                <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1;">
+                  <mat-form-field appearance="fill" style="width: 100%;">
+                    <mat-label>Buscar en bodega...</mat-label>
+                    <input matInput [(ngModel)]="filtroMateriales" autocomplete="off">
+                  </mat-form-field>
+                </div>
+                @for (m of materialesFiltrados; track m.id_material) {
+                  <mat-option [value]="m.id_material">{{ m.nombre }} (${{m.precio_unitario}})</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1.25em;">
+              <mat-label>Cant.</mat-label>
+              <input matInput type="number" [(ngModel)]="rep.cantidad" (ngModelChange)="calcularSubtotal(rep)">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="width: 120px; margin-bottom: -1.25em;">
+              <mat-label>P. Unit ($)</mat-label>
+              <input matInput type="number" [(ngModel)]="rep.precio_unitario" (ngModelChange)="calcularSubtotal(rep)">
+            </mat-form-field>
+
+            <div style="width: 120px; text-align: right; font-weight: bold; color: #2e7d32; font-size: 1.1em;">
+              ${{rep.subtotal | number:'1.2-2'}}
+            </div>
+
+            <button mat-icon-button color="warn" (click)="eliminarRepuesto(i)"><mat-icon>delete</mat-icon></button>
+          </div>
+        }
+
+        <div style="text-align: right; margin-top: 15px;">
+          <span style="font-size: 1.2rem; color: #555;">PRESUPUESTO TOTAL: </span>
+          <span style="font-size: 2rem; font-weight: 900; color: #1b5e20;">${{ nuevoReporte.presupuesto_total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- 7. ESTADOS DEL SERVICIO -->
+      <h3 style="color: #0288d1; border-bottom: 2px solid #b3e5fc; padding-bottom: 5px; margin-top: 25px;">7. ESTADO DEL SERVICIO Y CIERRE</h3>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap; background-color: #e1f5fe; padding: 15px; border-radius: 8px; border: 1px dashed #0288d1;">
+        @for (estado of listaEstados; track estado) {
+          <mat-checkbox [checked]="nuevoReporte.estados_marcados.includes(estado)" (change)="toggleEstado(estado)" color="primary" style="font-weight: bold;">
+            {{estado}}
+          </mat-checkbox>
+        }
+      </div>
+
+      <button mat-raised-button style="background-color: #0288d1; color: white; width: 100%; height: 50px; margin-top: 30px; font-size: 1.1rem;" (click)="guardarReporte()" [disabled]="guardando">
+        <mat-icon>{{ modoEdicion ? 'update' : 'save' }}</mat-icon> {{ guardando ? 'Guardando...' : (modoEdicion ? 'Actualizar Reporte' : 'Guardar y Generar Ficha') }}
+      </button>
+
+    </mat-card>
+  }
+
+  <!-- TABLA PRINCIPAL DE LECTURA -->
+  <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <mat-form-field appearance="outline" style="flex: 1; margin-bottom: -1.25em;">
+      <mat-label>Buscar Reporte...</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput (keyup)="aplicarFiltroTexto($event)" placeholder="Busca por cliente o equipo..." autocomplete="off">
+    </mat-form-field>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" matSort matSortActive="id_reporte" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
+    
+    <ng-container matColumnDef="id_reporte">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Nº</th>
+      <td mat-cell *matCellDef="let r"><b>{{r.id_reporte}}</b></td>
+    </ng-container>
+
+    <ng-container matColumnDef="fecha">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
+      <td mat-cell *matCellDef="let r">{{r.fecha}}</td>
+    </ng-container>
+    
+    <ng-container matColumnDef="cliente_nombre">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+      <td mat-cell *matCellDef="let r">{{r.cliente_nombre}}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="equipo">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Equipo</th>
+      <td mat-cell *matCellDef="let r" style="color: #0288d1; font-weight: 500;">{{r.equipo}}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="estado_actual">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado </th>
+      <td mat-cell *matCellDef="let r" style="text-align: center;"> 
+        <span style="background-color: #e1f5fe; color: #0288d1; font-weight: bold; border: 1px solid #0288d1; padding: 4px 12px; border-radius: 20px; font-size: 0.80rem;">
+          {{r.estado_actual}}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="presupuesto_total">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header style="text-align: right;">Presupuesto</th>
+      <td mat-cell *matCellDef="let r" style="text-align: right; color: #2e7d32; font-weight: bold;">${{r.presupuesto_total | number:'1.2-2'}}</td>
+    </ng-container>
+    
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef style="text-align: right;">Acciones</th>
+      <td mat-cell *matCellDef="let r" style="text-align: right;">
+        <button mat-icon-button color="primary" (click)="editarReporte(r)"><mat-icon>edit</mat-icon></button>
+        <button mat-icon-button style="color: #ff9800;" (click)="imprimirReporte(r)"><mat-icon>print</mat-icon></button>
+        <button mat-icon-button color="warn" (click)="eliminarReporte(r)"><mat-icon>delete</mat-icon></button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="7" style="text-align: center; padding: 30px; color: gray;">
+        No hay reportes técnicos generados.
+      </td>
+    </tr>
+  </table>
+</div>

@@ -294,3 +294,41 @@ class PerfilCuartoFrio(Base):
     dim_2 = Column(Numeric(10, 2), nullable=True)
     dim_3 = Column(Numeric(10, 2), nullable=True)
     largo = Column(Numeric(10, 2), nullable=True) # 👈 Este es el opcional
+
+class ReporteTecnico(Base):
+    __tablename__ = "reportes_tecnicos"
+    
+    id_reporte = Column(Integer, primary_key=True, index=True)
+    
+    # 1. Datos Generales
+    fecha = Column(Date, nullable=False)
+    hora = Column(String(20))
+    cliente_nombre = Column(String(200))
+    cliente_direccion = Column(String(255))
+    tecnico = Column(String(150))
+    
+    # 2. Identificación del Equipo
+    equipo = Column(String(150))
+    color = Column(String(50))
+    marca = Column(String(100))
+    numero_serie = Column(String(100))
+    falla_reportada = Column(String(500))
+    
+    # 4. Diagnóstico Técnico (Checkboxes marcados)
+    diagnostico_checks = Column(JSON, default=[]) 
+    
+    # 5. Detalle del Diagnóstico
+    detalle_falla = Column(String(1000))
+    pruebas_realizadas = Column(String(1000))
+    diagnostico_txt = Column(String(1000))
+    trabajo_recomendado = Column(String(1000))
+    
+    # Repuestos (Lista de objetos conectados al inventario)
+    repuestos = Column(JSON, default=[])
+    
+    # 6. Presupuesto Automático
+    presupuesto_total = Column(Numeric(10, 2), default=0.0)
+    
+    # 7. Estado del Servicio
+    estado_actual = Column(String(50), default='Recibido')
+    estados_marcados = Column(JSON, default=['Recibido'])

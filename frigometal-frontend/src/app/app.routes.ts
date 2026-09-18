@@ -17,6 +17,7 @@ import { EstadisticasComponent } from './components/estadisticas/estadisticas';
 import { ProformasComponent } from './components/proformas/proformas';
 // 👇 NUEVA IMPORTACIÓN DE PARÁMETROS TÉCNICOS 👇
 import { ParametrosTecnicos } from './components/parametros-tecnicos/parametros-tecnicos'; 
+import { ReportesTecnicos } from './components/reportes-tecnicos/reportes-tecnicos';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -39,6 +40,7 @@ export const routes: Routes = [
   { path: 'ordenes-produccion', component: OrdenesProduccionComponent, canActivate: [authGuard] },
   { path: 'estadisticas', component: EstadisticasComponent, canActivate: [authGuard] },
   { path: 'proformas', component: ProformasComponent, canActivate:[authGuard]},
+  { path: 'reportes-tecnicos', component: ReportesTecnicos, canActivate:[authGuard]},
   
   // Redirect por defecto a login
   { path: '', redirectTo: '/login', pathMatch: 'full' },
