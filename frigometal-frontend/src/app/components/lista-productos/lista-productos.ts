@@ -74,6 +74,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
   tipoClonacion: 'EXISTENTE' | 'NUEVO' = 'EXISTENTE';
   productosVaciosParaClonar: Producto[] = [];
   clonacionData = { id_producto_destino: null, nombre_nuevo_producto: '' };
+  filtroClonacion: string = ''; // 👈 NUEVO: Filtro para buscar al clonar
   subiendoImagen: boolean = false;
 
   constructor(
@@ -105,7 +106,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
   cargarProductos(): void {
     this.productoService.getProductos().subscribe(datos => this.dataSource.data = datos);
   }
-  
 
   toggleFormulario(): void { this.mostrarFormulario = !this.mostrarFormulario; }
 
@@ -125,7 +125,11 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.nuevoProducto = { ...prod }; 
     if (!this.nuevoProducto.imagenes) this.nuevoProducto.imagenes = [];
     if (!this.nuevoProducto.precio_venta) this.nuevoProducto.precio_venta = 0;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   }
 
   eliminarProducto(prod: Producto): void {
@@ -199,6 +203,18 @@ export class ListaProductos implements OnInit, AfterViewInit {
     );
   }
 
+  // 👇 NUEVO: Getter para filtrar la lista de productos vacíos 👇
+  get productosVaciosFiltrados(): Producto[] {
+    if (!this.filtroClonacion) {
+      return this.productosVaciosParaClonar;
+    }
+    const filtro = this.filtroClonacion.toLowerCase();
+    return this.productosVaciosParaClonar.filter(p => 
+      p.nombre.toLowerCase().includes(filtro) || 
+      (p.id_producto && p.id_producto.toString().includes(filtro))
+    );
+  }
+
   limpiarFormulario(): void {
     this.modoEdicion = false;
     this.idProductoEditando = null;
@@ -244,7 +260,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
     this.productoSeleccionado = prod;
     this.cargarMaterialesBodega(); 
     this.cargarRecetaDelProducto();
-    this.mostrarMenuClonar = false; // Cerramos el menú por si estaba abierto
+    this.mostrarMenuClonar = false; 
     
     this.cdr.detectChanges(); 
     
@@ -273,14 +289,12 @@ export class ListaProductos implements OnInit, AfterViewInit {
     }
   }
 
-  // 👇 LÓGICA DE DUPLICACIÓN 👇
   iniciarClonacion(): void {
     this.mostrarMenuClonar = !this.mostrarMenuClonar;
     if (this.mostrarMenuClonar) {
       this.clonacionData = { id_producto_destino: null, nombre_nuevo_producto: '' };
-      // Llamamos al backend para ver a quién le podemos pegar la receta
+      this.filtroClonacion = ''; // 👈 Limpiamos el buscador al abrir
       this.productoService.getProductosVacios().subscribe(datos => {
-        // Excluimos el producto actual para evitar clonarse a sí mismo
         this.productosVaciosParaClonar = datos.filter(p => p.id_producto !== this.productoSeleccionado?.id_producto);
       });
     }
@@ -309,7 +323,7 @@ export class ListaProductos implements OnInit, AfterViewInit {
         this.snackBar.open(`✅ ${resp.mensaje || 'Receta duplicada exitosamente'}`, 'Genial', { duration: 4000 });
         this.mostrarMenuClonar = false;
         if (this.tipoClonacion === 'NUEVO') {
-          this.cargarProductos(); // Refrescamos tabla para ver el nuevo producto
+          this.cargarProductos(); 
         }
       },
       error: (err) => {
@@ -318,8 +332,6 @@ export class ListaProductos implements OnInit, AfterViewInit {
       }
     });
   }
-  // 👆 FIN LÓGICA DE DUPLICACIÓN 👆
-
 
   agregarIngrediente(): void {
     if (!this.productoSeleccionado?.id_producto || !this.idMaterialSeleccionado || this.cantidadNecesaria <= 0) {

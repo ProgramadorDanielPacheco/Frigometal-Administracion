@@ -122,98 +122,100 @@
     </mat-form-field>
   </div>
 
-  <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" class="mat-elevation-z8" style="width: 100%;">
-    
+  <!-- 👇 CONTENEDOR RESPONSIVO PARA LA TABLA 👇 -->
+  <div style="width: 100%; overflow-x: auto; background-color: white; border-radius: 8px;" class="mat-elevation-z8">
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" style="width: 100%; min-width: 1000px;">
+      
+      <ng-container matColumnDef="imagen">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 70px;"> Foto </th>
+        <td mat-cell *matCellDef="let prod" style="text-align: center; padding: 8px 5px;">
+          <ng-container *ngIf="prod.imagenes && prod.imagenes.length > 0; else sinImagenCat">
+            <a [href]="prod.imagenes[0]" target="_blank" title="Ver galería (${prod.imagenes.length} fotos)">
+              <img [src]="prod.imagenes[0]" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; cursor: zoom-in;">
+              <span *ngIf="prod.imagenes.length > 1" style="position: absolute; margin-left: -20px; margin-top: 35px; background: #1976d2; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; font-weight: bold;">+{{prod.imagenes.length - 1}}</span>
+            </a>
+          </ng-container>
+          <ng-template #sinImagenCat>
+            <div style="width: 50px; height: 50px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin fotos">
+              <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
+            </div>
+          </ng-template>
+        </td>
+      </ng-container>
+      
+      <ng-container matColumnDef="id_producto">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> ID </th>
+        <td mat-cell *matCellDef="let prod"> {{prod.id_producto}} </td>
+      </ng-container>
 
-    <ng-container matColumnDef="imagen">
-      <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 70px;"> Foto </th>
-      <td mat-cell *matCellDef="let prod" style="text-align: center; padding: 8px 5px;">
-        <ng-container *ngIf="prod.imagenes && prod.imagenes.length > 0; else sinImagenCat">
-          <a [href]="prod.imagenes[0]" target="_blank" title="Ver galería (${prod.imagenes.length} fotos)">
-            <img [src]="prod.imagenes[0]" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; cursor: zoom-in;">
-            <span *ngIf="prod.imagenes.length > 1" style="position: absolute; margin-left: -20px; margin-top: 35px; background: #1976d2; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; font-weight: bold;">+{{prod.imagenes.length - 1}}</span>
-          </a>
-        </ng-container>
-        <ng-template #sinImagenCat>
-          <div style="width: 50px; height: 50px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin fotos">
-            <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
-          </div>
-        </ng-template>
-      </td>
-    </ng-container>
-    
-    <ng-container matColumnDef="id_producto">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> ID </th>
-      <td mat-cell *matCellDef="let prod"> {{prod.id_producto}} </td>
-    </ng-container>
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Nombre del Producto </th>
+        <td mat-cell *matCellDef="let prod"> {{prod.nombre}} </td>
+      </ng-container>
 
-    <ng-container matColumnDef="nombre">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Nombre del Producto </th>
-      <td mat-cell *matCellDef="let prod"> {{prod.nombre}} </td>
-    </ng-container>
+      <ng-container matColumnDef="parametro">
+        <th mat-header-cell *matHeaderCellDef style="font-weight: bold; width: 30%;"> Especificaciones </th>
+        <td mat-cell *matCellDef="let prod" style="padding-right: 15px;">
+          @if (prod.parametro) {
+            <span style="color: #555; font-size: 0.85em; font-style: italic; display: block; line-height: 1.3;">
+              {{prod.parametro}}
+            </span>
+          } @else {
+            <span style="color: #ccc; font-size: 0.8em;">Sin especificaciones</span>
+          }
+        </td>
+      </ng-container>
 
-    <ng-container matColumnDef="parametro">
-      <th mat-header-cell *matHeaderCellDef style="font-weight: bold; width: 30%;"> Especificaciones </th>
-      <td mat-cell *matCellDef="let prod" style="padding-right: 15px;">
-        @if (prod.parametro) {
-          <span style="color: #555; font-size: 0.85em; font-style: italic; display: block; line-height: 1.3;">
-            {{prod.parametro}}
+      <ng-container matColumnDef="tiempo">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Tiempo de Fabricación </th>
+        <td mat-cell *matCellDef="let prod"> {{prod.tiempo_fabricacion_horas}} horas </td>
+      </ng-container>
+
+      <ng-container matColumnDef="es_estandar">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Tipo </th>
+        <td mat-cell *matCellDef="let prod">
+          <span [style.color]="prod.es_estandar ? 'green' : 'orange'">
+            {{prod.es_estandar ? 'Estándar' : 'A Medida'}}
           </span>
-        } @else {
-          <span style="color: #ccc; font-size: 0.8em;">Sin especificaciones</span>
-        }
-      </td>
-    </ng-container>
+        </td>
+      </ng-container>
 
-    <ng-container matColumnDef="tiempo">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Tiempo de Fabricación </th>
-      <td mat-cell *matCellDef="let prod"> {{prod.tiempo_fabricacion_horas}} horas </td>
-    </ng-container>
+      <ng-container matColumnDef="precio_venta">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold; text-align: right;"> Precio Venta </th>
+        <td mat-cell *matCellDef="let prod" style="text-align: right; color: #2e7d32; font-weight: bold; font-size: 1.1em;">
+          ${{prod.precio_venta | number:'1.2-2'}}
+        </td>
+      </ng-container>
+      
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones & Receta </th>
+        <td mat-cell *matCellDef="let prod" style="text-align: right; white-space: nowrap;">
+          <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
+            <button mat-icon-button color="primary" (click)="editarProducto(prod)" matTooltip="Editar Producto">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="eliminarProducto(prod)" matTooltip="Eliminar Producto">
+              <mat-icon>delete</mat-icon>
+            </button>
 
-    <ng-container matColumnDef="es_estandar">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold;"> Tipo </th>
-      <td mat-cell *matCellDef="let prod">
-        <span [style.color]="prod.es_estandar ? 'green' : 'orange'">
-          {{prod.es_estandar ? 'Estándar' : 'A Medida'}}
-        </span>
-      </td>
-    </ng-container>
+            <button mat-stroked-button color="primary" (click)="abrirReceta(prod)">
+              <mat-icon>list_alt</mat-icon> Configurar Receta
+            </button>
+          </div>
+        </td>
+      </ng-container>
 
-    <ng-container matColumnDef="precio_venta">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header style="font-weight: bold; text-align: right;"> Precio Venta </th>
-      <td mat-cell *matCellDef="let prod" style="text-align: right; color: #2e7d32; font-weight: bold; font-size: 1.1em;">
-        ${{prod.precio_venta | number:'1.2-2'}}
-      </td>
-    </ng-container>
-    
+      <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
-    <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Acciones & Receta </th>
-      <td mat-cell *matCellDef="let prod" style="text-align: right;">
-        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
-          <button mat-icon-button color="primary" (click)="editarProducto(prod)" matTooltip="Editar Producto">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button mat-icon-button color="warn" (click)="eliminarProducto(prod)" matTooltip="Eliminar Producto">
-            <mat-icon>delete</mat-icon>
-          </button>
-
-          <button mat-stroked-button color="primary" (click)="abrirReceta(prod)">
-            <mat-icon>list_alt</mat-icon> Configurar Receta
-          </button>
-        </div>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
-    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
-
-    <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="8" style="text-align: center; padding: 30px; color: gray;">
-        No se encontraron productos que coincidan con la búsqueda.
-      </td>
-    </tr>
-  </table>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" colspan="8" style="text-align: center; padding: 30px; color: gray;">
+          No se encontraron productos que coincidan con la búsqueda.
+        </td>
+      </tr>
+    </table>
+  </div>
+  <!-- 👆 FIN CONTENEDOR RESPONSIVO 👆 -->
 
   @if (productoSeleccionado) {
   <mat-card id="panel-receta-tecnica" class="mat-elevation-z8" style="margin-top: 40px; border-top: 5px solid #1976d2; margin-bottom: 50px;">
@@ -270,13 +272,23 @@
             <mat-form-field appearance="outline" style="flex: 1;">
               <mat-label>Selecciona el producto destino</mat-label>
               <mat-select [(ngModel)]="clonacionData.id_producto_destino">
-                @for (prod of productosVaciosParaClonar; track prod.id_producto) {
+                
+                <!-- 👇 NUEVO: Buscador integrado 👇 -->
+                <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                  <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                    <mat-label>Buscar producto vacío...</mat-label>
+                    <input matInput [(ngModel)]="filtroClonacion" placeholder="Ej: Vitrina..." autocomplete="off">
+                    <mat-icon matSuffix>search</mat-icon>
+                  </mat-form-field>
+                </div>
+
+                @for (prod of productosVaciosFiltrados; track prod.id_producto) {
                   <mat-option [value]="prod.id_producto">
                     {{prod.nombre}} <span style="color: gray; font-size: 0.8em;">(ID: {{prod.id_producto}})</span>
                   </mat-option>
                 }
-                @if(productosVaciosParaClonar.length === 0) {
-                  <mat-option disabled>No hay productos vacíos disponibles</mat-option>
+                @if(productosVaciosFiltrados.length === 0) {
+                  <mat-option disabled>No se encontraron productos vacíos</mat-option>
                 }
               </mat-select>
             </mat-form-field>
