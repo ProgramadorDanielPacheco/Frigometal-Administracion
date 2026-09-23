@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -49,7 +49,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
   filtroProductos: string = ''; 
   materialesBodega: any[] = []; 
   
-  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
+  nuevoDetalle: any = { cantidad: 1, id_producto: null, descripcion: '', caracteristicas: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
   subiendoImagen: boolean = false;
   
   textoBusquedaGeneral: string = '';
@@ -62,7 +62,8 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     private clienteService: ClienteService,
     private recetaService: RecetaService, 
     private materialService: MaterialService, 
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void { 
@@ -180,16 +181,29 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     };
   }
 
+  calcularSiguienteProforma(): string {
+    let maxProf = 0;
+    this.dataSource.data.forEach(p => {
+      const numero = parseInt(String(p.numero_proforma).replace(/\D/g, ''), 10) || 0;
+      if (numero > maxProf) maxProf = numero;
+    });
+    return `PROF-${String(maxProf + 1).padStart(3, '0')}`;
+  }
+
   toggleFormulario(): void {
     this.mostrarFormulario = !this.mostrarFormulario;
-    if (!this.mostrarFormulario) this.cancelarEdicion();
+    if (!this.mostrarFormulario) {
+      this.cancelarEdicion();
+    } else {
+      this.nuevaProforma.numero_proforma = this.calcularSiguienteProforma();
+    }
   }
 
   cancelarEdicion(): void {
     this.modoEdicion = false;
     this.idEditando = null;
     this.nuevaProforma = this.obtenerModeloVacio();
-    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', caracteristicas: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
   }
 
   onArchivoSeleccionado(event: any): void {
@@ -224,14 +238,27 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     
     this.nuevaProforma = { ...proforma };
     if (!this.nuevaProforma.detalles) this.nuevaProforma.detalles = [];
+
+    // 👇 RESCATE DE CARACTERÍSTICAS LEGACY 👇
+    // Si la proforma tiene un texto en "trabajo" pero no en características, lo migramos
+    if (this.nuevaProforma.trabajo && this.nuevaProforma.trabajo !== 'Fabricación de Equipos' && this.nuevaProforma.detalles.length > 0) {
+      if (!this.nuevaProforma.detalles[0].caracteristicas) {
+        this.nuevaProforma.detalles[0].caracteristicas = this.nuevaProforma.trabajo;
+      }
+    }
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   }
 
   seleccionarProductoCatalogo(idProducto: number): void {
     const prod = this.productosCatalogo.find(p => p.id_producto === idProducto);
     if (prod) {
       this.nuevoDetalle.descripcion = prod.nombre;
+      // 👇 CARGA AUTOMÁTICA DE CARACTERÍSTICAS DEL CATÁLOGO 👇
+      this.nuevoDetalle.caracteristicas = prod.parametro || ''; 
       
       this.snackBar.open('⏳ Calculando costo desde bodega...', '', { duration: 1500 });
       this.recetaService.getReceta(idProducto).subscribe({
@@ -246,7 +273,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
           
           this.nuevoDetalle.precio_unitario = parseFloat(costoTotal.toFixed(2));
           this.calcularTotalLinea();
-          this.snackBar.open('✅ Costo de producción cargado', 'OK', { duration: 2000 });
+          this.snackBar.open('✅ Costo de producción y parámetros cargados', 'OK', { duration: 2000 });
         },
         error: () => {
           this.snackBar.open('⚠️ Producto sin receta. Ingresa el costo manual.', 'Cerrar', { duration: 3000 });
@@ -267,8 +294,15 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     this.nuevaProforma.detalles.push({ ...this.nuevoDetalle });
     this.recalcularTotalGeneral();
     
-    // Reseteamos limpiando todo, incluyendo la imagen
-    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
+    this.nuevoDetalle = { cantidad: 1, id_producto: null, descripcion: '', caracteristicas: '', precio_unitario: 0, utilidad: 30, precio_total: 0, imagen_url: null };
+  }
+
+  // 👇 NUEVA FUNCIÓN: EDITAR DETALLE EN LA MISMA PROFORMA 👇
+  editarDetalle(index: number): void {
+    const detalle = this.nuevaProforma.detalles[index];
+    this.nuevoDetalle = { ...detalle }; // Lo copiamos al formulario
+    this.nuevaProforma.detalles.splice(index, 1); // Lo sacamos de la lista momentáneamente
+    this.recalcularTotalGeneral();
   }
 
   eliminarDetalle(index: number): void {
@@ -287,6 +321,15 @@ export class ProformasComponent implements OnInit, AfterViewInit {
     
     const payload = { ...this.nuevaProforma };
     if (payload.fecha_emision) payload.fecha_emision = new Date(payload.fecha_emision).toISOString().split('T')[0];
+
+    // 👇 TRUCO: Juntamos las características en el campo 'trabajo' para que viajen a Producción 👇
+    if (payload.detalles && payload.detalles.length > 0) {
+      payload.trabajo = payload.detalles.map((d: any) => {
+        return d.caracteristicas ? `${d.descripcion} (${d.caracteristicas})` : d.descripcion;
+      }).join(' | ');
+    } else {
+      payload.trabajo = 'Fabricación de Equipos';
+    }
 
     this.snackBar.open('⏳ Guardando Proforma...', '', { duration: 1500 });
 
@@ -336,7 +379,7 @@ export class ProformasComponent implements OnInit, AfterViewInit {
       this.snackBar.open('⏳ Generando Orden de Producción...', '', { duration: 2000 });
       this.proformaService.generarOP(proforma.id_proforma).subscribe({
         next: (res) => {
-          this.snackBar.open(`✅ ¡Éxito! Se ha creado la OP Nº ${res.numero_op} en Producción.`, 'Genial', { duration: 5000 });
+          this.snackBar.open(`✅ ¡Éxito! Se han creado las OPs en Producción.`, 'Genial', { duration: 5000 });
           this.cargarProformas(); 
         },
         error: (err) => {
@@ -349,20 +392,32 @@ export class ProformasComponent implements OnInit, AfterViewInit {
 
   imprimirProforma(proforma: any): void {
     let filasDetalles = '';
+    let seccionImagenes = '';
     
     if (proforma.detalles && proforma.detalles.length > 0) {
       proforma.detalles.forEach((d: any) => {
+        // Filas para la tabla (se agrega la característica si existe)
         filasDetalles += `
           <tr>
             <td style="text-align: left; padding: 10px;">
               <strong>${d.descripcion}</strong>
-              ${d.imagen_url ? `<br><img src="${d.imagen_url}" style="margin-top: 8px; max-height: 90px; border-radius: 4px; border: 1px solid #ddd;">` : ''}
+              ${d.caracteristicas ? `<br><span style="font-size: 11px; color: #555; display: inline-block; margin-top: 4px;">${d.caracteristicas}</span>` : ''}
             </td>
             <td style="text-align: center; vertical-align: top; padding-top: 10px;">${d.cantidad}</td>
             <td style="text-align: right; vertical-align: top; padding-top: 10px;">$ ${Number(d.precio_unitario).toFixed(2)}</td>
             <td style="text-align: right; font-weight: bold; vertical-align: top; padding-top: 10px;">$ ${Number(d.precio_total).toFixed(2)}</td>
           </tr>
         `;
+
+        // Extraer imágenes para la sección inferior del PDF
+        if (d.imagen_url) {
+          seccionImagenes += `
+            <div class="image-item">
+              <img src="${d.imagen_url}">
+              <p>Ref: ${d.descripcion}</p>
+            </div>
+          `;
+        }
       });
     }
 
@@ -388,26 +443,38 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               .company-info p { margin: 2px 0; font-size: 11px; color: #555; }
               .contact-info { text-align: right; font-size: 12px; }
               .contact-info p { margin: 3px 0; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+              
               .client-box { background-color: #f9f9f9; border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
               .client-row { display: flex; margin-bottom: 5px; }
               .client-label { font-weight: bold; width: 140px; color: #1976d2; }
               .client-value { flex: 1; border-bottom: 1px dashed #ccc; }
+              
               table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
               th { background-color: #1976d2; color: white; padding: 10px; text-align: center; font-size: 12px; border: 1px solid #0d47a1; }
               td { border: 1px solid #ccc; padding: 8px; }
               .table-striped tr:nth-child(even) { background-color: #f2f2f2; }
+              
               .summary-container { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12px; }
               .conditions { width: 65%; }
               .conditions p { margin: 5px 0; }
               .totals { width: 30%; border: 1px solid #ccc; border-radius: 5px; padding: 10px; background-color: #f9f9f9; }
               .totals-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 16px; }
-              .footer-grid { display: flex; justify-content: space-between; border-top: 2px solid #1976d2; padding-top: 15px; font-size: 11px; }
+              
+              .image-gallery { margin-top: 30px; text-align: center; border-top: 1px dashed #ccc; padding-top: 20px; page-break-inside: avoid; }
+              .image-gallery h3 { color: #1976d2; font-size: 14px; margin-bottom: 15px; text-transform: uppercase; }
+              .image-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+              .image-item { width: 45%; max-width: 300px; text-align: center; }
+              .image-item img { max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+              .image-item p { font-size: 11px; color: #555; margin-top: 5px; font-weight: bold; }
+
+              .footer-grid { display: flex; justify-content: space-between; border-top: 2px solid #1976d2; padding-top: 15px; font-size: 11px; margin-top: 30px; page-break-inside: avoid; }
               .footer-col { width: 30%; }
               .footer-col h4 { margin: 0 0 5px 0; color: #1976d2; font-size: 12px; }
               .footer-col p { margin: 2px 0; }
-              .note-box { font-style: italic; font-size: 10px; color: #666; margin-top: 10px; text-align: justify; }
-              .signatures { display: flex; justify-content: space-around; margin-top: 50px; }
+              .note-box { font-style: italic; font-size: 10px; color: #666; margin-top: 10px; text-align: justify; page-break-inside: avoid; }
+              .signatures { display: flex; justify-content: space-around; margin-top: 50px; page-break-inside: avoid; }
               .sig-line { width: 200px; border-top: 1px solid #333; text-align: center; padding-top: 5px; font-weight: bold; }
+              
               @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
             </style>
           </head>
@@ -430,13 +497,12 @@ export class ProformasComponent implements OnInit, AfterViewInit {
               <div class="client-row"><div class="client-label">CLIENTE:</div><div class="client-value">${proforma.cliente_nombre}</div></div>
               <div class="client-row"><div class="client-label">DIRECCIÓN:</div><div class="client-value">${proforma.cliente_direccion || 'N/A'}</div></div>
               <div class="client-row"><div class="client-label">FECHA DE EMISIÓN:</div><div class="client-value">${fechaFormateada}</div></div>
-              <div class="client-row"><div class="client-label">TRABAJO:</div><div class="client-value">${proforma.trabajo || 'Fabricación de Equipos'}</div></div>
             </div>
 
             <table class="table-striped">
               <thead>
                 <tr>
-                  <th style="width: 55%;">DESCRIPCIÓN</th>
+                  <th style="width: 55%;">DESCRIPCIÓN Y CARACTERÍSTICAS</th>
                   <th style="width: 10%;">CANT.</th>
                   <th style="width: 15%;">P. UNITARIO</th>
                   <th style="width: 20%;">P. TOTAL</th>
@@ -461,6 +527,15 @@ export class ProformasComponent implements OnInit, AfterViewInit {
                 </div>
               </div>
             </div>
+
+            ${seccionImagenes ? `
+              <div class="image-gallery">
+                <h3>Anexo: Diseños y Referencias Visuales</h3>
+                <div class="image-container">
+                  ${seccionImagenes}
+                </div>
+              </div>
+            ` : ''}
 
             <div class="footer-grid">
               <div class="footer-col">

@@ -50,80 +50,86 @@
           <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
-        <mat-form-field appearance="outline" style="flex: 1"><mat-label>Ciudad</mat-label><input matInput [(ngModel)]="nuevaProforma.ciudad"></mat-form-field>
-        <mat-form-field appearance="outline" style="flex: 2"><mat-label>Responsable</mat-label><input matInput [(ngModel)]="nuevaProforma.responsable"></mat-form-field>
       </div>
 
       <div style="display: flex; gap: 15px;">
-        <mat-form-field appearance="outline" style="flex: 1;"><mat-label>Dirección</mat-label><input matInput [(ngModel)]="nuevaProforma.cliente_direccion"></mat-form-field>
-        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Trabajo a realizar</mat-label><input matInput [(ngModel)]="nuevaProforma.trabajo"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 1"><mat-label>Ciudad</mat-label><input matInput [(ngModel)]="nuevaProforma.ciudad"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2;"><mat-label>Dirección</mat-label><input matInput [(ngModel)]="nuevaProforma.cliente_direccion"></mat-form-field>
+        <mat-form-field appearance="outline" style="flex: 2"><mat-label>Responsable</mat-label><input matInput [(ngModel)]="nuevaProforma.responsable"></mat-form-field>
       </div>
 
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h4 style="margin-top: 0;">Detalle de Equipos (Cálculo de Precios)</h4>
         
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
           
-          <mat-form-field appearance="outline" style="width: 70px; margin-bottom: -1em;">
-            <mat-label>Cant.</mat-label>
-            <input matInput type="number" [(ngModel)]="nuevoDetalle.cantidad" (ngModelChange)="calcularTotalLinea()">
-          </mat-form-field>
-          
-          <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1em;">
-            <mat-label>Seleccionar Producto</mat-label>
-            <mat-select [(ngModel)]="nuevoDetalle.id_producto" (ngModelChange)="seleccionarProductoCatalogo($event)">
-              
-              <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
-                <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
-                  <mat-label>Buscar producto por nombre o ID...</mat-label>
-                  <input matInput [(ngModel)]="filtroProductos" autocomplete="off">
-                  <mat-icon matSuffix>search</mat-icon>
-                </mat-form-field>
-              </div>
-
-              @for (prod of productosFiltrados; track prod.id_producto) {
-                <mat-option [value]="prod.id_producto">
-                  {{prod.nombre}} <span style="color: gray; font-size: 0.8em;">(#{{prod.id_producto}})</span>
-                </mat-option>
-              }
-
-              @if (productosFiltrados.length === 0) {
-                <mat-option disabled>No se encontraron productos</mat-option>
-              }
-
-            </mat-select>
-          </mat-form-field>
-
-          <div style="display: flex; align-items: center; gap: 5px; margin-bottom: -1em;">
-            <button mat-icon-button type="button" color="primary" (click)="fileInputDetalle.click()" [disabled]="subiendoImagen" matTooltip="Adjuntar plano/foto a este equipo">
-              <mat-icon>{{ subiendoImagen ? 'hourglass_empty' : 'add_a_photo' }}</mat-icon>
-            </button>
-            <input type="file" #fileInputDetalle (change)="onArchivoSeleccionado($event)" accept="image/*" style="display: none;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <mat-form-field appearance="outline" style="width: 70px; margin-bottom: -1em;">
+              <mat-label>Cant.</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoDetalle.cantidad" (ngModelChange)="calcularTotalLinea()">
+            </mat-form-field>
             
-            <div *ngIf="nuevoDetalle.imagen_url" style="position: relative;">
-              <img [src]="nuevoDetalle.imagen_url" style="height: 40px; width: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #1976d2;">
-              <mat-icon style="position: absolute; top: -8px; right: -8px; font-size: 16px; color: red; cursor: pointer; background: white; border-radius: 50%;" (click)="quitarImagenDetalle()">cancel</mat-icon>
+            <mat-form-field appearance="outline" style="flex: 2; min-width: 180px; margin-bottom: -1em;">
+              <mat-label>Seleccionar Producto</mat-label>
+              <mat-select [(ngModel)]="nuevoDetalle.id_producto" (ngModelChange)="seleccionarProductoCatalogo($event)">
+                
+                <div style="padding: 10px; position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #eee;">
+                  <mat-form-field appearance="fill" style="width: 100%;" (keydown)="$event.stopPropagation()">
+                    <mat-label>Buscar producto por nombre o ID...</mat-label>
+                    <input matInput [(ngModel)]="filtroProductos" autocomplete="off">
+                    <mat-icon matSuffix>search</mat-icon>
+                  </mat-form-field>
+                </div>
+
+                @for (prod of productosFiltrados; track prod.id_producto) {
+                  <mat-option [value]="prod.id_producto">
+                    {{prod.nombre}} <span style="color: gray; font-size: 0.8em;">(#{{prod.id_producto}})</span>
+                  </mat-option>
+                }
+
+                @if (productosFiltrados.length === 0) {
+                  <mat-option disabled>No se encontraron productos</mat-option>
+                }
+
+              </mat-select>
+            </mat-form-field>
+
+            <div style="display: flex; align-items: center; gap: 5px; margin-bottom: -1em;">
+              <button mat-icon-button type="button" color="primary" (click)="fileInputDetalle.click()" [disabled]="subiendoImagen" matTooltip="Adjuntar plano/foto a este equipo">
+                <mat-icon>{{ subiendoImagen ? 'hourglass_empty' : 'add_a_photo' }}</mat-icon>
+              </button>
+              <input type="file" #fileInputDetalle (change)="onArchivoSeleccionado($event)" accept="image/*" style="display: none;">
+              
+              <div *ngIf="nuevoDetalle.imagen_url" style="position: relative;">
+                <img [src]="nuevoDetalle.imagen_url" style="height: 40px; width: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #1976d2;">
+                <mat-icon style="position: absolute; top: -8px; right: -8px; font-size: 16px; color: red; cursor: pointer; background: white; border-radius: 50%;" (click)="quitarImagenDetalle()">cancel</mat-icon>
+              </div>
             </div>
+
+            <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1em;">
+              <mat-label>Costo ($)</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()" matTooltip="Costo según Receta de Producción">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="width: 90px; margin-bottom: -1em;">
+              <mat-label>Utilidad %</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoDetalle.utilidad" (ngModelChange)="calcularTotalLinea()">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="width: 110px; margin-bottom: -1em; background-color: #e8f5e9; border-radius: 4px;">
+              <mat-label>P. Venta ($)</mat-label>
+              <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" style="font-weight: bold; color: #2e7d32;">
+            </mat-form-field>
+
+            <button mat-raised-button color="accent" style="margin-bottom: -1em;" (click)="agregarDetalle()" [disabled]="subiendoImagen">
+              <mat-icon>add</mat-icon>
+            </button>
           </div>
-
-          <mat-form-field appearance="outline" style="width: 100px; margin-bottom: -1em;">
-            <mat-label>Costo ($)</mat-label>
-            <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_unitario" (ngModelChange)="calcularTotalLinea()" matTooltip="Costo según Receta de Producción">
+          
+          <mat-form-field appearance="outline" style="width: 100%; margin-top: 10px;">
+            <mat-label>Características del equipo / Trabajo a realizar</mat-label>
+            <textarea matInput rows="2" [(ngModel)]="nuevoDetalle.caracteristicas" placeholder="Ej: Mesa con entrepaño 280cm de largo x 40cm de fondo x 90cm de alto..."></textarea>
           </mat-form-field>
-
-          <mat-form-field appearance="outline" style="width: 90px; margin-bottom: -1em;">
-            <mat-label>Utilidad %</mat-label>
-            <input matInput type="number" [(ngModel)]="nuevoDetalle.utilidad" (ngModelChange)="calcularTotalLinea()">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" style="width: 110px; margin-bottom: -1em; background-color: #e8f5e9; border-radius: 4px;">
-            <mat-label>P. Venta ($)</mat-label>
-            <input matInput type="number" [(ngModel)]="nuevoDetalle.precio_total" style="font-weight: bold; color: #2e7d32;">
-          </mat-form-field>
-
-          <button mat-raised-button color="accent" style="margin-bottom: -1em;" (click)="agregarDetalle()" [disabled]="subiendoImagen">
-            <mat-icon>add</mat-icon>
-          </button>
         </div>
 
         <div style="margin-top: 15px;">
@@ -133,12 +139,21 @@
                 <img *ngIf="d.imagen_url" [src]="d.imagen_url" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc;">
                 <div>
                   <span style="font-weight: bold; font-size: 1.1em;">{{d.cantidad}}x</span> - {{d.descripcion}} 
+                  
+                  @if(d.caracteristicas) {
+                    <div style="font-size: 0.9em; color: #444; margin-top: 4px;">{{d.caracteristicas}}</div>
+                  }
+                  
                   <div style="color: gray; font-size: 0.85em; margin-top: 2px;">(Costo: ${{d.precio_unitario}} c/u | Utilidad: {{d.utilidad}}%)</div>
                 </div>
               </div>
-              <div style="text-align: right;">
+              <div style="text-align: right; min-width: 120px;">
                 <span style="font-size: 1.2em; color: #1976d2;"><b>${{d.precio_total | number:'1.2-2'}}</b></span> 
-                <button mat-icon-button color="warn" (click)="eliminarDetalle(i)"><mat-icon>delete</mat-icon></button>
+                <div>
+                  <!-- 👇 NUEVO BOTÓN PARA EDITAR EL DETALLE 👇 -->
+                  <button mat-icon-button color="primary" (click)="editarDetalle(i)" title="Editar característica/cantidad"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button color="warn" (click)="eliminarDetalle(i)"><mat-icon>delete</mat-icon></button>
+                </div>
               </div>
             </div>
           }
@@ -180,89 +195,91 @@
     
   </div>
 
-  <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_proforma" matSortDirection="desc" class="mat-elevation-z8" style="width: 100%;">
-    
-    <ng-container matColumnDef="imagen">
-      <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 80px;"> Foto </th>
-      <td mat-cell *matCellDef="let p" style="text-align: center; padding: 8px 5px;">
-        
-        <ng-container *ngIf="p.detalles?.length > 0 && p.detalles[0].imagen_url; else sinImagen">
-          <a [href]="p.detalles[0].imagen_url" target="_blank" title="Ver imagen original">
-            <img [src]="p.detalles[0].imagen_url" 
-                 style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: zoom-in; transition: transform 0.2s ease-in-out;" 
-                 onmouseover="this.style.transform='scale(1.15)'" 
-                 onmouseout="this.style.transform='scale(1)'">
-          </a>
-        </ng-container>
+  <div class="mat-elevation-z8" style="width: 100%; overflow-x: auto; border-radius: 8px; background-color: white;">
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="numero_proforma" matSortDirection="desc" style="width: 100%; min-width: 1000px;">
+      
+      <ng-container matColumnDef="imagen">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 80px;"> Foto </th>
+        <td mat-cell *matCellDef="let p" style="text-align: center; padding: 8px 5px;">
+          
+          <ng-container *ngIf="p.detalles?.length > 0 && p.detalles[0].imagen_url; else sinImagen">
+            <a [href]="p.detalles[0].imagen_url" target="_blank" title="Ver imagen original">
+              <img [src]="p.detalles[0].imagen_url" 
+                   style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: zoom-in; transition: transform 0.2s ease-in-out;" 
+                   onmouseover="this.style.transform='scale(1.15)'" 
+                   onmouseout="this.style.transform='scale(1)'">
+            </a>
+          </ng-container>
 
-        <ng-template #sinImagen>
-          <div style="width: 55px; height: 55px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin imagen de referencia">
-            <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
-          </div>
-        </ng-template>
+          <ng-template #sinImagen>
+            <div style="width: 55px; height: 55px; background: #f9f9f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; margin: auto;" title="Sin imagen de referencia">
+              <mat-icon style="color: #bdbdbd; font-size: 20px;">image_not_supported</mat-icon>
+            </div>
+          </ng-template>
 
-      </td>
-    </ng-container>
+        </td>
+      </ng-container>
 
-    <ng-container matColumnDef="numero_proforma">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Nº</th>
-      <td mat-cell *matCellDef="let p"><b>{{p.numero_proforma}}</b></td>
-    </ng-container>
-    
-    <ng-container matColumnDef="cliente">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
-      <td mat-cell *matCellDef="let p">{{p.cliente_nombre}}</td>
-    </ng-container>
-    
-    <ng-container matColumnDef="fecha">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
-      <td mat-cell *matCellDef="let p">{{p.fecha_emision}}</td>
-    </ng-container>
-    
-    <ng-container matColumnDef="precio_total">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th>
-      <td mat-cell *matCellDef="let p">${{p.precio_total | number:'1.2-2'}}</td>
-    </ng-container>
-    
-    <ng-container matColumnDef="estado">
-      <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado </th>
-      <td mat-cell *matCellDef="let p" style="text-align: center;"> 
-        <span [style.color]="obtenerColorEstado(p.estado)" style="font-weight: bold; border: 1px solid; padding: 4px 12px; border-radius: 20px; font-size: 0.80rem; white-space: nowrap; display: inline-block;">
-          {{p.estado || 'PENDIENTE DE APROBACIÓN'}}
-        </span>
-      </td>
-    </ng-container>
-    
-    <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef style="text-align: right;">Acciones</th>
-      <td mat-cell *matCellDef="let p" style="text-align: right;">
-        
-        <button mat-icon-button color="primary" (click)="editarProforma(p)" title="Editar Proforma">
-          <mat-icon>edit</mat-icon>
-        </button>
+      <ng-container matColumnDef="numero_proforma">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Nº</th>
+        <td mat-cell *matCellDef="let p"><b>{{p.numero_proforma}}</b></td>
+      </ng-container>
+      
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+        <td mat-cell *matCellDef="let p">{{p.cliente_nombre}}</td>
+      </ng-container>
+      
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
+        <td mat-cell *matCellDef="let p">{{p.fecha_emision}}</td>
+      </ng-container>
+      
+      <ng-container matColumnDef="precio_total">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th>
+        <td mat-cell *matCellDef="let p">${{p.precio_total | number:'1.2-2'}}</td>
+      </ng-container>
+      
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;"> Estado </th>
+        <td mat-cell *matCellDef="let p" style="text-align: center;"> 
+          <span [style.color]="obtenerColorEstado(p.estado)" style="font-weight: bold; border: 1px solid; padding: 4px 12px; border-radius: 20px; font-size: 0.80rem; white-space: nowrap; display: inline-block;">
+            {{p.estado || 'PENDIENTE DE APROBACIÓN'}}
+          </span>
+        </td>
+      </ng-container>
+      
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="text-align: right;">Acciones</th>
+        <td mat-cell *matCellDef="let p" style="text-align: right; white-space: nowrap;">
+          
+          <button mat-icon-button color="primary" (click)="editarProforma(p)" title="Editar Proforma">
+            <mat-icon>edit</mat-icon>
+          </button>
 
-        <button mat-icon-button style="color: #ff9800;" (click)="imprimirProforma(p)" title="Imprimir PDF">
-          <mat-icon>print</mat-icon>
-        </button>
+          <button mat-icon-button style="color: #ff9800;" (click)="imprimirProforma(p)" title="Imprimir PDF">
+            <mat-icon>print</mat-icon>
+          </button>
 
-        <button mat-icon-button style="color: #2e7d32;" (click)="generarOPDesdeProforma(p)" title="Aprobar y Enviar a Producción" *ngIf="!p.estado || p.estado === 'PENDIENTE DE APROBACIÓN'">
-          <mat-icon>precision_manufacturing</mat-icon>
-        </button>
+          <button mat-icon-button style="color: #2e7d32;" (click)="generarOPDesdeProforma(p)" title="Aprobar y Enviar a Producción" *ngIf="!p.estado || p.estado === 'PENDIENTE DE APROBACIÓN'">
+            <mat-icon>precision_manufacturing</mat-icon>
+          </button>
 
-        <button mat-icon-button color="warn" (click)="eliminarProforma(p)" title="Eliminar Proforma">
-          <mat-icon>delete</mat-icon>
-        </button>
+          <button mat-icon-button color="warn" (click)="eliminarProforma(p)" title="Eliminar Proforma">
+            <mat-icon>delete</mat-icon>
+          </button>
 
-      </td>
-    </ng-container>
+        </td>
+      </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
-    <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+      <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
 
-    <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="7" style="text-align: center; padding: 30px; color: gray;">
-        No se encontraron proformas con los filtros actuales.
-      </td>
-    </tr>
-  </table>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" colspan="7" style="text-align: center; padding: 30px; color: gray;">
+          No se encontraron proformas con los filtros actuales.
+        </td>
+      </tr>
+    </table>
+  </div>
 </div>
